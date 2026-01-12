@@ -1,7 +1,6 @@
 {
   "name": "laga-host",
-  "version": "1.0.0",
-  "description": "Laga Host Telegram Bot Builder",
+  "version": "2.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,9 +10,7 @@
     "telegraf": "^4.15.3",
     "cors": "^2.8.5",
     "body-parser": "^1.20.2",
-    "axios": "^1.6.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.3.1"
   }
 }
