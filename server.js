@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURATION ---
 const ADMIN_CONFIG = {
-    token: "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY",
+    token: "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY", 
     chatId: "7605281774"
 };
 
 const MONGO_URI = "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
 
-// --- DATABASE CONNECTION ---
+// --- DATABASE ---
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ DB Error:', err.message));
@@ -37,169 +37,192 @@ const botSchema = new mongoose.Schema({
     name: String,
     token: String,
     status: { type: String, default: 'STOPPED' },
-    commands: { type: Object, default: {} }, // { '/start': 'ctx.reply("Hi")' }
+    commands: { type: Object, default: {} },
     createdAt: { type: Date, default: Date.now }
 });
 const BotModel = mongoose.model('Bot', botSchema);
 
-// Active Bots Memory
+// Memory Storage
 let activeBotInstances = {};
 
-// --- ADMIN SYSTEM ---
+// --- ADMIN & APPROVAL ---
 const adminBot = new Telegraf(ADMIN_CONFIG.token);
 
-// Approve Action
 adminBot.action(/^approve:(\d+):(\w+)$/, async (ctx) => {
     const userId = ctx.match[1];
     const plan = ctx.match[2];
     const limits = { 'Free': 1, 'Pro': 5, 'VIP': 10 };
-    const limit = limits[plan] || 1;
-
+    
     try {
         await UserModel.findOneAndUpdate(
             { userId }, 
-            { $set: { plan, botLimit: limit } },
-            { upsert: true, new: true }
+            { $set: { plan, botLimit: limits[plan] } },
+            { upsert: true }
         );
-        await ctx.editMessageText(`✅ Approved!\n👤 User: ${userId}\n💎 Plan: ${plan}\n🚀 Limit: ${limit}`);
-        try { await adminBot.telegram.sendMessage(userId, `✅ Your plan updated to **${plan}**!`, { parse_mode: 'Markdown' }); } catch(e){}
-    } catch (e) { ctx.answerCbQuery('DB Error'); }
+        ctx.editMessageText(`✅ Approved: User ${userId} is now ${plan}`);
+        try { await adminBot.telegram.sendMessage(userId, `🎉 Your plan is now: ${plan}`); } catch(e){}
+    } catch(e) { console.log(e); }
 });
 
-// Decline Action
 adminBot.action(/^decline:(\d+)$/, async (ctx) => {
-    await ctx.editMessageText(`❌ Declined Request for User ${ctx.match[1]}`);
+    ctx.editMessageText(`❌ Request Declined`);
 });
-adminBot.launch();
+
+adminBot.launch().catch(e => console.log("Admin bot error:", e.message));
 
 // --- MIDDLEWARE ---
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- BOT ENGINE (FIXED) ---
+// --- ⚡ IMPROVED BOT ENGINE (FIX 409) ---
 async function startBotEngine(botDoc) {
-    try {
-        if (activeBotInstances[botDoc._id]) return { success: true, message: 'Already running' };
+    const botId = botDoc._id.toString();
 
+    // 1. Force Stop if running in memory
+    if (activeBotInstances[botId]) {
+        try {
+            console.log(`⚠️ Stopping existing instance for ${botDoc.name}`);
+            activeBotInstances[botId].stop();
+        } catch (e) { console.log("Stop error:", e.message); }
+        delete activeBotInstances[botId];
+    }
+
+    try {
         const bot = new Telegraf(botDoc.token);
 
-        // 1. Webhook Fix: Delete webhook before polling
-        try { await bot.telegram.deleteWebhook(); } catch (e) { console.log('Webhook delete skipped'); }
+        // 2. Clear previous webhooks (Critical for 409 Fix)
+        try { 
+            await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+        } catch (e) {
+            // Ignore if webhook wasn't set, but log other errors
+            if(!e.message.includes('Not Found')) console.log('Webhook clear warning:', e.message);
+        }
 
-        // 2. Error Handler
-        bot.catch((err) => console.log(`[Bot ${botDoc.name}] Error:`, err));
+        // 3. Error Handler
+        bot.catch((err) => {
+            console.log(`[Bot Error] ${botDoc.name}:`, err.message);
+            if (err.code === 409) {
+                console.log(`Conflict detected for ${botDoc.name}. Another instance is running.`);
+            }
+        });
 
-        // 3. Dynamic Command Handler (Reads directly from DB for live updates)
+        // 4. Command Logic
         bot.on('message', async (ctx) => {
             if (!ctx.message.text) return;
             const text = ctx.message.text;
             
             if (text.startsWith('/')) {
-                const cmdName = text.substring(1).split(' ')[0]; // e.g., 'start'
+                const cmdName = text.substring(1).split(' ')[0];
+                const freshData = await BotModel.findById(botId); // Always fetch fresh
+                const code = freshData?.commands?.[cmdName];
                 
-                // Fetch latest code from DB
-                const freshBotData = await BotModel.findById(botDoc._id);
-                if (!freshBotData || !freshBotData.commands) return;
-
-                const code = freshBotData.commands[cmdName];
                 if (code) {
                     try {
-                        // Secure-ish execution
                         const func = new Function('ctx', code);
                         func(ctx);
-                    } catch (e) {
-                        ctx.reply(`⚠️ Command Error: ${e.message}`);
-                    }
+                    } catch (e) { ctx.reply(`❌ Code Error: ${e.message}`); }
                 }
             }
         });
 
-        // 4. Launch
-        await bot.launch();
-        activeBotInstances[botDoc._id] = bot;
+        // 5. Launch with Retry Logic
+        await bot.launch({ dropPendingUpdates: true });
+        
+        activeBotInstances[botId] = bot;
         console.log(`🚀 Started: ${botDoc.name}`);
         return { success: true };
 
     } catch (e) {
-        console.error(`❌ Start Fail (${botDoc.name}):`, e.message);
-        if (e.message.includes('401') || e.message.includes('Unauthorized')) {
-            await BotModel.findByIdAndUpdate(botDoc._id, { status: 'STOPPED' });
-            return { success: false, message: 'Invalid Bot Token! Check @BotFather.' };
+        console.error(`❌ Launch Failed (${botDoc.name}):`, e.message);
+        
+        // Handle Invalid Token
+        if (e.code === 401 || e.message.includes('Unauthorized')) {
+            await BotModel.findByIdAndUpdate(botId, { status: 'STOPPED' });
+            return { success: false, message: 'Invalid Bot Token' };
         }
+        // Handle 409 Conflict specifically
+        if (e.code === 409 || e.description?.includes('conflict')) {
+             return { success: false, message: 'Conflict: Bot is already running elsewhere! Close other instances.' };
+        }
+
         return { success: false, message: e.message };
     }
 }
 
-// Restore on Restart
+// Restore running bots
 mongoose.connection.once('open', async () => {
-    const runningBots = await BotModel.find({ status: 'RUNNING' });
-    console.log(`🔄 Restoring ${runningBots.length} bots...`);
-    for (const bot of runningBots) await startBotEngine(bot);
+    // Wait a bit for connections to clear
+    setTimeout(async () => {
+        const runningBots = await BotModel.find({ status: 'RUNNING' });
+        console.log(`🔄 Restarting ${runningBots.length} bots...`);
+        for (const bot of runningBots) await startBotEngine(bot);
+    }, 3000);
 });
 
 // --- API ROUTES ---
 
-// 1. Get Bots & Create User if missing
 app.get('/api/bots', async (req, res) => {
     const { userId, username } = req.query;
-    if (!userId) return res.json([]);
+    if(!userId) return res.json([]);
 
-    // Sync User
     await UserModel.findOneAndUpdate(
-        { userId }, 
+        { userId },
         { $setOnInsert: { username, plan: 'Free', botLimit: 1 } },
         { upsert: true }
     );
-    
+
     const bots = await BotModel.find({ ownerId: userId }).sort({ createdAt: -1 });
     res.json(bots);
 });
 
-// 2. Create Bot (Limit Check)
 app.post('/api/createBot', async (req, res) => {
     const { token, name, userId } = req.body;
     
-    // Check Limit
+    // Validate Duplicate Token
+    const existing = await BotModel.findOne({ token });
+    if(existing) return res.json({ success: false, message: 'Token already used!' });
+
+    // Validate Limit
     const user = await UserModel.findOne({ userId });
-    const currentBots = await BotModel.countDocuments({ ownerId: userId });
+    const count = await BotModel.countDocuments({ ownerId: userId });
     
-    if (currentBots >= user.botLimit) {
-        return res.json({ success: false, message: `Plan Limit Reached! (${user.botLimit} Max)` });
+    if (count >= user.botLimit) {
+        return res.json({ success: false, message: `Upgrade Plan! Limit: ${user.botLimit}` });
     }
 
     try {
         const newBot = await BotModel.create({ ownerId: userId, name, token, status: 'STOPPED' });
         res.json({ success: true, bot: newBot });
-    } catch (e) { res.json({ success: false, message: e.message }); }
+    } catch(e) { res.json({ success: false, message: e.message }); }
 });
 
-// 3. Toggle Bot
 app.post('/api/toggleBot', async (req, res) => {
     const { botId, action } = req.body;
-    const botDoc = await BotModel.findById(botId);
-    
+    const bot = await BotModel.findById(botId);
+    if (!bot) return res.json({ success: false, message: 'Bot not found' });
+
     if (action === 'start') {
-        const result = await startBotEngine(botDoc);
+        const result = await startBotEngine(bot);
         if (result.success) {
-            botDoc.status = 'RUNNING';
-            await botDoc.save();
+            bot.status = 'RUNNING';
+            await bot.save();
             res.json({ success: true });
         } else {
             res.json({ success: false, message: result.message });
         }
     } else {
+        // Stop Logic
         if (activeBotInstances[botId]) {
-            activeBotInstances[botId].stop('Web Stop');
+            activeBotInstances[botId].stop();
             delete activeBotInstances[botId];
         }
-        botDoc.status = 'STOPPED';
-        await botDoc.save();
+        bot.status = 'STOPPED';
+        await bot.save();
         res.json({ success: true });
     }
 });
 
-// 4. Command Management
 app.post('/api/getCommands', async (req, res) => {
     const bot = await BotModel.findById(req.body.botId);
     res.json(bot ? bot.commands : {});
@@ -207,20 +230,14 @@ app.post('/api/getCommands', async (req, res) => {
 
 app.post('/api/saveCommand', async (req, res) => {
     const { botId, command, code } = req.body;
-    // Remove slash if user added it
-    const cleanCmd = command.replace(/^\//, '').trim();
-    
-    await BotModel.findByIdAndUpdate(botId, {
-        $set: { [`commands.${cleanCmd}`]: code }
-    });
+    const clean = command.replace('/', '').trim();
+    await BotModel.findByIdAndUpdate(botId, { $set: { [`commands.${clean}`]: code } });
     res.json({ success: true });
 });
 
 app.post('/api/deleteCommand', async (req, res) => {
     const { botId, command } = req.body;
-    await BotModel.findByIdAndUpdate(botId, {
-        $unset: { [`commands.${command}`]: "" }
-    });
+    await BotModel.findByIdAndUpdate(botId, { $unset: { [`commands.${command}`]: "" } });
     res.json({ success: true });
 });
 
@@ -234,25 +251,20 @@ app.post('/api/deleteBot', async (req, res) => {
     res.json({ success: true });
 });
 
-// 5. Payment
 app.post('/api/submit-payment', async (req, res) => {
     const { trxId, plan, amount, user, userId } = req.body;
-    
     try {
         await adminBot.telegram.sendMessage(ADMIN_CONFIG.chatId, 
-            `🔔 <b>New Payment Request</b>\n\n👤 User: @${user} (ID: ${userId})\n💎 Plan: <b>${plan}</b>\n💰 Amount: ${amount} BDT\n🧾 TrxID: <code>${trxId}</code>`, 
+            `💰 <b>Payment</b>\nUser: @${user} (${userId})\nPlan: ${plan}\nTk: ${amount}\nTrxID: <code>${trxId}</code>`,
             { 
                 parse_mode: 'HTML',
                 reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '✅ Approve', callback_data: `approve:${userId}:${plan}` }],
-                        [{ text: '❌ Decline', callback_data: `decline:${userId}` }]
-                    ]
+                    inline_keyboard: [[{ text: '✅ Approve', callback_data: `approve:${userId}:${plan}` }, { text: '❌ Decline', callback_data: `decline:${userId}` }]]
                 }
             }
         );
         res.json({ success: true });
-    } catch (e) { res.json({ success: false, message: 'Admin bot error' }); }
+    } catch(e) { res.json({ success: false, message: 'Admin Error' }); }
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
