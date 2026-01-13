@@ -3,36 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
     <title>Laga Host Ultimate AI</title>
     
     <!-- External Libraries -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Space Grotesk', 'sans-serif'], mono: ['Fira Code', 'monospace'] },
+                    fontFamily: { sans: ['Space Grotesk', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
                     colors: {
-                        dark: { 900: '#000000', 800: '#0F0F0F', 700: '#141414' },
+                        dark: { 
+                            950: '#000000', 
+                            900: '#050505', 
+                            800: '#0A0A0A', 
+                            700: '#121212', 
+                            600: '#1C1C1C' 
+                        },
                         brand: { 
-                            primary: '#3B82F6', // Bright Blue
-                            secondary: '#8B5CF6', // Purple
-                            success: '#10B981', 
-                            danger: '#EF4444',
-                            warning: '#F59E0B'
+                            primary: '#3B82F6',   // Electric Blue
+                            secondary: '#8B5CF6', // Violet
+                            accent: '#F472B6',    // Pink
+                            success: '#10B981',   // Emerald
+                            danger: '#EF4444',    // Red
+                            warning: '#F59E0B'    // Amber
                         }
                     },
                     animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                        'pulse-glow': 'pulseGlow 2s infinite',
                         'float': 'float 3s ease-in-out infinite',
                     },
                     keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        pulseGlow: { 
+                            '0%, 100%': { boxShadow: '0 0 0px rgba(59, 130, 246, 0)' }, 
+                            '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)' } 
+                        },
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
                             '50%': { transform: 'translateY(-5px)' },
@@ -43,220 +60,260 @@
         }
     </script>
 
-    <!-- Custom CSS for Advanced UI Effects -->
+    <!-- Custom Advanced CSS -->
     <style>
         body { 
             background-color: #000000; 
             color: #ffffff; 
             -webkit-tap-highlight-color: transparent; 
             overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 0%, #111 0%, #000 60%);
         }
 
-        /* Glassmorphism Cards */
-        .glass-card {
-            background: rgba(20, 20, 20, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 1.25rem;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        /* Inputs */
-        .modern-input {
-            background: #0A0A0A;
-            border: 1px solid #262626;
-            transition: all 0.3s ease;
-            color: white;
+        /* Modern Input Fields */
+        .glass-input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #fff;
         }
-        .modern-input:focus {
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.06);
             border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
             outline: none;
         }
 
-        /* Custom Scrollbar for Editor */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        /* Uptime Counter Gradient Text */
-        .uptime-text {
-            background: linear-gradient(to right, #10B981, #3B82F6);
+        /* Uptime Text Gradient */
+        .text-gradient {
+            background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-family: 'Fira Code', monospace;
         }
 
-        /* Loaders */
-        .loader-spin {
-            border: 2px solid transparent;
-            border-top-color: currentColor;
-            border-right-color: currentColor;
+        /* 🔥 CUSTOM TOAST NOTIFICATION SYSTEM 🔥 */
+        #toast-container {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        
+        .toast {
+            pointer-events: auto;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 14px 18px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.9);
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(-20px);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Toast Types Colors */
+        .toast.success { border-left: 4px solid #10B981; }
+        .toast.error { border-left: 4px solid #EF4444; }
+        .toast.info { border-left: 4px solid #3B82F6; }
+
+        /* Toast Animation */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        /* Loaders & Spinners */
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-left-color: #fff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        /* AI Button Glow */
-        .ai-glow:hover {
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
-        }
-        
-        /* Code Editor Area */
-        .code-area {
-            background-color: #050505;
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Code Editor Specifics */
+        .code-bg {
+            background-color: #080808;
             background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
             background-size: 20px 20px;
         }
     </style>
 </head>
-<body class="min-h-screen pb-32 select-none">
+<body class="min-h-screen pb-40 select-none bg-dark-950 text-white font-sans antialiased">
+
+    <!-- 🔥 TOAST CONTAINER (Replaces Alerts) -->
+    <div id="toast-container"></div>
 
     <!-- ========================================== -->
-    <!-- 1. LOADING SCREEN & PLATFORM CHECKER -->
+    <!-- 1. LOADING SCREEN -->
     <!-- ========================================== -->
-    <div id="loader" class="fixed inset-0 z-[999] bg-[#000000] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="relative w-16 h-16 mb-6">
-            <div class="absolute inset-0 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-            <div class="absolute inset-3 border-4 border-brand-secondary border-b-transparent rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+    <div id="loader" class="fixed inset-0 z-[999] bg-black flex flex-col items-center justify-center transition-all duration-700">
+        <div class="relative w-24 h-24 mb-8">
+            <div class="absolute inset-0 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full blur-[40px] opacity-40 animate-pulse"></div>
+            <div class="relative w-full h-full border-2 border-white/10 rounded-full animate-spin border-t-brand-primary"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <i data-lucide="cpu" class="w-8 h-8 text-white/90"></i>
+            </div>
         </div>
-        <h2 id="loader-msg" class="text-sm font-bold tracking-[0.3em] text-gray-400 uppercase">System Initializing</h2>
+        <h2 id="loader-msg" class="text-xs font-bold tracking-[0.5em] text-white/40 uppercase animate-pulse">Initializing</h2>
     </div>
 
     <!-- ========================================== -->
     <!-- 2. MAIN APPLICATION CONTENT -->
     <!-- ========================================== -->
-    <main id="app" class="hidden relative z-10 p-5 max-w-md mx-auto fade-in">
+    <main id="app" class="hidden relative z-10 px-5 pt-6 max-w-lg mx-auto opacity-0 transition-opacity duration-700">
         
-        <!-- A. Header Section -->
-        <header class="flex justify-between items-center mb-8 pt-2">
+        <!-- Header Section -->
+        <header class="flex justify-between items-center mb-10">
             <div class="flex items-center gap-4">
                 <div class="relative group cursor-pointer" onclick="toggleAdmin()">
-                    <!-- Avatar with Gradient Ring -->
-                    <div class="absolute -inset-0.5 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full opacity-70 blur-sm group-hover:opacity-100 transition"></div>
-                    <img id="userAvatar" src="" class="relative w-12 h-12 rounded-full border border-black bg-dark-800 object-cover">
-                    <!-- Online Dot -->
-                    <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-brand-success rounded-full border-2 border-black z-20"></div>
+                    <!-- Avatar Ring -->
+                    <div class="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-brand-primary to-brand-secondary animate-pulse-glow">
+                        <img id="userAvatar" src="" class="w-full h-full rounded-full bg-dark-800 object-cover border-2 border-black">
+                    </div>
+                    <!-- Status Dot -->
+                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-brand-success rounded-full border-[3px] border-black"></div>
                 </div>
                 <div>
-                    <h1 class="font-bold text-xl leading-none text-white mb-1.5">Hi, <span id="userName" class="text-gray-200">User</span></h1>
-                    <div class="flex items-center gap-2">
-                        <span id="planBadge" class="text-[10px] font-bold bg-white/10 border border-white/10 px-2 py-0.5 rounded text-gray-300 uppercase tracking-wide">Free</span>
-                        <span id="validity" class="text-[10px] text-gray-500 font-mono">Lifetime</span>
+                    <h1 class="font-bold text-xl text-white leading-tight">Hi, <span id="userName" class="text-gray-400">Guest</span></h1>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span id="planBadge" class="text-[10px] font-bold bg-white/10 px-2.5 py-1 rounded text-gray-400 uppercase tracking-wide border border-white/5">Free Tier</span>
                     </div>
                 </div>
             </div>
             
             <!-- Hidden Admin Button -->
-            <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition">
-                <i data-lucide="shield-check" class="w-5 h-5"></i>
+            <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all active:scale-95">
+                <i data-lucide="shield" class="w-5 h-5"></i>
             </button>
         </header>
 
-        <!-- B. Referral Card -->
-        <div class="glass-card p-6 mb-8 relative overflow-hidden group">
-            <!-- Background Glow -->
-            <div class="absolute top-0 right-0 w-40 h-40 bg-brand-primary/20 blur-[60px] -mr-10 -mt-10 rounded-full pointer-events-none"></div>
+        <!-- Referral Stats Card -->
+        <div class="glass-panel p-7 mb-10 relative overflow-hidden group">
+            <!-- Decorative Blur -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-brand-primary/10 blur-[60px] rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-brand-primary/20 transition duration-700"></div>
             
             <div class="relative z-10 flex justify-between items-start">
                 <div>
-                    <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Total Referrals</p>
-                    <h2 id="refCount" class="text-5xl font-bold font-sans text-white">0</h2>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Referral Points</p>
+                    <h2 id="refCount" class="text-5xl font-bold font-mono text-white tracking-tighter drop-shadow-lg">0</h2>
                 </div>
-                <button onclick="copyLink()" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow-lg shadow-brand-primary/30 active:scale-95 transition hover:shadow-brand-secondary/40 animate-float">
+                <button onclick="copyLink()" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow-lg shadow-brand-primary/30 active:scale-90 transition-transform animate-float hover:shadow-brand-secondary/50">
                     <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
                 </button>
             </div>
-            
-            <div class="relative z-10 mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-                <p class="text-[11px] text-gray-500 font-medium">Invite friends & unlock Premium</p>
-                <button onclick="copyLink()" class="text-[11px] font-bold text-brand-primary hover:text-white transition">Copy Link -></button>
+            <div class="mt-6 pt-5 border-t border-white/5 flex justify-between items-center">
+                <p class="text-[11px] text-gray-400">Invite friends & earn <span class="text-white font-bold">Premium</span></p>
+                <div class="text-[10px] text-brand-primary font-bold cursor-pointer hover:underline" onclick="copyLink()">Copy Link -></div>
             </div>
         </div>
 
-        <!-- C. Deploy Server Button -->
-        <button onclick="openModal('createModal')" class="w-full mb-8 relative group overflow-hidden rounded-2xl">
-            <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary opacity-50 blur-md group-hover:opacity-70 transition duration-500 animate-pulse-slow"></div>
-            <div class="relative bg-dark-900/90 backdrop-blur-md border border-white/10 rounded-2xl h-16 flex items-center justify-center gap-3 active:scale-[0.98] transition">
-                <i data-lucide="rocket" class="w-5 h-5 text-white"></i>
-                <span class="font-bold text-white text-sm tracking-widest uppercase">Deploy New Server</span>
+        <!-- Deploy Bot Button -->
+        <button onclick="openModal('createModal')" class="w-full mb-10 relative group overflow-hidden rounded-2xl shadow-2xl shadow-brand-primary/10">
+            <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary opacity-60 blur-xl group-hover:opacity-80 transition duration-500"></div>
+            <div class="relative bg-dark-900/80 backdrop-blur-xl border border-white/10 rounded-2xl h-16 flex items-center justify-center gap-3 active:scale-[0.98] transition hover:border-white/20">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-white"></i>
+                <span class="font-bold text-white text-sm tracking-[0.15em] uppercase">Deploy New Bot</span>
             </div>
         </button>
 
-        <!-- D. Active Instances Section -->
-        <div class="mb-10">
-            <div class="flex items-center justify-between mb-4 px-1">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Instances</h3>
-                <span id="limitBadge" class="text-[10px] font-mono bg-white/5 border border-white/5 px-2.5 py-1 rounded text-gray-400">0/1</span>
+        <!-- Bot List Container -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-5 px-1">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="server" class="w-3 h-3"></i> Active Instances
+                </h3>
+                <span id="limitBadge" class="text-[10px] font-mono bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-gray-400">0/1</span>
             </div>
 
-            <div id="botsContainer" class="space-y-4 min-h-[100px]">
-                <!-- Bots will be injected here via JS -->
+            <div id="botsContainer" class="space-y-5 min-h-[100px]">
+                <!-- Dynamic Content injected here -->
             </div>
             
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden glass-card border-dashed border-white/10 p-8 text-center opacity-60">
-                <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i data-lucide="server" class="w-6 h-6 text-gray-400"></i>
+            <!-- Empty State Placeholder -->
+            <div id="emptyState" class="hidden glass-panel border-dashed border-white/10 p-10 text-center opacity-60">
+                <div class="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="box" class="w-6 h-6 text-gray-500"></i>
                 </div>
-                <p class="text-xs font-bold text-gray-300">No Servers Running</p>
+                <p class="text-sm font-bold text-gray-300">No Servers Running</p>
                 <p class="text-[10px] text-gray-500 mt-1">Deploy your first bot to get started.</p>
             </div>
         </div>
 
-        <!-- E. Upgrade Plans -->
-        <div class="mb-8">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 text-center">Upgrade Plan</h3>
-            <div class="space-y-3">
+        <!-- Pricing Plans -->
+        <div class="mb-10">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5 text-center">Upgrade Tier</h3>
+            <div class="grid grid-cols-2 gap-4">
                 <!-- Pro Plan -->
-                <div onclick="openPay('Pro', 50)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-primary">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                            <i data-lucide="zap" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-white">Pro</h4>
-                            <p class="text-[10px] text-gray-500">5 Bots • Priority Support</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <h4 class="font-bold text-white text-lg">50৳</h4>
-                        <span class="text-[10px] text-brand-primary font-bold bg-brand-primary/10 px-2 py-0.5 rounded">or 50 Refers</span>
+                <div onclick="openPay('Pro', 50)" class="glass-panel p-5 cursor-pointer hover:bg-white/5 transition border border-transparent hover:border-brand-primary/40 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-brand-primary/10 blur-xl rounded-full -mr-8 -mt-8 group-hover:bg-brand-primary/20 transition"></div>
+                    <i data-lucide="zap" class="w-6 h-6 text-brand-primary mb-4"></i>
+                    <h4 class="font-bold text-white text-sm">Pro</h4>
+                    <p class="text-[10px] text-gray-500 mb-3">5 Bots • Fast Support</p>
+                    <div class="flex items-end gap-1">
+                        <span class="text-lg font-bold text-white">50৳</span>
+                        <span class="text-[10px] text-gray-500 mb-1">/mo</span>
                     </div>
                 </div>
                 <!-- VIP Plan -->
-                <div onclick="openPay('VIP', 80)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-secondary">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-                            <i data-lucide="crown" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-white">VIP</h4>
-                            <p class="text-[10px] text-gray-500">10 Bots • 24/7 Uptime</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <h4 class="font-bold text-white text-lg">80৳</h4>
-                        <span class="text-[10px] text-brand-secondary font-bold bg-brand-secondary/10 px-2 py-0.5 rounded">or 80 Refers</span>
+                <div onclick="openPay('VIP', 80)" class="glass-panel p-5 cursor-pointer hover:bg-white/5 transition border border-transparent hover:border-brand-secondary/40 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-brand-secondary/10 blur-xl rounded-full -mr-8 -mt-8 group-hover:bg-brand-secondary/20 transition"></div>
+                    <i data-lucide="crown" class="w-6 h-6 text-brand-secondary mb-4"></i>
+                    <h4 class="font-bold text-white text-sm">VIP</h4>
+                    <p class="text-[10px] text-gray-500 mb-3">10 Bots • Priority</p>
+                    <div class="flex items-end gap-1">
+                        <span class="text-lg font-bold text-white">80৳</span>
+                        <span class="text-[10px] text-gray-500 mb-1">/mo</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- F. Admin Panel with AI -->
-        <div id="adminPanel" class="hidden glass-card p-5 mb-10 border-l-4 border-brand-danger animate-fade-in">
-            <div class="flex justify-between items-center mb-3">
+        <!-- Admin Broadcast Panel (Visible only to Admin) -->
+        <div id="adminPanel" class="hidden glass-panel p-6 mb-10 border-l-2 border-brand-danger animate-slide-up">
+            <div class="flex justify-between items-center mb-5">
                 <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                    <i data-lucide="radio" class="w-4 h-4 text-brand-danger"></i> Admin Broadcast
+                    <i data-lucide="radio" class="w-4 h-4 text-brand-danger"></i> Broadcast System
                 </h3>
-                <button onclick="openAI('broadcast')" class="text-[10px] bg-brand-secondary/20 text-brand-secondary px-2 py-1 rounded border border-brand-secondary/30 hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
+                <button onclick="openAI('broadcast')" class="text-[10px] bg-brand-secondary/10 text-brand-secondary px-3 py-1.5 rounded-lg border border-brand-secondary/20 hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
                     <i data-lucide="sparkles" class="w-3 h-3"></i> AI Write
                 </button>
             </div>
-            <textarea id="bdMsg" class="modern-input w-full rounded-xl p-3 text-xs text-white mb-3 h-20 resize-none font-mono" placeholder="Write HTML Message..."></textarea>
-            <button onclick="sendBroadcast()" class="w-full bg-brand-danger/10 text-brand-danger py-2.5 rounded-lg text-xs font-bold border border-brand-danger/30 hover:bg-brand-danger hover:text-white transition">Send Announcement</button>
+            <textarea id="bdMsg" class="glass-input w-full rounded-xl p-4 text-xs text-white mb-4 h-28 resize-none font-mono leading-relaxed" placeholder="Type your announcement (HTML Supported)..."></textarea>
+            <button onclick="sendBroadcast()" class="w-full bg-brand-danger text-white py-3.5 rounded-xl text-xs font-bold shadow-lg shadow-red-900/20 active:scale-95 transition hover:bg-red-600">Send to All Users & Bots</button>
         </div>
 
     </main>
@@ -264,121 +321,129 @@
     <!-- ========================================== -->
     <!-- 3. MODALS (POPUPS) -->
     <!-- ========================================== -->
-
+    
     <!-- Create Bot Modal -->
     <div id="createModal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
-        <div class="relative bg-[#0F0F0F] w-full max-w-sm rounded-t-[2rem] sm:rounded-2xl p-6 border-t sm:border border-white/10 transform transition-transform duration-300 translate-y-full sm:translate-y-0" id="createModalContent">
-            <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-8"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300" onclick="closeModal('createModal')"></div>
+        <div class="relative bg-dark-800 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-7 border border-white/10 transform transition-transform duration-300 translate-y-full sm:translate-y-0 shadow-2xl" id="createModalContent">
+            <div class="w-12 h-1 bg-white/10 rounded-full mx-auto mb-6 sm:hidden"></div>
             
-            <h3 class="text-xl font-bold mb-2 text-white">New Instance</h3>
-            <p class="text-xs text-gray-500 mb-6">Enter your BotFather details below.</p>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
+                    <i data-lucide="bot" class="w-5 h-5 text-brand-primary"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Deploy Bot</h3>
+            </div>
+            
+            <p class="text-xs text-gray-500 mb-6">Enter details from <span class="text-brand-primary font-bold">@BotFather</span> to start.</p>
             
             <div class="space-y-5">
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-2">Bot Name</label>
-                    <input id="botName" placeholder="My Awesome Bot" class="modern-input w-full rounded-xl p-4 text-sm mt-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Bot Name</label>
+                    <input id="botName" placeholder="My Awesome Bot" class="glass-input w-full rounded-xl p-4 text-sm text-white mt-1.5">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-2">Bot Token</label>
-                    <input id="botToken" placeholder="12345:ABCdef..." class="modern-input w-full rounded-xl p-4 text-sm font-mono mt-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Bot Token</label>
+                    <input id="botToken" placeholder="12345:ABCdef..." class="glass-input w-full rounded-xl p-4 text-sm font-mono text-white mt-1.5">
                 </div>
-                <button onclick="createBot()" class="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 active:scale-95 transition mt-2">Deploy Server</button>
+                <button onclick="createBot()" class="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition shadow-lg shadow-blue-900/20">Launch Server</button>
             </div>
-            <div class="h-4"></div>
         </div>
     </div>
 
     <!-- Payment Modal -->
     <div id="payModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" onclick="closeModal('payModal')"></div>
-        <div class="relative glass-card bg-[#0F0F0F] w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300" id="payModalContent">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-300" onclick="closeModal('payModal')"></div>
+        <div class="relative glass-panel bg-dark-800 w-full max-w-sm p-7 transform scale-95 opacity-0 transition-all duration-300" id="payModalContent">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold">Unlock <span id="payPlan" class="text-brand-primary">Pro</span></h3>
+                <h3 class="text-lg font-bold">Get <span id="payPlan" class="text-brand-primary">Pro</span></h3>
                 <button onclick="closeModal('payModal')" class="p-2 bg-white/5 rounded-full hover:bg-white/10"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
             
             <!-- Tabs -->
-            <div class="flex gap-2 mb-6 p-1.5 bg-black rounded-xl border border-white/10">
-                <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-primary text-white transition-all">Nagad</button>
+            <div class="flex gap-2 mb-6 p-1.5 bg-black/40 rounded-xl border border-white/5">
+                <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-primary text-white transition-all">Mobile Pay</button>
                 <button onclick="setPayMode('ref')" id="tabRef" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all">Points</button>
             </div>
 
-            <!-- Cash Section -->
+            <!-- Cash Content -->
             <div id="cashSec">
                 <div class="bg-brand-success/10 border border-brand-success/20 p-4 rounded-xl flex justify-between items-center mb-5">
                     <div>
-                        <p class="text-[10px] text-brand-success font-bold uppercase">Send Money To</p>
-                        <p class="text-sm font-mono font-bold text-white mt-1">01761494948</p>
+                        <p class="text-[10px] text-brand-success font-bold uppercase">Send Money To (Nagad)</p>
+                        <p class="text-sm font-mono font-bold text-white mt-1 tracking-wider">01761494948</p>
                     </div>
-                    <button onclick="navigator.clipboard.writeText('01761494948')" class="p-2 bg-brand-success/20 rounded-lg text-brand-success hover:bg-brand-success hover:text-white transition"><i data-lucide="copy" class="w-4 h-4"></i></button>
+                    <button onclick="copyToClipboard('01761494948')" class="p-2.5 bg-brand-success/20 rounded-lg text-brand-success hover:bg-brand-success hover:text-white transition"><i data-lucide="copy" class="w-4 h-4"></i></button>
                 </div>
-                <input id="trxId" placeholder="Enter Transaction ID" class="modern-input w-full rounded-xl p-3.5 text-sm text-center mb-4 text-white font-mono">
-                <button onclick="submitPay()" class="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition">Confirm Payment</button>
+                <input id="trxId" placeholder="Enter Transaction ID" class="glass-input w-full rounded-xl p-4 text-sm text-center mb-4 text-white font-mono tracking-widest">
+                <button onclick="submitPay()" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition shadow-lg">Verify Payment</button>
             </div>
 
-            <!-- Referral Section -->
-            <div id="refSec" class="hidden text-center py-4">
-                <div class="w-16 h-16 bg-brand-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-secondary">
-                    <i data-lucide="users" class="w-8 h-8"></i>
+            <!-- Referral Content -->
+            <div id="refSec" class="hidden text-center py-5">
+                <div class="w-20 h-20 bg-brand-secondary/10 rounded-full flex items-center justify-center mx-auto mb-5 text-brand-secondary">
+                    <i data-lucide="users" class="w-10 h-10"></i>
                 </div>
-                <h4 class="text-xl font-bold text-white">Pay with Points</h4>
-                <p class="text-xs text-gray-500 mt-2 mb-6">Use your referral balance to upgrade.</p>
-                <button onclick="submitPay()" class="w-full bg-brand-secondary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-900/30">Purchase Now</button>
+                <h4 class="text-xl font-bold text-white mb-2">Pay with Points</h4>
+                <p class="text-xs text-gray-500 mb-6 px-4">Instant upgrade using your referral balance.</p>
+                <button onclick="submitPay()" class="w-full bg-brand-secondary text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-900/30 hover:bg-brand-secondary/90">Redeem Now</button>
             </div>
         </div>
     </div>
 
-    <!-- JS Editor Modal (Full Screen) -->
-    <div id="editorModal" class="fixed inset-0 z-[100] hidden bg-[#050505] flex flex-col transform translate-x-full transition-transform duration-300">
+    <!-- JS Editor Modal (Fullscreen) -->
+    <div id="editorModal" class="fixed inset-0 z-[100] hidden bg-dark-950 flex flex-col transform translate-x-full transition-transform duration-300">
         <!-- Editor Header -->
-        <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#0A0A0A]">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 bg-dark-900">
             <button onclick="closeModal('editorModal')" class="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-            <span class="font-mono font-bold text-brand-primary tracking-widest">JS EDITOR</span>
+            <span class="font-mono font-bold text-brand-primary tracking-widest text-sm">JS CODE EDITOR</span>
             <div class="flex gap-2">
-                <button onclick="openAI('code')" class="p-2 text-brand-secondary bg-brand-secondary/10 rounded-lg border border-brand-secondary/20 animate-pulse ai-glow"><i data-lucide="sparkles" class="w-4 h-4"></i></button>
-                <button onclick="deleteCmd()" class="p-2 text-brand-danger bg-brand-danger/10 rounded-lg border border-brand-danger/20"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                <button onclick="saveCmd()" class="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-blue-600"><i data-lucide="save" class="w-3 h-3"></i> SAVE</button>
+                <button onclick="openAI('code')" class="p-2 text-brand-secondary bg-brand-secondary/10 rounded-lg border border-brand-secondary/20 animate-pulse-glow hover:bg-brand-secondary hover:text-white transition"><i data-lucide="sparkles" class="w-4 h-4"></i></button>
+                <button onclick="deleteCmd()" class="p-2 text-brand-danger bg-brand-danger/10 rounded-lg border border-brand-danger/20 hover:bg-brand-danger hover:text-white transition"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                <button onclick="saveCmd()" class="px-5 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center gap-2 shadow-lg shadow-blue-900/30 hover:bg-blue-600 transition"><i data-lucide="save" class="w-3 h-3"></i> SAVE</button>
             </div>
         </div>
 
+        <!-- Editor Body -->
         <div class="flex-1 flex flex-col p-5 overflow-hidden">
-            <!-- Chips -->
+            <!-- Chips List -->
             <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cmdList"></div>
             
             <div class="relative mb-4">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span class="text-gray-500 font-mono font-bold">/</span>
                 </div>
-                <input id="cmdNameInput" placeholder="command_name" class="modern-input w-full rounded-xl py-3 pl-8 pr-4 font-mono text-sm text-white focus:ring-0">
+                <input id="cmdNameInput" placeholder="command_name" class="glass-input w-full rounded-xl py-3 pl-8 pr-4 font-mono text-sm text-white focus:ring-0">
             </div>
             
-            <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 code-area">
-                <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-xs resize-none outline-none leading-relaxed" spellcheck="false" placeholder="// Select AI button to generate code..."></textarea>
+            <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 code-bg">
+                <textarea id="cmdCodeInput" class="w-full h-full p-5 bg-transparent text-gray-300 font-mono text-xs resize-none outline-none leading-relaxed" spellcheck="false" placeholder="// Select the Magic Wand (✨) to use AI...&#10;&#10;ctx.reply('Hello World!');"></textarea>
             </div>
         </div>
     </div>
 
-    <!-- AI Prompt Modal -->
+    <!-- AI Generator Modal -->
     <div id="aiModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('aiModal')"></div>
-        <div class="relative glass-card bg-[#111] w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300" id="aiModalContent">
-            <div class="text-center mb-6">
-                <div class="w-12 h-12 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/30">
-                    <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+        <div class="relative glass-panel bg-dark-800 w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300" id="aiModalContent">
+            <div class="flex items-center gap-4 mb-5">
+                <div class="w-12 h-12 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <i data-lucide="bot" class="w-6 h-6 text-white"></i>
                 </div>
-                <h3 class="text-lg font-bold text-white">AI Assistant</h3>
-                <p class="text-xs text-gray-400">Describe what you want to create</p>
+                <div>
+                    <h3 class="text-sm font-bold text-white">AI Assistant</h3>
+                    <p class="text-[10px] text-gray-400">Powered by OpenRouter</p>
+                </div>
             </div>
-            <textarea id="aiPrompt" class="modern-input w-full rounded-xl p-3 text-sm text-white mb-4 h-24 resize-none" placeholder="e.g., Create a welcome command with a photo and button..."></textarea>
-            <button onclick="generateAI()" class="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2">
+            <textarea id="aiPrompt" class="glass-input w-full rounded-xl p-4 text-sm text-white mb-5 h-28 resize-none" placeholder="Explain what you want the bot to do..."></textarea>
+            <button onclick="generateAI()" class="w-full bg-white text-black font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition shadow-lg">
                 <span>Generate Code</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </button>
         </div>
     </div>
 
     <!-- ========================================== -->
-    <!-- 4. JAVASCRIPT LOGIC -->
+    <!-- 4. JAVASCRIPT LOGIC (ROBUST & FULL) -->
     <!-- ========================================== -->
     <script>
         // Init Icons
@@ -392,26 +457,57 @@
         tg.enableClosingConfirmation();
 
         // --- GLOBAL STATE ---
-        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Guest', username: 'guest' }; // Fallback
+        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Guest', username: 'guest' }; // Fallback for browser testing
         let currentBotId = null;
         let payDetails = {};
         let payMode = 'cash';
-        let aiMode = 'code'; // code or broadcast
-        let activeTimers = {}; // Store timer intervals
+        let aiMode = 'code'; // 'code' or 'broadcast'
+        let activeTimers = {}; // Store timer intervals to clear them
+
+        // --- CUSTOM TOAST SYSTEM (Replaces Alert) ---
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = '';
+            if(type === 'success') icon = '<i data-lucide="check-circle" class="w-5 h-5 text-brand-success"></i>';
+            else if(type === 'error') icon = '<i data-lucide="alert-circle" class="w-5 h-5 text-brand-danger"></i>';
+            else icon = '<i data-lucide="info" class="w-5 h-5 text-brand-primary"></i>';
+
+            toast.innerHTML = `
+                ${icon}
+                <span class="text-xs font-bold text-white tracking-wide">${msg}</span>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Haptic Feedback
+            if(type === 'success') tg.HapticFeedback.notificationOccurred('success');
+            else if(type === 'error') tg.HapticFeedback.notificationOccurred('error');
+            else tg.HapticFeedback.impactOccurred('light');
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
 
         // --- INITIALIZATION ---
         async function init() {
             // UI Pre-fill
             document.getElementById('userName').innerText = user.first_name || 'User';
-            document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=random&color=fff`;
+            document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=0A0A0A&color=fff`;
 
-            // Admin Button Check
+            // Admin Check
             if(user.id.toString() === '7605281774') {
                 document.getElementById('adminBtn').classList.remove('hidden');
             }
 
             try {
-                // Fetch Data
+                // Fetch User & Bots
                 const response = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -427,29 +523,28 @@
                     document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
                     
                     if(u.plan !== 'Free') {
-                        document.getElementById('planBadge').className = "text-[10px] font-bold bg-brand-primary text-white px-2 py-0.5 rounded uppercase tracking-wide";
-                        document.getElementById('validity').innerText = "Premium Active";
-                        document.getElementById('validity').className = "text-[10px] text-brand-success font-mono";
+                        document.getElementById('planBadge').className = "text-[10px] font-bold bg-brand-primary text-white px-2.5 py-1 rounded uppercase tracking-wide shadow-lg shadow-blue-900/30";
                     }
                 }
 
                 // Render Bots
                 renderBots(data.bots);
 
-                // Show App
+                // Show App (Remove Loader)
                 setTimeout(() => {
                     document.getElementById('loader').classList.add('opacity-0', 'pointer-events-none');
-                    document.getElementById('app').classList.remove('hidden');
-                }, 500);
+                    document.getElementById('app').classList.remove('hidden', 'opacity-0');
+                    document.getElementById('app').classList.add('fade-in');
+                }, 800);
 
             } catch (error) {
                 console.error(error);
-                document.getElementById('loader-msg').innerText = "Network Error";
+                document.getElementById('loader-msg').innerText = "OFFLINE";
                 document.getElementById('loader-msg').classList.add('text-brand-danger');
             }
         }
 
-        // --- RENDER FUNCTIONS (UI GENERATION) ---
+        // --- UI RENDER FUNCTIONS ---
         function renderBots(bots) {
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
@@ -467,13 +562,13 @@
             bots.forEach(bot => {
                 const isRun = bot.status === 'RUNNING';
                 const card = document.createElement('div');
-                card.className = `glass-card p-5 border-l-2 transition-all duration-300 ${isRun ? 'border-brand-success shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'border-gray-800'}`;
+                card.className = `glass-panel p-5 border-l-2 transition-all duration-300 ${isRun ? 'border-brand-success shadow-[0_0_15px_rgba(16,185,129,0.05)]' : 'border-gray-800'}`;
                 
                 // Uptime Logic
                 let uptimeHtml = '';
                 if(isRun && bot.startedAt) {
-                    uptimeHtml = `<div class="mt-2 text-xs font-mono bg-black/40 rounded px-2 py-1 inline-block border border-white/5">
-                        ⏳ <span id="timer-${bot._id}" class="uptime-text">Calculating...</span>
+                    uptimeHtml = `<div class="mt-2 text-[10px] font-mono bg-white/5 rounded px-2.5 py-1 inline-block border border-white/5 text-gray-300">
+                        ⏳ <span id="timer-${bot._id}" class="text-gradient font-bold">Calculating...</span>
                     </div>`;
                     startUptimeTimer(bot._id, bot.startedAt);
                 }
@@ -481,29 +576,29 @@
                 // Action Buttons Logic
                 let actionsHtml = '';
                 if(isRun) {
-                    // Running: Restart, Stop, Editor
+                    // Running State
                     actionsHtml = `
-                        <div class="grid grid-cols-3 gap-2 mt-4">
-                            <button onclick="restartBot('${bot._id}')" class="bg-brand-warning/10 text-brand-warning border border-brand-warning/20 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-brand-warning/20 transition active:scale-95">
-                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> <span class="text-[10px] font-bold">RESTART</span>
+                        <div class="grid grid-cols-3 gap-2.5 mt-5">
+                            <button onclick="restartBot('${bot._id}')" class="bg-brand-warning/10 text-brand-warning border border-brand-warning/20 rounded-xl py-3 flex flex-col items-center justify-center gap-1 hover:bg-brand-warning/20 transition active:scale-95">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> <span class="text-[9px] font-bold tracking-wider">RESTART</span>
                             </button>
-                            <button onclick="toggleBot(this, '${bot._id}', 'stop')" class="bg-brand-danger/10 text-brand-danger border border-brand-danger/20 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-brand-danger/20 transition active:scale-95">
-                                <i data-lucide="square" class="w-4 h-4 fill-current"></i> <span class="text-[10px] font-bold">STOP</span>
+                            <button onclick="toggleBot(this, '${bot._id}', 'stop')" class="bg-brand-danger/10 text-brand-danger border border-brand-danger/20 rounded-xl py-3 flex flex-col items-center justify-center gap-1 hover:bg-brand-danger/20 transition active:scale-95">
+                                <i data-lucide="square" class="w-4 h-4 fill-current"></i> <span class="text-[9px] font-bold tracking-wider">STOP</span>
                             </button>
-                            <button onclick="openEditor('${bot._id}')" class="bg-white/5 text-gray-300 border border-white/10 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition active:scale-95">
-                                <i data-lucide="code" class="w-4 h-4"></i> <span class="text-[10px] font-bold">EDITOR</span>
+                            <button onclick="openEditor('${bot._id}')" class="bg-white/5 text-gray-300 border border-white/10 rounded-xl py-3 flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition active:scale-95">
+                                <i data-lucide="code" class="w-4 h-4"></i> <span class="text-[9px] font-bold tracking-wider">CODE</span>
                             </button>
                         </div>
                     `;
                 } else {
-                    // Stopped: Start Only
+                    // Stopped State
                     actionsHtml = `
-                        <div class="mt-4">
-                            <button onclick="toggleBot(this, '${bot._id}', 'start')" class="w-full bg-brand-success/10 text-brand-success border border-brand-success/20 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-brand-success/20 transition active:scale-95 shadow-lg shadow-green-900/20">
-                                <i data-lucide="play" class="w-5 h-5 fill-current"></i> <span class="text-sm font-bold">START SERVER</span>
+                        <div class="mt-5">
+                            <button onclick="toggleBot(this, '${bot._id}', 'start')" class="w-full bg-brand-success text-black border border-brand-success/20 rounded-xl py-3.5 flex items-center justify-center gap-2 hover:bg-green-400 transition active:scale-95 shadow-lg shadow-green-900/20">
+                                <i data-lucide="play" class="w-4 h-4 fill-current"></i> <span class="text-xs font-bold tracking-wider">START SERVER</span>
                             </button>
                             <div class="flex justify-end mt-2">
-                                <button onclick="deleteBot('${bot._id}')" class="text-[10px] text-gray-600 hover:text-red-500 flex items-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Delete</button>
+                                <button onclick="deleteBot('${bot._id}')" class="text-[10px] text-gray-600 hover:text-red-500 flex items-center gap-1 p-2 transition"><i data-lucide="trash-2" class="w-3 h-3"></i> Delete</button>
                             </div>
                         </div>
                     `;
@@ -514,11 +609,11 @@
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-xl ${isRun ? 'bg-brand-success/10' : 'bg-white/5'} flex items-center justify-center relative">
                                 <i data-lucide="bot" class="w-6 h-6 ${isRun ? 'text-brand-success' : 'text-gray-500'}"></i>
-                                ${isRun ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-brand-success rounded-full animate-pulse border-2 border-black"></span>' : ''}
+                                ${isRun ? '<span class="absolute top-0 right-0 w-2.5 h-2.5 bg-brand-success rounded-full animate-pulse shadow-lg shadow-green-500/50"></span>' : ''}
                             </div>
                             <div>
-                                <h4 class="font-bold text-white text-base leading-tight">${bot.name}</h4>
-                                <p class="text-[10px] font-bold uppercase tracking-widest mt-1 ${isRun ? 'text-brand-success' : 'text-gray-500'}">${bot.status}</p>
+                                <h4 class="font-bold text-white text-sm leading-tight">${bot.name}</h4>
+                                <p class="text-[9px] font-bold uppercase tracking-widest mt-1 ${isRun ? 'text-brand-success' : 'text-gray-500'}">${bot.status}</p>
                                 ${uptimeHtml}
                             </div>
                         </div>
@@ -540,14 +635,13 @@
                 
                 if(diff < 0) return;
 
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
 
                 const el = document.getElementById(`timer-${botId}`);
                 if(el) {
-                    el.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                    el.innerText = `${h}h ${m}m ${s}s`;
                 }
             };
             
@@ -555,42 +649,44 @@
             activeTimers[botId] = setInterval(update, 1000);
         }
 
-        // --- BOT ACTIONS (START/STOP) ---
+        // --- BOT ACTIONS (START/STOP/CREATE) ---
         async function createBot() {
             const btn = document.querySelector('#createModal button');
             const originalText = btn.innerText;
-            btn.innerText = "Deploying..."; btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div>`; btn.disabled = true;
 
             const name = document.getElementById('botName').value;
             const token = document.getElementById('botToken').value;
 
             if(!name || !token) {
-                alert('Please fill all fields');
+                showToast('Please fill all fields', 'error');
                 btn.innerText = originalText; btn.disabled = false; return;
             }
 
-            const res = await fetch('/api/createBot', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name, token, userId: user.id.toString() })
-            }).then(r => r.json());
+            try {
+                const res = await fetch('/api/createBot', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, token, userId: user.id.toString() })
+                }).then(r => r.json());
 
-            if(res.success) {
-                closeModal('createModal');
-                document.getElementById('botName').value = ''; document.getElementById('botToken').value = '';
-                tg.HapticFeedback.notificationOccurred('success');
-                init();
-            } else {
-                tg.HapticFeedback.notificationOccurred('error');
-                alert(res.message);
+                if(res.success) {
+                    closeModal('createModal');
+                    document.getElementById('botName').value = ''; document.getElementById('botToken').value = '';
+                    showToast('Server Deployed Successfully!', 'success');
+                    init();
+                } else {
+                    showToast(res.message, 'error');
+                }
+            } catch(e) {
+                showToast('Network Error', 'error');
             }
             btn.innerText = originalText; btn.disabled = false;
         }
 
-        // 🔥 IMPORTANT FIX: Toggle with Try-Catch 🔥
         async function toggleBot(btn, id, action) {
-            // Loading State
-            const originalContent = btn ? btn.innerHTML : '';
-            if(btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full loader-spin"></div>`;
+            // Loading State in Button
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<div class="spinner mx-auto"></div>`;
             
             try {
                 const res = await fetch('/api/toggleBot', {
@@ -599,24 +695,23 @@
                 }).then(r => r.json());
 
                 if(res.success) {
-                    tg.HapticFeedback.impactOccurred('medium');
+                    showToast(action === 'start' ? 'Server Started' : 'Server Stopped', 'success');
                     init(); // Refresh UI
                 } else {
-                    tg.HapticFeedback.notificationOccurred('error');
-                    alert(res.message || 'Error toggling bot');
-                    if(btn) btn.innerHTML = originalContent; // Reset button if failed
+                    showToast(res.message || 'Error toggling bot', 'error');
+                    btn.innerHTML = originalContent; // Reset button if failed
                     init(); // Revert UI
                 }
             } catch (error) {
                 console.error("Toggle Error:", error);
-                alert("Server connection failed. Check console.");
-                if(btn) btn.innerHTML = originalContent;
+                showToast("Connection failed", 'error');
+                btn.innerHTML = originalContent;
                 init();
             }
         }
 
         async function restartBot(id) {
-            tg.HapticFeedback.impactOccurred('medium');
+            showToast('Restarting Server...', 'info');
             try {
                 const res = await fetch('/api/restartBot', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -624,24 +719,24 @@
                 }).then(r => r.json());
                 
                 if(res.success) {
-                    tg.showPopup({ message: 'Server Restarted Successfully!' });
+                    showToast('Server Restarted Successfully!', 'success');
                     init();
                 } else {
-                    alert('Restart Failed: ' + res.message);
+                    showToast('Restart Failed: ' + res.message, 'error');
                 }
             } catch(e) {
-                alert('Connection Error');
+                showToast('Connection Error', 'error');
             }
         }
 
         function deleteBot(id) {
-            tg.showConfirm("Are you sure you want to delete this server?\nThis action cannot be undone.", async (ok) => {
+            tg.showConfirm("Are you sure you want to delete this server permanently?", async (ok) => {
                 if(ok) {
                     await fetch('/api/deleteBot', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ botId: id })
                     });
-                    tg.HapticFeedback.notificationOccurred('success');
+                    showToast('Server Deleted', 'success');
                     init();
                 }
             });
@@ -668,14 +763,14 @@
         function renderChips(cmds) {
             const list = document.getElementById('cmdList');
             list.innerHTML = `
-                <button onclick="newCmd()" class="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20">
-                    <i data-lucide="plus" class="w-3 h-3"></i> New
+                <button onclick="newCmd()" class="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-[10px] font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20">
+                    <i data-lucide="plus" class="w-3 h-3"></i> NEW
                 </button>
             `;
             
             Object.entries(cmds).forEach(([name, code]) => {
                 const btn = document.createElement('button');
-                btn.className = 'px-4 py-2 bg-white/10 border border-white/5 rounded-lg text-xs font-mono text-gray-300 hover:text-white hover:bg-white/20 transition whitespace-nowrap';
+                btn.className = 'px-3 py-1.5 bg-white/10 border border-white/5 rounded-lg text-[10px] font-mono text-gray-300 hover:text-white hover:bg-white/20 transition whitespace-nowrap';
                 btn.innerText = '/' + name;
                 btn.onclick = () => {
                     document.getElementById('cmdNameInput').value = name;
@@ -696,14 +791,14 @@
             const name = document.getElementById('cmdNameInput').value;
             const code = document.getElementById('cmdCodeInput').value;
             
-            if(!name) return alert('Command name is required!');
+            if(!name) return showToast('Command name is required!', 'error');
 
             await fetch('/api/saveCommand', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: currentBotId, command: name, code })
             });
             
-            tg.HapticFeedback.notificationOccurred('success');
+            showToast('Code Saved Successfully', 'success');
             openEditor(currentBotId); // Refresh list
         }
 
@@ -716,12 +811,12 @@
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ botId: currentBotId, command: name })
                 });
-                tg.HapticFeedback.impactOccurred('light');
+                showToast('Command Deleted', 'success');
                 openEditor(currentBotId);
             }
         }
 
-        // --- AI LOGIC ---
+        // --- OPENROUTER AI LOGIC ---
         function openAI(mode) {
             aiMode = mode; // 'code' or 'broadcast'
             document.getElementById('aiModal').classList.remove('hidden');
@@ -734,9 +829,9 @@
             const btn = document.querySelector('#aiModal button');
             const originalText = btn.innerHTML;
             
-            if(!prompt) return;
+            if(!prompt) return showToast('Please enter a prompt', 'error');
             
-            btn.innerHTML = `<span class="loader-spin w-4 h-4 border-2 border-black border-t-transparent"></span> Generating...`;
+            btn.innerHTML = `<span class="spinner"></span>`;
             
             try {
                 const res = await fetch('/api/ai-generate', {
@@ -751,13 +846,13 @@
                     } else {
                         document.getElementById('bdMsg').value = res.result;
                     }
-                    tg.HapticFeedback.notificationOccurred('success');
+                    showToast('Content Generated with AI', 'success');
                     document.getElementById('aiPrompt').value = '';
                 } else {
-                    alert(res.message);
+                    showToast(res.message, 'error');
                 }
             } catch(e) {
-                alert('AI Busy');
+                showToast('AI Service Busy', 'error');
             }
             btn.innerHTML = originalText;
         }
@@ -792,7 +887,7 @@
 
         async function submitPay() {
             const trx = document.getElementById('trxId').value;
-            if(payMode === 'cash' && !trx) return alert('Please enter Transaction ID');
+            if(payMode === 'cash' && !trx) return showToast('Please enter Transaction ID', 'error');
 
             const res = await fetch('/api/submit-payment', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -808,13 +903,43 @@
 
             if(res.success) {
                 closeModal('payModal');
-                tg.showPopup({ title: 'Success', message: res.message });
-                tg.HapticFeedback.notificationOccurred('success');
+                showToast(res.message, 'success');
                 if(payMode === 'referral') init();
             } else {
-                tg.HapticFeedback.notificationOccurred('error');
-                alert(res.message);
+                showToast(res.message, 'error');
             }
+        }
+
+        // --- UTILS ---
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showToast('Copied to Clipboard!', 'info');
+        }
+
+        function copyLink() {
+            copyToClipboard(`https://t.me/lagahostbot?start=${user.id}`);
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('hidden');
+            if(id === 'createModal') {
+                setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
+            } else if(id === 'payModal' || id === 'aiModal') {
+                setTimeout(() => el.querySelector('div[id$="Content"]').classList.remove('scale-95', 'opacity-0'), 10);
+            }
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if(id === 'createModal') {
+                el.querySelector('#createModalContent').classList.add('translate-y-full');
+            } else if(id === 'payModal' || id === 'aiModal') {
+                el.querySelector('div[id$="Content"]').classList.add('scale-95', 'opacity-0');
+            } else if(id === 'editorModal') {
+                el.classList.add('translate-x-full');
+            }
+            setTimeout(() => el.classList.add('hidden'), 300);
         }
 
         // --- ADMIN BROADCAST ---
@@ -824,48 +949,15 @@
         
         async function sendBroadcast() {
             const msg = document.getElementById('bdMsg').value;
-            if(!msg) return;
+            if(!msg) return showToast('Please write a message', 'error');
             
             const res = await fetch('/api/broadcast', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ message: msg, adminId: user.id.toString() })
             }).then(r => r.json());
             
-            alert(`Sent to ${res.total} users`);
+            showToast(`Broadcast sent to ${res.total} users`, 'success');
             document.getElementById('bdMsg').value = '';
-        }
-
-        // --- GENERAL UTILS ---
-        function copyLink() {
-            navigator.clipboard.writeText(`https://t.me/lagahostbot?start=${user.id}`);
-            tg.showPopup({ message: 'Referral Link Copied!' });
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-
-        function openModal(id) {
-            const el = document.getElementById(id);
-            el.classList.remove('hidden');
-            if(id === 'createModal') {
-                setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
-            } else if(id === 'payModal') {
-                setTimeout(() => el.querySelector('#payModalContent').classList.remove('scale-95', 'opacity-0'), 10);
-            } else if(id === 'aiModal') {
-                setTimeout(() => document.getElementById('aiModalContent').classList.remove('scale-95', 'opacity-0'), 10);
-            }
-        }
-
-        function closeModal(id) {
-            const el = document.getElementById(id);
-            if(id === 'createModal') {
-                el.querySelector('#createModalContent').classList.add('translate-y-full');
-            } else if(id === 'payModal') {
-                el.querySelector('#payModalContent').classList.add('scale-95', 'opacity-0');
-            } else if(id === 'aiModal') {
-                document.getElementById('aiModalContent').classList.add('scale-95', 'opacity-0');
-            } else if(id === 'editorModal') {
-                el.classList.add('translate-x-full');
-            }
-            setTimeout(() => el.classList.add('hidden'), 300);
         }
 
         // Start App
