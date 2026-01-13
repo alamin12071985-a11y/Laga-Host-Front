@@ -7,7 +7,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 const moment = require('moment');
-// 👇 Official Google AI Library for Render
+// 👇 Official Google AI Library (Updated for Gemini 1.5 Flash)
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // =================================================================================
@@ -15,7 +15,6 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 // =================================================================================
 
 const app = express();
-// Port configuration for Render
 const PORT = process.env.PORT || 3000;
 
 // ⚠️ Frontend URL (Must match your Render Frontend URL for CORS)
@@ -154,25 +153,30 @@ async function startBotEngine(botDoc) {
 
     // 1. Check if already running in RAM
     if (activeBotInstances[botId]) {
-        console.log(`⚠️ [Engine] Bot ${botDoc.name} is already active.`);
         return { success: true, message: 'Bot is already active.' };
     }
 
     try {
-        // 2. Initialize Telegraf Instance with the User's Token
+        // 2. Initialize Telegraf Instance
         const bot = new Telegraf(botDoc.token);
 
-        // 3. Validate Token (Quick Check with Telegram Servers)
-        const botInfo = await bot.telegram.getMe();
-        console.log(`✅ [Engine] Token Validated for: ${botInfo.username}`);
+        // 🔥 CRITICAL FIX: Delete Webhook before starting to prevent 409 Conflict
+        try {
+            await bot.telegram.deleteWebhook();
+        } catch (e) {
+            // Ignore error if no webhook was set, but log it for debug
+            // console.log(`[Webhook Info] ${botDoc.name}: No previous webhook to delete.`);
+        }
 
-        // 4. Error Handling (Prevent Server Crash from Child Bot Errors)
+        // 3. Validate Token
+        const botInfo = await bot.telegram.getMe();
+
+        // 4. Error Handling
         bot.catch((err, ctx) => {
             console.error(`⚠️ [Child Error] ${botDoc.name}:`, err.message);
-            // We do not stop the bot here, just log the error
         });
 
-        // 5. First Time Setup Flag (Update DB)
+        // 5. First Time Setup Flag
         if (botDoc.isFirstLive) {
             botDoc.isFirstLive = false;
             await botDoc.save();
@@ -183,15 +187,12 @@ async function startBotEngine(botDoc) {
         // ============================================================
         bot.use(async (ctx, next) => {
             if(ctx.from) {
-                // Run async in background to not block the bot response speed
                 (async () => {
                     try {
-                        // Check if user exists in EndUser DB
                         const exists = await EndUserModel.exists({ 
                             tgId: ctx.from.id.toString(), 
                             botId: botId 
                         });
-                        
                         if (!exists) {
                             await EndUserModel.create({
                                 tgId: ctx.from.id.toString(),
@@ -199,35 +200,28 @@ async function startBotEngine(botDoc) {
                                 username: ctx.from.username,
                                 firstName: ctx.from.first_name
                             });
-                            // console.log(`➕ New User for ${botDoc.name}: ${ctx.from.first_name}`);
                         }
-                    } catch(e) { /* Ignore duplicate errors silently */ }
+                    } catch(e) { }
                 })();
             }
             return next();
         });
 
         // ============================================================
-        // DYNAMIC JS COMMAND HANDLER (CUSTOM LOGIC SANDBOX)
+        // DYNAMIC JS COMMAND HANDLER
         // ============================================================
         bot.on('message', async (ctx) => {
             if (!ctx.message.text) return;
-            
             const text = ctx.message.text;
             
-            // Only process commands starting with /
             if (text.startsWith('/')) {
-                const cmdName = text.substring(1).split(' ')[0]; // Extract 'start' from '/start params'
-                
-                // Fetch latest commands from DB (Hot Reload feature)
-                // This allows users to update code without restarting the bot!
+                const cmdName = text.substring(1).split(' ')[0];
                 const freshBot = await BotModel.findById(botId);
                 const code = freshBot?.commands?.[cmdName];
                 
                 if (code) {
                     try {
                         // 🔒 SANDBOX EXECUTION
-                        // 'ctx', 'bot', 'Markup' are passed to the user's code context
                         const func = new Function('ctx', 'bot', 'Markup', `
                             try {
                                 ${code}
@@ -235,9 +229,7 @@ async function startBotEngine(botDoc) {
                                 ctx.reply('⚠️ Code Error: ' + e.message);
                             }
                         `);
-                        
                         func(ctx, bot, Markup);
-
                     } catch (e) {
                         ctx.reply(`❌ Syntax Error: ${e.message}`);
                     }
@@ -246,28 +238,23 @@ async function startBotEngine(botDoc) {
         });
 
         // ============================================================
-        // 🚀 LAUNCH BOT (NON-BLOCKING FIX)
+        // 🚀 LAUNCH BOT
         // ============================================================
-        
-        // Using dropPendingUpdates to prevent processing old messages
         bot.launch({ dropPendingUpdates: true })
             .then(() => console.log(`🟢 [Started] ${botDoc.name} (@${botInfo.username})`))
             .catch(err => {
                 console.error(`🔴 [Crash] ${botDoc.name}:`, err.message);
-                delete activeBotInstances[botId]; // Remove from RAM if crashed
+                delete activeBotInstances[botId];
             });
 
-        // 6. Store in RAM for management
         activeBotInstances[botId] = bot;
-        
         return { success: true };
 
     } catch (e) {
         console.error(`❌ [Start Failed] ${botDoc.name}:`, e.message);
         
-        // Handle specific Telegram errors for better user feedback
         if (e.message.includes('409 Conflict')) {
-            return { success: false, message: 'Conflict! Another instance is running. Revoke token.' };
+            return { success: false, message: 'Conflict! Terminated by other instance. Check if bot is running elsewhere.' };
         }
         if (e.message.includes('401 Unauthorized')) {
             return { success: false, message: 'Invalid Token! Please check bot token.' };
@@ -284,7 +271,6 @@ async function startBotEngine(botDoc) {
 
 /**
  * 🔹 ROUTE: Get User Data & Bot List
- * Used by the frontend to initialize the dashboard
  */
 app.post('/api/bots', async (req, res) => {
     const { userId, username, firstName } = req.body;
@@ -296,7 +282,6 @@ app.post('/api/bots', async (req, res) => {
     if (!user) {
         user = await UserModel.create({ userId, username, firstName });
     } else {
-        // Update Info if changed
         if(firstName && user.firstName !== firstName) user.firstName = firstName;
         if(username && user.username !== username) user.username = username;
         user.lastActive = new Date();
@@ -351,7 +336,7 @@ app.post('/api/toggleBot', async (req, res) => {
         
         if (result.success) {
             bot.status = 'RUNNING';
-            bot.startedAt = new Date(); // Update Uptime Start
+            bot.startedAt = new Date();
             await bot.save();
             res.json({ success: true, startedAt: bot.startedAt });
         } else {
@@ -360,16 +345,12 @@ app.post('/api/toggleBot', async (req, res) => {
     } else {
         // Stop Logic
         if (activeBotInstances[botId]) {
-            try { 
-                activeBotInstances[botId].stop('SIGINT'); // Graceful Stop
-            } catch(e) {
-                console.error("Stop Error:", e.message);
-            }
-            delete activeBotInstances[botId]; // Remove from RAM
+            try { activeBotInstances[botId].stop('SIGINT'); } catch(e) {}
+            delete activeBotInstances[botId];
         }
         
         bot.status = 'STOPPED';
-        bot.startedAt = null; // Reset Uptime
+        bot.startedAt = null;
         await bot.save();
         res.json({ success: true });
     }
@@ -394,7 +375,7 @@ app.post('/api/restartBot', async (req, res) => {
     const result = await startBotEngine(bot);
     if (result.success) {
         bot.status = 'RUNNING';
-        bot.startedAt = new Date(); // Reset Uptime
+        bot.startedAt = new Date();
         bot.restartCount = (bot.restartCount || 0) + 1;
         await bot.save();
         res.json({ success: true, startedAt: bot.startedAt });
@@ -419,7 +400,7 @@ app.post('/api/deleteBot', async (req, res) => {
     
     // Delete Bot Data
     await BotModel.findByIdAndDelete(botId);
-    // Delete Associated Users (Cleanup to save DB space)
+    // Delete Associated Users (Cleanup)
     await EndUserModel.deleteMany({ botId: botId }); 
     
     res.json({ success: true });
@@ -428,23 +409,22 @@ app.post('/api/deleteBot', async (req, res) => {
 /**
  * 🔹 ROUTE: AI Generation (Google Gemini - Render Environment)
  * ✅ Uses Official SDK for stability
- * ✅ Fetches key from process.env.GEMINI_API_KEY
+ * ✅ Uses 'gemini-1.5-flash' model
  */
 app.post('/api/ai-generate', async (req, res) => {
-    const { prompt, type } = req.body; // type = 'code' or 'broadcast'
+    const { prompt, type } = req.body;
     
     console.log(`🤖 [AI Request] Type: ${type}`);
 
     // Check configuration
     if (!aiModel) {
-        console.error("❌ [AI Error] GEMINI_API_KEY is not set in Render Environment.");
+        console.error("❌ [AI Error] GEMINI_API_KEY is not set or SDK init failed.");
         return res.json({ success: false, message: "AI Config Missing in Server" });
     }
 
     try {
         let systemInstruction = "";
         
-        // 1. Prompt Engineering based on type
         if(type === 'code') {
             systemInstruction = `You are a specialized Telegram Bot Code Generator using Telegraf.js syntax. 
             Write ONLY the javascript code block that goes inside the function body. 
@@ -459,15 +439,13 @@ app.post('/api/ai-generate', async (req, res) => {
             Do NOT use markdown.`;
         }
 
-        // 2. Call Google Gemini API
+        // Generate Content
         const result = await aiModel.generateContent(systemInstruction);
         const response = await result.response;
         const aiText = response.text();
 
-        // 3. Process Response
         if (aiText) {
             console.log("✅ [AI Success] Content Generated");
-            // Clean up Markdown blocks if AI adds them accidentally
             const cleanText = aiText
                 .replace(/```javascript/g, '')
                 .replace(/```html/g, '')
@@ -483,6 +461,7 @@ app.post('/api/ai-generate', async (req, res) => {
         
         let msg = "AI Service Busy. Try again later.";
         if (e.message.includes('API key not valid')) msg = "Invalid API Key in Server Config";
+        if (e.message.includes('404')) msg = "Model Not Found (Check package.json)";
         
         res.json({ success: false, message: msg });
     }
@@ -498,7 +477,7 @@ app.post('/api/getCommands', async (req, res) => {
 
 app.post('/api/saveCommand', async (req, res) => {
     const { botId, command, code } = req.body;
-    const cleanCmd = command.replace('/', '').trim(); // Remove / if user added it
+    const cleanCmd = command.replace('/', '').trim();
     await BotModel.findByIdAndUpdate(botId, { $set: { [`commands.${cleanCmd}`]: code } });
     res.json({ success: true });
 });
@@ -511,12 +490,10 @@ app.post('/api/deleteCommand', async (req, res) => {
 
 /**
  * 🔹 ROUTE: Payment Processing
- * Handles both Manual (Cash) and Point-based (Referral) payments
  */
 app.post('/api/submit-payment', async (req, res) => {
     const { trxId, plan, amount, userId, user, method } = req.body;
 
-    // Referral Payment Logic
     if (method === 'referral') {
         const dbUser = await UserModel.findOne({ userId });
         const required = plan === 'Pro' ? 50 : 80;
@@ -526,7 +503,7 @@ app.post('/api/submit-payment', async (req, res) => {
         }
         
         const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 30); // 30 Days Validity
+        expiry.setDate(expiry.getDate() + 30);
         
         dbUser.plan = plan;
         dbUser.botLimit = plan === 'Pro' ? 5 : 10;
@@ -537,7 +514,6 @@ app.post('/api/submit-payment', async (req, res) => {
         return res.json({ success: true, message: `Upgraded to ${plan} with Points! 🎉` });
     }
 
-    // Manual Payment (Nagad/Bkash) -> Send to Admin Bot
     try {
         await mainBot.telegram.sendMessage(ADMIN_CONFIG.chatId, 
             `💰 <b>NEW PAYMENT REQUEST</b>\n\n` +
@@ -564,13 +540,10 @@ app.post('/api/submit-payment', async (req, res) => {
 
 /**
  * 🔹 ROUTE: Global Broadcast System
- * ✅ FIX: Removed "Global Broadcast" Prefix. Sends EXACTLY what user typed.
- * Sends message to Main Users AND Child Bot Users
  */
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
     
-    // Security Check
     if (adminId !== ADMIN_CONFIG.chatId) return res.json({ success: false, message: 'Forbidden' });
 
     let totalSent = 0;
@@ -580,42 +553,34 @@ app.post('/api/broadcast', async (req, res) => {
     mainUsers.forEach((u, i) => {
         setTimeout(async () => {
             try {
-                // Sending raw message without prefix
                 await mainBot.telegram.sendMessage(u.userId, message, { parse_mode: 'HTML' });
             } catch(e) {}
-        }, i * 50); // Fast interval
+        }, i * 50);
         totalSent++;
     });
 
     // 2. Send to Child Bot Users
-    const allBots = await BotModel.find({ status: 'RUNNING' }); // Only active bots
+    const allBots = await BotModel.find({ status: 'RUNNING' });
 
     for (const bot of allBots) {
-        // Find users for this specific bot
         const endUsers = await EndUserModel.find({ botId: bot._id.toString() });
         if(endUsers.length === 0) continue;
 
-        // Get running instance
         let senderBot = activeBotInstances[bot._id.toString()];
-        
-        // If not in RAM (edge case), try init temp
         if (!senderBot) {
             try { senderBot = new Telegraf(bot.token); } catch(e) { continue; }
         }
 
-        // Send loop
         endUsers.forEach((eu, index) => {
             setTimeout(async () => {
                 try {
-                    // Sending raw message without prefix
                     await senderBot.telegram.sendMessage(eu.tgId, message, { parse_mode: 'HTML' });
                 } catch(e) {
-                    // Cleanup blocked users
                     if(e.code === 403) {
                         await EndUserModel.findByIdAndDelete(eu._id);
                     }
                 }
-            }, index * 100 + (mainUsers.length * 50)); // Staggered timing
+            }, index * 100 + (mainUsers.length * 50));
             totalSent++;
         });
     }
@@ -629,35 +594,31 @@ app.post('/api/broadcast', async (req, res) => {
 // =================================================================================
 
 // --- CRON: DAILY PLAN EXPIRY CHECK ---
-// Runs every day at midnight (00:00)
 cron.schedule('0 0 * * *', async () => {
     console.log('🔄 [CRON] Checking Expired Plans...');
     const now = new Date();
     
-    // Find users whose plan has expired
     const expiredUsers = await UserModel.find({ 
         plan: { $ne: 'Free' }, 
         planExpiresAt: { $lt: now } 
     });
     
     for (const user of expiredUsers) {
-        // Downgrade User
+        // Downgrade
         user.plan = 'Free';
         user.botLimit = 1;
         user.planExpiresAt = null;
         await user.save();
         
-        // Stop extra bots exceeding the Free limit
+        // Stop extra bots
         const bots = await BotModel.find({ ownerId: user.userId });
         if(bots.length > 1) {
             for(let i=1; i<bots.length; i++) {
                 const bId = bots[i]._id.toString();
-                // Stop from RAM
                 if(activeBotInstances[bId]) {
                     try { activeBotInstances[bId].stop(); } catch(e){}
                     delete activeBotInstances[bId];
                 }
-                // Update DB
                 bots[i].status = 'STOPPED';
                 bots[i].startedAt = null;
                 await bots[i].save();
@@ -685,7 +646,6 @@ mainBot.command('start', async (ctx) => {
             referredBy: referrerId && referrerId !== ctx.from.id.toString() ? referrerId : null
         });
 
-        // Referral Reward Logic
         if (user.referredBy) {
             await UserModel.findOneAndUpdate({ userId: user.referredBy }, { $inc: { referrals: 1 } });
             try { 
@@ -694,26 +654,24 @@ mainBot.command('start', async (ctx) => {
         }
     }
 
-    // Welcome Message with WebApp Button
     const buttons = ADMIN_CONFIG.channels.map(ch => [Markup.button.url(`📢 Join ${ch.name}`, ch.url)]);
     buttons.push([Markup.button.webApp('🚀 Open Dashboard', WEB_APP_URL)]);
 
     await ctx.replyWithHTML(
         `👋 <b>Welcome to Laga Host!</b>\n\n` +
         `Create, Manage & Edit Telegram Bots easily.\n` +
-        `Powered by Google Gemini AI & Cloud Technology.\n\n` +
+        `Powered by Google Gemini AI.\n\n` +
         `👇 <b>Click below to start:</b>`,
         Markup.inlineKeyboard(buttons)
     );
 });
 
-// --- MAIN BOT: ACTIONS (PAYMENT APPROVAL) ---
+// --- MAIN BOT: ACTIONS ---
 mainBot.action(/^approve:(\d+):(\w+)$/, async (ctx) => {
     const userId = ctx.match[1];
     const plan = ctx.match[2];
     const limits = { 'Pro': 5, 'VIP': 10 };
     
-    // Set expiry 30 days from now
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + 30);
 
@@ -741,31 +699,29 @@ mainBot.action(/^decline:(\d+)$/, async (ctx) => {
 // 7. SYSTEM STARTUP
 // =================================================================================
 
-// Launch Main Bot
-mainBot.launch({ dropPendingUpdates: true })
-    .then(() => console.log('🤖 [Main Bot] Online'))
-    .catch((err) => console.error('❌ [Main Bot] Error:', err));
+// ✅ MAIN BOT LAUNCH: Force delete webhook before polling
+mainBot.telegram.deleteWebhook().then(() => {
+    mainBot.launch({ dropPendingUpdates: true })
+        .then(() => console.log('🤖 [Main Bot] Online'))
+        .catch((err) => console.error('❌ [Main Bot] Error:', err));
+});
 
 // Auto-Restore Previous Session Bots
-// This runs once when the server starts to bring back running bots
 mongoose.connection.once('open', async () => {
     const runningBots = await BotModel.find({ status: 'RUNNING' });
-    
     if(runningBots.length > 0) {
         console.log(`🔄 [System] Restoring ${runningBots.length} active bots...`);
         let successCount = 0;
-        
         for (const bot of runningBots) {
             const result = await startBotEngine(bot);
             if(result.success) successCount++;
-            // Small delay to prevent API rate limits
             await new Promise(r => setTimeout(r, 200));
         }
-        console.log(`🚀 [System] Restored ${successCount}/${runningBots.length} bots successfully.`);
+        console.log(`🚀 [System] Restored ${successCount}/${runningBots.length} bots.`);
     }
 });
 
-// Serve Frontend (SPA Support)
+// Serve Frontend
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // Graceful Shutdown
