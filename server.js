@@ -84,7 +84,7 @@ const EndUserModel = mongoose.model('EndUser', endUserSchema);
 let activeBotInstances = {}; // RAM Storage for running bots to prevent re-login
 const mainBot = new Telegraf(ADMIN_CONFIG.token);
 
-// সাবস্ক্রিপশন চেক করার ফাংশন (আপনার অরিজিনাল কোড থেকে রাখা হয়েছে)
+// সাবস্ক্রিপশন চেক করার ফাংশন
 async function checkSubscription(userId, telegram) {
     for (const channel of ADMIN_CONFIG.channels) {
         try {
