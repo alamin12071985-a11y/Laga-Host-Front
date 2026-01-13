@@ -6,7 +6,8 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
-const { GoogleGenerativeAI } = require("@google/generative-ai"); // Google Gemini AI
+const moment = require('moment');
+const axios = require('axios'); // For OpenRouter API
 
 // =================================================================================
 // 1. SYSTEM CONFIGURATION & CONSTANTS
@@ -15,18 +16,18 @@ const { GoogleGenerativeAI } = require("@google/generative-ai"); // Google Gemin
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ Frontend URL (CORS Policy)
-const WEB_APP_URL = "https://laga-host-front.onrender.com"; 
+// ⚠️ Frontend URL (Must match your hosted frontend url for CORS)
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender.com"; 
 
-// 🤖 AI Configuration (Gemini)
-// .env ফাইলে GEMINI_API_KEY না থাকলে এটি ডেমো মোডে চলবে
-const GEN_AI_KEY = process.env.GEMINI_API_KEY || "AIzaSyDH_anrc3k5nWrWyAxI3qduefwkOwCmaJg";
-const genAI = new GoogleGenerativeAI(GEN_AI_KEY);
+// 🤖 AI Configuration (OpenRouter)
+// User provided key and model
+const OPENROUTER_API_KEY = "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";
+const AI_MODEL = "google/gemma-3n-e4b-it:free";
 
 // 🛠️ Admin & Channel Config
 const ADMIN_CONFIG = {
-    token: "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY", // Main Bot Token
-    chatId: "7605281774", // Your Admin Telegram ID
+    token: process.env.BOT_TOKEN || "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY", // Main Bot Token
+    chatId: process.env.ADMIN_ID || "7605281774", // Your Admin Telegram ID
     channels: [
         { name: 'Laga Tech Official', username: '@lagatechofficial', url: 'https://t.me/lagatechofficial' },
         { name: 'Snowman Adventure', username: '@snowmanadventureannouncement', url: 'https://t.me/snowmanadventureannouncement' }
@@ -34,15 +35,18 @@ const ADMIN_CONFIG = {
 };
 
 // 🗄️ Database Connection String
-const MONGO_URI = "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
 
 // =================================================================================
 // 2. DATABASE CONNECTION & MODELS
 // =================================================================================
 
-// Connect to MongoDB
+// Connect to MongoDB with detailed logging
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ [DB] MongoDB Connected Successfully'))
+    .then(() => {
+        console.log('✅ [DB] MongoDB Connected Successfully');
+        console.log('📊 [DB] Database is ready for operations');
+    })
     .catch(err => {
         console.error('❌ [DB] Connection Error:', err.message);
         process.exit(1); // Exit if DB fails
@@ -121,15 +125,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 /**
  * startBotEngine
  * This function initializes a child bot, sets up logic, and launches it.
- * 
- * @param {Object} botDoc - The database document of the bot
- * @returns {Object} { success: boolean, message: string }
  */
 async function startBotEngine(botDoc) {
     const botId = botDoc._id.toString();
 
     // 1. Check if already running in RAM
     if (activeBotInstances[botId]) {
+        console.log(`⚠️ [Engine] Bot ${botDoc.name} is already active.`);
         return { success: true, message: 'Bot is already active.' };
     }
 
@@ -138,13 +140,11 @@ async function startBotEngine(botDoc) {
         const bot = new Telegraf(botDoc.token);
 
         // 3. Validate Token (Quick Check)
-        // এটি নিশ্চিত করে যে টোকেন সঠিক এবং টেলিগ্রাম সার্ভার রেসপন্স দিচ্ছে
         await bot.telegram.getMe();
 
         // 4. Error Handling (Prevent Server Crash)
         bot.catch((err, ctx) => {
             console.error(`⚠️ [Child Error] ${botDoc.name}:`, err.message);
-            // Optional: Notify owner about error
         });
 
         // 5. First Time Setup Flag
@@ -174,7 +174,6 @@ async function startBotEngine(botDoc) {
                                 username: ctx.from.username,
                                 firstName: ctx.from.first_name
                             });
-                            // console.log(`➕ New User for ${botDoc.name}: ${ctx.from.first_name}`);
                         }
                     } catch(e) { /* Ignore duplicate errors silently */ }
                 })();
@@ -201,7 +200,6 @@ async function startBotEngine(botDoc) {
                 if (code) {
                     try {
                         // 🔒 SANDBOX EXECUTION
-                        // 'ctx', 'bot', 'Markup' are passed to the user's code
                         const func = new Function('ctx', 'bot', 'Markup', `
                             try {
                                 ${code}
@@ -223,8 +221,6 @@ async function startBotEngine(botDoc) {
         // 🚀 LAUNCH BOT (NON-BLOCKING FIX)
         // ============================================================
         
-        // আগে এখানে `await bot.launch()` ছিল যা সার্ভার ব্লক করত।
-        // এখন আমরা ব্যাকগ্রাউন্ডে লঞ্চ করছি।
         bot.launch({ dropPendingUpdates: true })
             .then(() => console.log(`🟢 [Started] ${botDoc.name}`))
             .catch(err => {
@@ -240,7 +236,6 @@ async function startBotEngine(botDoc) {
     } catch (e) {
         console.error(`❌ [Start Failed] ${botDoc.name}:`, e.message);
         
-        // Handle 409 Conflict (Webhook issue)
         if (e.message.includes('409 Conflict')) {
             return { success: false, message: 'Conflict! Another instance is running. Revoke token.' };
         }
@@ -312,7 +307,6 @@ app.post('/api/createBot', async (req, res) => {
 
 /**
  * 🔹 ROUTE: Toggle Bot (Start / Stop)
- * ✅ FIXED: No longer hangs/spins indefinitely
  */
 app.post('/api/toggleBot', async (req, res) => {
     const { botId, action } = req.body;
@@ -401,53 +395,56 @@ app.post('/api/deleteBot', async (req, res) => {
 });
 
 /**
- * 🔹 ROUTE: AI Generation (Gemini)
+ * 🔹 ROUTE: AI Generation (OpenRouter)
+ * ✅ Updated to use google/gemma-3n-e4b-it:free
  */
 app.post('/api/ai-generate', async (req, res) => {
     const { prompt, type } = req.body; // type = 'code' or 'broadcast'
     
     try {
-        let aiResponse = "";
+        let systemInstruction = "";
         
-        // Fallback if no key provided
-        if (!GEN_AI_KEY) {
-            if (type === 'code') {
-                aiResponse = `// AI Key Missing in Server.\n// Demo Response:\nctx.reply('You asked for: ${prompt}');`;
-            } else {
-                aiResponse = `📢 <b>Announcement</b>\n\n${prompt}\n\n<i>(Generated by Demo AI)</i>`;
-            }
+        if(type === 'code') {
+            systemInstruction = `You are a specialized Telegram Bot Code Generator using Telegraf.js syntax. 
+            Write ONLY the javascript code block that goes inside the function body. 
+            Do NOT include function declaration, markdown backticks, imports or requires.
+            Use 'ctx.reply', 'ctx.replyWithPhoto', 'Markup' etc.
+            Example input: "Send hi" -> Output: ctx.reply('Hi there!');`;
         } else {
-            // Real AI Generation
-            const model = genAI.getGenerativeModel({ model: "gemini-pro"});
-            let systemInstruction = "";
-            
-            if(type === 'code') {
-                systemInstruction = `You are a specialized Telegram Bot Code Generator using Telegraf.js syntax. 
-                Write ONLY the javascript code block that goes inside the function body. 
-                Do not include function declaration, imports or requires.
-                Use 'ctx.reply', 'ctx.replyWithPhoto', 'Markup' etc.
-                User Request: ${prompt}`;
-            } else {
-                systemInstruction = `You are a professional copywriter. Write an engaging Telegram Broadcast message in HTML format about: "${prompt}". 
-                Do not include <html> or <body> tags. Use Emojis to make it attractive. Keep it concise.`;
-            }
-
-            const result = await model.generateContent(systemInstruction);
-            const response = await result.response;
-            
-            // Clean up Markdown blocks if AI adds them
-            aiResponse = response.text()
-                .replace(/```javascript/g, '')
-                .replace(/```html/g, '')
-                .replace(/```/g, '')
-                .trim();
+            systemInstruction = `You are a professional copywriter. Write an engaging Telegram Broadcast message in HTML format. 
+            Do NOT include <html>, <body> or markdown backticks. Use Emojis. Keep it concise.`;
         }
 
-        res.json({ success: true, result: aiResponse });
+        // Call OpenRouter API
+        const aiResponse = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+            model: AI_MODEL,
+            messages: [
+                { role: "system", content: systemInstruction },
+                { role: "user", content: prompt }
+            ]
+        }, {
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": WEB_APP_URL, // Optional
+                "X-Title": "Laga Host Bot"   // Optional
+            }
+        });
+
+        let content = aiResponse.data.choices[0].message.content;
+
+        // Clean up Markdown blocks if AI adds them
+        content = content
+            .replace(/```javascript/g, '')
+            .replace(/```html/g, '')
+            .replace(/```/g, '')
+            .trim();
+
+        res.json({ success: true, result: content });
 
     } catch (e) {
-        console.error("AI Error:", e);
-        res.json({ success: false, message: "AI Busy. Try again later." });
+        console.error("OpenRouter AI Error:", e.response ? e.response.data : e.message);
+        res.json({ success: false, message: "AI Request Failed. Try again." });
     }
 });
 
@@ -526,7 +523,7 @@ app.post('/api/submit-payment', async (req, res) => {
 
 /**
  * 🔹 ROUTE: Global Broadcast System
- * Sends message to Main Users AND Child Bot Users
+ * ✅ FIX: Removed "Global Broadcast" Prefix. Sends EXACTLY what you write.
  */
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
@@ -541,7 +538,8 @@ app.post('/api/broadcast', async (req, res) => {
     mainUsers.forEach((u, i) => {
         setTimeout(async () => {
             try {
-                await mainBot.telegram.sendMessage(u.userId, `📢 <b>Announcement</b>\n\n${message}`, { parse_mode: 'HTML' });
+                // Sending raw message without prefix
+                await mainBot.telegram.sendMessage(u.userId, message, { parse_mode: 'HTML' });
             } catch(e) {}
         }, i * 50); // Fast interval
         totalSent++;
@@ -567,7 +565,8 @@ app.post('/api/broadcast', async (req, res) => {
         endUsers.forEach((eu, index) => {
             setTimeout(async () => {
                 try {
-                    await senderBot.telegram.sendMessage(eu.tgId, `📢 <b>Global Broadcast</b>\n\n${message}`, { parse_mode: 'HTML' });
+                    // Sending raw message without prefix
+                    await senderBot.telegram.sendMessage(eu.tgId, message, { parse_mode: 'HTML' });
                 } catch(e) {
                     // Cleanup blocked users
                     if(e.code === 403) {
@@ -702,7 +701,6 @@ mainBot.launch({ dropPendingUpdates: true })
 
 // Auto-Restore Previous Session Bots
 mongoose.connection.once('open', async () => {
-    // console.log('🔄 [System] Checking for active bots to restore...');
     const runningBots = await BotModel.find({ status: 'RUNNING' });
     
     if(runningBots.length > 0) {
