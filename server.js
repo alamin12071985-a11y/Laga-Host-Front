@@ -10,6 +10,10 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ⚠️ IMPORTANT: এখানে আপনার Render বা Hosting এর ডাইরেক্ট লিংক দিন (t.me লিংক দেবেন না)
+// উদাহরণ: "https://laga-host.onrender.com"
+const WEB_APP_URL = "https://laga-host-ultimate.onrender.com"; 
+
 // --- CONFIGURATION ---
 const ADMIN_CONFIG = {
     token: "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY", 
@@ -20,7 +24,6 @@ const ADMIN_CONFIG = {
     ]
 };
 
-// Update DB URI here
 const MONGO_URI = "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
 
 // --- DATABASE ---
@@ -46,7 +49,7 @@ const botSchema = new mongoose.Schema({
     ownerId: { type: String, required: true },
     name: String,
     token: String,
-    status: { type: String, default: 'STOPPED' }, // RUNNING or STOPPED
+    status: { type: String, default: 'STOPPED' }, 
     commands: { type: Object, default: {} },
     isFirstLive: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
@@ -65,20 +68,20 @@ async function checkSubscription(userId, telegram) {
     for (const channel of ADMIN_CONFIG.channels) {
         try {
             const member = await telegram.getChatMember(channel.username, userId);
+            // Member status check
             if (['left', 'kicked', 'restricted'].includes(member.status)) {
                 return false;
             }
         } catch (e) {
-            console.log(`Skipping check for ${channel.username} (Bot likely not admin)`);
-            // If bot isn't admin in channel, we usually allow or strictly fail. 
-            // Currently allowing to prevent stuck users if you forget to make bot admin.
-            // set return false; if you want strict fail on error.
+            console.log(`⚠️ Skipping check for ${channel.username} (Bot needs to be Admin there)`);
+            // যদি বোট চ্যানেলে এডমিন না থাকে, তাহলে বাইপাস করবে না এরর দেবে?
+            // আপাতত বাইপাস করা হলো যাতে ইউজাররা আটকে না যায়। স্ট্রিক্ট করতে চাইলে 'return false' দিন।
         }
     }
     return true;
 }
 
-// Cron Job: Check Expired Plans Daily
+// Cron Job: Check Expired Plans
 cron.schedule('0 0 * * *', async () => {
     const now = new Date();
     const expiredUsers = await UserModel.find({ 
@@ -92,7 +95,6 @@ cron.schedule('0 0 * * *', async () => {
         user.planExpiresAt = null;
         await user.save();
         
-        // Stop extra bots if any
         const bots = await BotModel.find({ ownerId: user.userId });
         if(bots.length > 1) {
             for(let i=1; i<bots.length; i++) {
@@ -114,7 +116,6 @@ mainBot.command('start', async (ctx) => {
     const args = ctx.message.text.split(' ');
     const referrerId = args[1];
 
-    // Create User Logic
     let user = await UserModel.findOne({ userId: ctx.from.id.toString() });
     if (!user) {
         user = await UserModel.create({
@@ -129,13 +130,11 @@ mainBot.command('start', async (ctx) => {
             try { await ctx.telegram.sendMessage(user.referredBy, `🎉 <b>New Referral!</b>\n${ctx.from.first_name} joined via your link.`, {parse_mode: 'HTML'}); } catch(e){}
         }
     } else {
-        // Update info if changed
         user.firstName = ctx.from.first_name;
         user.username = ctx.from.username;
         await user.save();
     }
 
-    // Force Sub Buttons
     const buttons = ADMIN_CONFIG.channels.map(ch => [Markup.button.url(`📢 Join ${ch.name}`, ch.url)]);
     buttons.push([Markup.button.callback('✅ Verify & Start', 'check_sub')]);
 
@@ -151,14 +150,18 @@ mainBot.action('check_sub', async (ctx) => {
     const isJoined = await checkSubscription(ctx.from.id, ctx.telegram);
     
     if (isJoined) {
-        await ctx.deleteMessage();
+        try {
+            await ctx.deleteMessage(); // Delete previous "Join" message
+        } catch(e) {}
+
         await ctx.replyWithHTML(
             `✅ <b>Verified Successfully!</b>\n\n` +
             `Welcome to the ultimate Telegram Bot Hosting platform.\n` +
             `Deploy, Manage & Edit your bots 24/7.\n\n` +
             `👇 <b>Click below to open Dashboard:</b>`,
             Markup.inlineKeyboard([
-                [Markup.button.webApp('🚀 Open Dashboard', 'https://t.me/lagahostbot/app')],
+                // FIX: Using actual HTTPS URL, not t.me link
+                [Markup.button.webApp('🚀 Open Dashboard', WEB_APP_URL)],
                 [Markup.button.callback('👤 Profile', 'my_status'), Markup.button.callback('💰 Plans', 'my_plans')]
             ])
         );
@@ -200,7 +203,6 @@ mainBot.action(/^approve:(\d+):(\w+)$/, async (ctx) => {
     const plan = ctx.match[2];
     const limits = { 'Pro': 5, 'VIP': 10 };
     
-    // Set 30 Days Logic
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + 30);
 
@@ -229,7 +231,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 async function startBotEngine(botDoc) {
     const botId = botDoc._id.toString();
 
-    // Kill existing
     if (activeBotInstances[botId]) {
         try { activeBotInstances[botId].stop(); } catch(e){}
         delete activeBotInstances[botId];
@@ -237,10 +238,8 @@ async function startBotEngine(botDoc) {
 
     try {
         const bot = new Telegraf(botDoc.token);
-        // Clear old webhooks
         try { await bot.telegram.deleteWebhook({ drop_pending_updates: true }); } catch(e){}
 
-        // First Run Notify
         if (botDoc.isFirstLive) {
             botDoc.isFirstLive = false;
             await botDoc.save();
@@ -249,15 +248,12 @@ async function startBotEngine(botDoc) {
             } catch (e) {}
         }
 
-        // Handle Commands
         bot.on('message', async (ctx) => {
             if (!ctx.message.text) return;
             const text = ctx.message.text;
             
             if (text.startsWith('/')) {
                 const cmdName = text.substring(1).split(' ')[0];
-                
-                // Fetch latest code from DB every time (Instant Update)
                 const freshBot = await BotModel.findById(botId);
                 const code = freshBot?.commands?.[cmdName];
                 
@@ -288,7 +284,6 @@ async function startBotEngine(botDoc) {
     }
 }
 
-// Auto Restart on Crash/Reboot
 mongoose.connection.once('open', async () => {
     console.log('🔄 Restarting active bots...');
     const runningBots = await BotModel.find({ status: 'RUNNING' });
@@ -299,14 +294,12 @@ mongoose.connection.once('open', async () => {
 
 // --- API ROUTES ---
 
-// 1. Get Bots & User Info
 app.post('/api/bots', async (req, res) => {
     const { userId, username, firstName } = req.body;
     if(!userId) return res.json({ bots: [], user: null });
 
     let user = await UserModel.findOne({ userId });
     
-    // Sync User Info if missing or changed
     if (!user) {
         user = await UserModel.create({ userId, username, firstName });
     } else if(firstName && user.firstName !== firstName) {
@@ -315,7 +308,6 @@ app.post('/api/bots', async (req, res) => {
         await user.save();
     }
 
-    // Check Expiry
     if (user.plan !== 'Free' && user.planExpiresAt && new Date() > new Date(user.planExpiresAt)) {
         user.plan = 'Free';
         user.botLimit = 1;
@@ -327,24 +319,19 @@ app.post('/api/bots', async (req, res) => {
     res.json({ bots, user });
 });
 
-// 2. Create Bot
 app.post('/api/createBot', async (req, res) => {
     const { token, name, userId } = req.body;
     const user = await UserModel.findOne({ userId });
-    
     const count = await BotModel.countDocuments({ ownerId: userId });
+    
     if (count >= user.botLimit) return res.json({ success: false, message: 'Upgrade plan to create more!' });
-
-    // Validate Token format simple check
     if(!token.includes(':')) return res.json({ success: false, message: 'Invalid Bot Token' });
-
     if (await BotModel.findOne({ token })) return res.json({ success: false, message: 'Token already in use!' });
 
     const newBot = await BotModel.create({ ownerId: userId, name, token });
     res.json({ success: true, bot: newBot });
 });
 
-// 3. Toggle Bot
 app.post('/api/toggleBot', async (req, res) => {
     const { botId, action } = req.body;
     const bot = await BotModel.findById(botId);
@@ -370,7 +357,6 @@ app.post('/api/toggleBot', async (req, res) => {
     }
 });
 
-// 4. Delete Bot
 app.post('/api/deleteBot', async (req, res) => {
     const { botId } = req.body;
     if (activeBotInstances[botId]) {
@@ -381,7 +367,6 @@ app.post('/api/deleteBot', async (req, res) => {
     res.json({ success: true });
 });
 
-// 5. Commands
 app.post('/api/getCommands', async (req, res) => {
     const bot = await BotModel.findById(req.body.botId);
     res.json(bot ? bot.commands : {});
@@ -400,7 +385,6 @@ app.post('/api/deleteCommand', async (req, res) => {
     res.json({ success: true });
 });
 
-// 6. Payment & Upgrade
 app.post('/api/submit-payment', async (req, res) => {
     const { trxId, plan, amount, userId, user, method } = req.body;
 
@@ -422,7 +406,6 @@ app.post('/api/submit-payment', async (req, res) => {
         return res.json({ success: true, message: 'Upgraded with Points! 🎉' });
     }
 
-    // Cash: Send to Admin
     try {
         await mainBot.telegram.sendMessage(ADMIN_CONFIG.chatId, 
             `💰 <b>New Payment</b>\nUser: @${user} (<code>${userId}</code>)\nPlan: ${plan}\nAmount: ${amount}৳\nTrxID: <code>${trxId}</code>`,
@@ -442,30 +425,25 @@ app.post('/api/submit-payment', async (req, res) => {
     }
 });
 
-// 7. Broadcast API
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
-    
-    // Strict Admin Check
     if (adminId !== ADMIN_CONFIG.chatId) return res.json({ success: false, message: 'Forbidden' });
 
     const users = await UserModel.find({});
     let count = 0;
     
-    // Send in chunks to avoid flood wait
     users.forEach((u, i) => {
         setTimeout(async () => {
             try {
                 await mainBot.telegram.sendMessage(u.userId, `📢 <b>Announcement</b>\n\n${message}`, { parse_mode: 'HTML' });
             } catch(e) {}
-        }, i * 200); // 200ms delay per user
+        }, i * 200);
         count++;
     });
 
     res.json({ success: true, total: count });
 });
 
-// Fallback to Frontend
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
