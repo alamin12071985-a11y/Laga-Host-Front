@@ -43,7 +43,7 @@
         }
     </script>
 
-    <!-- Custom CSS -->
+    <!-- Custom CSS for Advanced UI Effects -->
     <style>
         body { 
             background-color: #000000; 
@@ -76,19 +76,17 @@
             outline: none;
         }
 
+        /* Custom Scrollbar for Editor */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
         /* Uptime Counter Gradient Text */
         .uptime-text {
             background: linear-gradient(to right, #10B981, #3B82F6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-family: 'Fira Code', monospace;
-        }
-
-        /* Code Editor Area */
-        .code-area {
-            background-color: #050505;
-            background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
-            background-size: 20px 20px;
         }
 
         /* Loaders */
@@ -105,11 +103,20 @@
         .ai-glow:hover {
             box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
         }
+        
+        /* Code Editor Area */
+        .code-area {
+            background-color: #050505;
+            background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-32 select-none">
 
-    <!-- 1. LOADING SCREEN -->
+    <!-- ========================================== -->
+    <!-- 1. LOADING SCREEN & PLATFORM CHECKER -->
+    <!-- ========================================== -->
     <div id="loader" class="fixed inset-0 z-[999] bg-[#000000] flex flex-col items-center justify-center transition-opacity duration-500">
         <div class="relative w-16 h-16 mb-6">
             <div class="absolute inset-0 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
@@ -118,15 +125,19 @@
         <h2 id="loader-msg" class="text-sm font-bold tracking-[0.3em] text-gray-400 uppercase">System Initializing</h2>
     </div>
 
-    <!-- 2. MAIN APP -->
+    <!-- ========================================== -->
+    <!-- 2. MAIN APPLICATION CONTENT -->
+    <!-- ========================================== -->
     <main id="app" class="hidden relative z-10 p-5 max-w-md mx-auto fade-in">
         
-        <!-- Header -->
+        <!-- A. Header Section -->
         <header class="flex justify-between items-center mb-8 pt-2">
             <div class="flex items-center gap-4">
                 <div class="relative group cursor-pointer" onclick="toggleAdmin()">
+                    <!-- Avatar with Gradient Ring -->
                     <div class="absolute -inset-0.5 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full opacity-70 blur-sm group-hover:opacity-100 transition"></div>
                     <img id="userAvatar" src="" class="relative w-12 h-12 rounded-full border border-black bg-dark-800 object-cover">
+                    <!-- Online Dot -->
                     <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-brand-success rounded-full border-2 border-black z-20"></div>
                 </div>
                 <div>
@@ -137,14 +148,18 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Hidden Admin Button -->
             <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition">
                 <i data-lucide="shield-check" class="w-5 h-5"></i>
             </button>
         </header>
 
-        <!-- Referral Card -->
+        <!-- B. Referral Card -->
         <div class="glass-card p-6 mb-8 relative overflow-hidden group">
+            <!-- Background Glow -->
             <div class="absolute top-0 right-0 w-40 h-40 bg-brand-primary/20 blur-[60px] -mr-10 -mt-10 rounded-full pointer-events-none"></div>
+            
             <div class="relative z-10 flex justify-between items-start">
                 <div>
                     <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Total Referrals</p>
@@ -154,9 +169,14 @@
                     <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
                 </button>
             </div>
+            
+            <div class="relative z-10 mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+                <p class="text-[11px] text-gray-500 font-medium">Invite friends & unlock Premium</p>
+                <button onclick="copyLink()" class="text-[11px] font-bold text-brand-primary hover:text-white transition">Copy Link -></button>
+            </div>
         </div>
 
-        <!-- Deploy Button -->
+        <!-- C. Deploy Server Button -->
         <button onclick="openModal('createModal')" class="w-full mb-8 relative group overflow-hidden rounded-2xl">
             <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary opacity-50 blur-md group-hover:opacity-70 transition duration-500 animate-pulse-slow"></div>
             <div class="relative bg-dark-900/90 backdrop-blur-md border border-white/10 rounded-2xl h-16 flex items-center justify-center gap-3 active:scale-[0.98] transition">
@@ -165,7 +185,7 @@
             </div>
         </button>
 
-        <!-- Active Instances -->
+        <!-- D. Active Instances Section -->
         <div class="mb-10">
             <div class="flex items-center justify-between mb-4 px-1">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Instances</h3>
@@ -173,9 +193,10 @@
             </div>
 
             <div id="botsContainer" class="space-y-4 min-h-[100px]">
-                <!-- Bots Injected Here -->
+                <!-- Bots will be injected here via JS -->
             </div>
             
+            <!-- Empty State -->
             <div id="emptyState" class="hidden glass-card border-dashed border-white/10 p-8 text-center opacity-60">
                 <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i data-lucide="server" class="w-6 h-6 text-gray-400"></i>
@@ -185,10 +206,11 @@
             </div>
         </div>
 
-        <!-- Upgrade Plans -->
+        <!-- E. Upgrade Plans -->
         <div class="mb-8">
             <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 text-center">Upgrade Plan</h3>
             <div class="space-y-3">
+                <!-- Pro Plan -->
                 <div onclick="openPay('Pro', 50)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-primary">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -201,8 +223,10 @@
                     </div>
                     <div class="text-right">
                         <h4 class="font-bold text-white text-lg">50৳</h4>
+                        <span class="text-[10px] text-brand-primary font-bold bg-brand-primary/10 px-2 py-0.5 rounded">or 50 Refers</span>
                     </div>
                 </div>
+                <!-- VIP Plan -->
                 <div onclick="openPay('VIP', 80)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-secondary">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
@@ -215,12 +239,13 @@
                     </div>
                     <div class="text-right">
                         <h4 class="font-bold text-white text-lg">80৳</h4>
+                        <span class="text-[10px] text-brand-secondary font-bold bg-brand-secondary/10 px-2 py-0.5 rounded">or 80 Refers</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Admin Panel with AI -->
+        <!-- F. Admin Panel with AI -->
         <div id="adminPanel" class="hidden glass-card p-5 mb-10 border-l-4 border-brand-danger animate-fade-in">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -236,14 +261,19 @@
 
     </main>
 
-    <!-- 3. MODALS -->
+    <!-- ========================================== -->
+    <!-- 3. MODALS (POPUPS) -->
+    <!-- ========================================== -->
 
     <!-- Create Bot Modal -->
     <div id="createModal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
         <div class="relative bg-[#0F0F0F] w-full max-w-sm rounded-t-[2rem] sm:rounded-2xl p-6 border-t sm:border border-white/10 transform transition-transform duration-300 translate-y-full sm:translate-y-0" id="createModalContent">
             <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-8"></div>
+            
             <h3 class="text-xl font-bold mb-2 text-white">New Instance</h3>
+            <p class="text-xs text-gray-500 mb-6">Enter your BotFather details below.</p>
+            
             <div class="space-y-5">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase ml-2">Bot Name</label>
@@ -267,10 +297,14 @@
                 <h3 class="text-lg font-bold">Unlock <span id="payPlan" class="text-brand-primary">Pro</span></h3>
                 <button onclick="closeModal('payModal')" class="p-2 bg-white/5 rounded-full hover:bg-white/10"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
+            
+            <!-- Tabs -->
             <div class="flex gap-2 mb-6 p-1.5 bg-black rounded-xl border border-white/10">
                 <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-primary text-white transition-all">Nagad</button>
                 <button onclick="setPayMode('ref')" id="tabRef" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all">Points</button>
             </div>
+
+            <!-- Cash Section -->
             <div id="cashSec">
                 <div class="bg-brand-success/10 border border-brand-success/20 p-4 rounded-xl flex justify-between items-center mb-5">
                     <div>
@@ -282,6 +316,8 @@
                 <input id="trxId" placeholder="Enter Transaction ID" class="modern-input w-full rounded-xl p-3.5 text-sm text-center mb-4 text-white font-mono">
                 <button onclick="submitPay()" class="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition">Confirm Payment</button>
             </div>
+
+            <!-- Referral Section -->
             <div id="refSec" class="hidden text-center py-4">
                 <div class="w-16 h-16 bg-brand-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-secondary">
                     <i data-lucide="users" class="w-8 h-8"></i>
@@ -293,8 +329,9 @@
         </div>
     </div>
 
-    <!-- JS Editor Modal -->
+    <!-- JS Editor Modal (Full Screen) -->
     <div id="editorModal" class="fixed inset-0 z-[100] hidden bg-[#050505] flex flex-col transform translate-x-full transition-transform duration-300">
+        <!-- Editor Header -->
         <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#0A0A0A]">
             <button onclick="closeModal('editorModal')" class="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
             <span class="font-mono font-bold text-brand-primary tracking-widest">JS EDITOR</span>
@@ -304,14 +341,18 @@
                 <button onclick="saveCmd()" class="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-blue-600"><i data-lucide="save" class="w-3 h-3"></i> SAVE</button>
             </div>
         </div>
+
         <div class="flex-1 flex flex-col p-5 overflow-hidden">
+            <!-- Chips -->
             <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cmdList"></div>
+            
             <div class="relative mb-4">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span class="text-gray-500 font-mono font-bold">/</span>
                 </div>
                 <input id="cmdNameInput" placeholder="command_name" class="modern-input w-full rounded-xl py-3 pl-8 pr-4 font-mono text-sm text-white focus:ring-0">
             </div>
+            
             <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 code-area">
                 <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-xs resize-none outline-none leading-relaxed" spellcheck="false" placeholder="// Select AI button to generate code..."></textarea>
             </div>
@@ -336,29 +377,41 @@
         </div>
     </div>
 
-    <!-- 4. LOGIC -->
+    <!-- ========================================== -->
+    <!-- 4. JAVASCRIPT LOGIC -->
+    <!-- ========================================== -->
     <script>
+        // Init Icons
         lucide.createIcons();
         const tg = window.Telegram.WebApp;
+        
+        // Telegram UI Setup
         tg.expand();
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
+        tg.enableClosingConfirmation();
 
-        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Dev', username: 'dev' };
+        // --- GLOBAL STATE ---
+        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Guest', username: 'guest' }; // Fallback
         let currentBotId = null;
         let payDetails = {};
         let payMode = 'cash';
         let aiMode = 'code'; // code or broadcast
         let activeTimers = {}; // Store timer intervals
 
-        // --- INIT ---
+        // --- INITIALIZATION ---
         async function init() {
+            // UI Pre-fill
             document.getElementById('userName').innerText = user.first_name || 'User';
             document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=random&color=fff`;
 
-            if(user.id.toString() === '7605281774') document.getElementById('adminBtn').classList.remove('hidden');
+            // Admin Button Check
+            if(user.id.toString() === '7605281774') {
+                document.getElementById('adminBtn').classList.remove('hidden');
+            }
 
             try {
+                // Fetch Data
                 const response = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -366,29 +419,37 @@
                 });
                 const data = await response.json();
 
+                // Update User Stats
                 if(data.user) {
                     const u = data.user;
                     document.getElementById('planBadge').innerText = u.plan;
                     document.getElementById('refCount').innerText = u.referrals;
                     document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
+                    
                     if(u.plan !== 'Free') {
                         document.getElementById('planBadge').className = "text-[10px] font-bold bg-brand-primary text-white px-2 py-0.5 rounded uppercase tracking-wide";
                         document.getElementById('validity').innerText = "Premium Active";
                         document.getElementById('validity').className = "text-[10px] text-brand-success font-mono";
                     }
                 }
+
+                // Render Bots
                 renderBots(data.bots);
+
+                // Show App
                 setTimeout(() => {
                     document.getElementById('loader').classList.add('opacity-0', 'pointer-events-none');
                     document.getElementById('app').classList.remove('hidden');
                 }, 500);
+
             } catch (error) {
                 console.error(error);
                 document.getElementById('loader-msg').innerText = "Network Error";
+                document.getElementById('loader-msg').classList.add('text-brand-danger');
             }
         }
 
-        // --- RENDER & UPTIME ---
+        // --- RENDER FUNCTIONS (UI GENERATION) ---
         function renderBots(bots) {
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
@@ -469,6 +530,7 @@
             lucide.createIcons();
         }
 
+        // --- UPTIME TIMER ---
         function startUptimeTimer(botId, startTimeString) {
             const start = new Date(startTimeString).getTime();
             
@@ -476,7 +538,7 @@
                 const now = new Date().getTime();
                 const diff = now - start;
                 
-                if(diff < 0) return; // Should not happen
+                if(diff < 0) return;
 
                 const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -493,7 +555,7 @@
             activeTimers[botId] = setInterval(update, 1000);
         }
 
-        // --- BOT ACTIONS ---
+        // --- BOT ACTIONS (START/STOP) ---
         async function createBot() {
             const btn = document.querySelector('#createModal button');
             const originalText = btn.innerText;
@@ -501,6 +563,11 @@
 
             const name = document.getElementById('botName').value;
             const token = document.getElementById('botToken').value;
+
+            if(!name || !token) {
+                alert('Please fill all fields');
+                btn.innerText = originalText; btn.disabled = false; return;
+            }
 
             const res = await fetch('/api/createBot', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -519,40 +586,56 @@
             btn.innerText = originalText; btn.disabled = false;
         }
 
+        // 🔥 IMPORTANT FIX: Toggle with Try-Catch 🔥
         async function toggleBot(btn, id, action) {
+            // Loading State
+            const originalContent = btn ? btn.innerHTML : '';
             if(btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full loader-spin"></div>`;
-            const res = await fetch('/api/toggleBot', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ botId: id, action })
-            }).then(r => r.json());
             
-            if(res.success) {
-                tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const res = await fetch('/api/toggleBot', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ botId: id, action })
+                }).then(r => r.json());
+
+                if(res.success) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                    init(); // Refresh UI
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    alert(res.message || 'Error toggling bot');
+                    if(btn) btn.innerHTML = originalContent; // Reset button if failed
+                    init(); // Revert UI
+                }
+            } catch (error) {
+                console.error("Toggle Error:", error);
+                alert("Server connection failed. Check console.");
+                if(btn) btn.innerHTML = originalContent;
                 init();
-            } else {
-                tg.HapticFeedback.notificationOccurred('error');
-                alert(res.message);
-                init(); // Revert UI
             }
         }
 
         async function restartBot(id) {
             tg.HapticFeedback.impactOccurred('medium');
-            const res = await fetch('/api/restartBot', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ botId: id })
-            }).then(r => r.json());
-            
-            if(res.success) {
-                tg.showPopup({ message: 'Server Restarted Successfully!' });
-                init();
-            } else {
-                alert('Restart Failed');
+            try {
+                const res = await fetch('/api/restartBot', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ botId: id })
+                }).then(r => r.json());
+                
+                if(res.success) {
+                    tg.showPopup({ message: 'Server Restarted Successfully!' });
+                    init();
+                } else {
+                    alert('Restart Failed: ' + res.message);
+                }
+            } catch(e) {
+                alert('Connection Error');
             }
         }
 
         function deleteBot(id) {
-            tg.showConfirm("Are you sure? This will delete all user data.", async (ok) => {
+            tg.showConfirm("Are you sure you want to delete this server?\nThis action cannot be undone.", async (ok) => {
                 if(ok) {
                     await fetch('/api/deleteBot', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -568,19 +651,28 @@
         async function openEditor(id) {
             currentBotId = id;
             document.getElementById('editorModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('editorModal').classList.remove('translate-x-full'), 10);
-            
+            setTimeout(() => {
+                document.getElementById('editorModal').classList.remove('translate-x-full');
+            }, 10);
+
+            // Fetch Commands
             const res = await fetch('/api/getCommands', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id })
             }).then(r => r.json());
+            
             renderChips(res || {});
-            newCmd();
+            newCmd(); // Reset inputs
         }
 
         function renderChips(cmds) {
             const list = document.getElementById('cmdList');
-            list.innerHTML = `<button onclick="newCmd()" class="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20"><i data-lucide="plus" class="w-3 h-3"></i> New</button>`;
+            list.innerHTML = `
+                <button onclick="newCmd()" class="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20">
+                    <i data-lucide="plus" class="w-3 h-3"></i> New
+                </button>
+            `;
+            
             Object.entries(cmds).forEach(([name, code]) => {
                 const btn = document.createElement('button');
                 btn.className = 'px-4 py-2 bg-white/10 border border-white/5 rounded-lg text-xs font-mono text-gray-300 hover:text-white hover:bg-white/20 transition whitespace-nowrap';
@@ -603,24 +695,28 @@
         async function saveCmd() {
             const name = document.getElementById('cmdNameInput').value;
             const code = document.getElementById('cmdCodeInput').value;
-            if(!name) return alert('Name required!');
             
+            if(!name) return alert('Command name is required!');
+
             await fetch('/api/saveCommand', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: currentBotId, command: name, code })
             });
+            
             tg.HapticFeedback.notificationOccurred('success');
-            openEditor(currentBotId);
+            openEditor(currentBotId); // Refresh list
         }
 
         async function deleteCmd() {
             const name = document.getElementById('cmdNameInput').value;
             if(!name) return;
-            if(confirm('Delete?')) {
+            
+            if(confirm('Delete command /' + name + '?')) {
                 await fetch('/api/deleteCommand', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ botId: currentBotId, command: name })
                 });
+                tg.HapticFeedback.impactOccurred('light');
                 openEditor(currentBotId);
             }
         }
@@ -642,27 +738,32 @@
             
             btn.innerHTML = `<span class="loader-spin w-4 h-4 border-2 border-black border-t-transparent"></span> Generating...`;
             
-            const res = await fetch('/api/ai-generate', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prompt, type: aiMode })
-            }).then(r => r.json());
+            try {
+                const res = await fetch('/api/ai-generate', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ prompt, type: aiMode })
+                }).then(r => r.json());
 
-            if(res.success) {
-                closeModal('aiModal');
-                if(aiMode === 'code') {
-                    document.getElementById('cmdCodeInput').value = res.result;
+                if(res.success) {
+                    closeModal('aiModal');
+                    if(aiMode === 'code') {
+                        document.getElementById('cmdCodeInput').value = res.result;
+                    } else {
+                        document.getElementById('bdMsg').value = res.result;
+                    }
+                    tg.HapticFeedback.notificationOccurred('success');
+                    document.getElementById('aiPrompt').value = '';
                 } else {
-                    document.getElementById('bdMsg').value = res.result;
+                    alert(res.message);
                 }
-                tg.HapticFeedback.notificationOccurred('success');
-                document.getElementById('aiPrompt').value = '';
-            } else {
-                alert(res.message);
+            } catch(e) {
+                alert('AI Busy');
             }
             btn.innerHTML = originalText;
         }
 
         // --- PAYMENT & UTILS ---
+
         function openPay(plan, price) {
             payDetails = { plan, price };
             document.getElementById('payPlan').innerText = plan;
@@ -686,62 +787,88 @@
                 btnCash.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all hover:bg-white/5";
                 refSec.classList.remove('hidden'); cashSec.classList.add('hidden');
             }
+            tg.HapticFeedback.selectionChanged();
         }
 
         async function submitPay() {
             const trx = document.getElementById('trxId').value;
-            if(payMode === 'cash' && !trx) return alert('Enter TrxID');
+            if(payMode === 'cash' && !trx) return alert('Please enter Transaction ID');
+
             const res = await fetch('/api/submit-payment', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    userId: user.id.toString(), user: user.username,
+                    userId: user.id.toString(),
+                    user: user.username,
                     method: payMode === 'cash' ? 'manual' : 'referral',
-                    plan: payDetails.plan, amount: payDetails.price, trxId: trx
+                    plan: payDetails.plan,
+                    amount: payDetails.price,
+                    trxId: trx
                 })
             }).then(r => r.json());
+
             if(res.success) {
                 closeModal('payModal');
                 tg.showPopup({ title: 'Success', message: res.message });
+                tg.HapticFeedback.notificationOccurred('success');
                 if(payMode === 'referral') init();
             } else {
+                tg.HapticFeedback.notificationOccurred('error');
                 alert(res.message);
             }
         }
 
-        function toggleAdminPanel() { document.getElementById('adminPanel').classList.toggle('hidden'); }
+        // --- ADMIN BROADCAST ---
+        function toggleAdminPanel() {
+            document.getElementById('adminPanel').classList.toggle('hidden');
+        }
         
         async function sendBroadcast() {
             const msg = document.getElementById('bdMsg').value;
             if(!msg) return;
+            
             const res = await fetch('/api/broadcast', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ message: msg, adminId: user.id.toString() })
             }).then(r => r.json());
+            
             alert(`Sent to ${res.total} users`);
             document.getElementById('bdMsg').value = '';
         }
 
+        // --- GENERAL UTILS ---
         function copyLink() {
             navigator.clipboard.writeText(`https://t.me/lagahostbot?start=${user.id}`);
-            tg.showPopup({ message: 'Copied!' });
+            tg.showPopup({ message: 'Referral Link Copied!' });
+            tg.HapticFeedback.notificationOccurred('success');
         }
 
         function openModal(id) {
             const el = document.getElementById(id);
             el.classList.remove('hidden');
-            if(id === 'createModal') setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
-            else if(id === 'payModal') setTimeout(() => el.querySelector('#payModalContent').classList.remove('scale-95', 'opacity-0'), 10);
-            else if(id === 'aiModal') setTimeout(() => document.getElementById('aiModalContent').classList.remove('scale-95', 'opacity-0'), 10);
+            if(id === 'createModal') {
+                setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
+            } else if(id === 'payModal') {
+                setTimeout(() => el.querySelector('#payModalContent').classList.remove('scale-95', 'opacity-0'), 10);
+            } else if(id === 'aiModal') {
+                setTimeout(() => document.getElementById('aiModalContent').classList.remove('scale-95', 'opacity-0'), 10);
+            }
         }
 
         function closeModal(id) {
             const el = document.getElementById(id);
-            if(id === 'createModal') el.querySelector('#createModalContent').classList.add('translate-y-full');
-            else if(id === 'payModal' || id === 'aiModal') el.querySelector(id === 'payModal' ? '#payModalContent' : '#aiModalContent').classList.add('scale-95', 'opacity-0');
-            else if(id === 'editorModal') el.classList.add('translate-x-full');
+            if(id === 'createModal') {
+                el.querySelector('#createModalContent').classList.add('translate-y-full');
+            } else if(id === 'payModal') {
+                el.querySelector('#payModalContent').classList.add('scale-95', 'opacity-0');
+            } else if(id === 'aiModal') {
+                document.getElementById('aiModalContent').classList.add('scale-95', 'opacity-0');
+            } else if(id === 'editorModal') {
+                el.classList.add('translate-x-full');
+            }
             setTimeout(() => el.classList.add('hidden'), 300);
         }
 
+        // Start App
         window.onload = init;
     </script>
 </body>
