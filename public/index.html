@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Laga Host Ultimate</title>
+    <title>Laga Host Ultimate AI</title>
     
     <!-- External Libraries -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -24,18 +24,26 @@
                             primary: '#3B82F6', // Bright Blue
                             secondary: '#8B5CF6', // Purple
                             success: '#10B981', 
-                            danger: '#EF4444' 
+                            danger: '#EF4444',
+                            warning: '#F59E0B'
                         }
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
                     }
                 }
             }
         }
     </script>
 
-    <!-- Custom CSS for Advanced UI Effects -->
+    <!-- Custom CSS -->
     <style>
         body { 
             background-color: #000000; 
@@ -44,7 +52,7 @@
             overflow-x: hidden;
         }
 
-        /* Glassmorphism Cards (Matches your image) */
+        /* Glassmorphism Cards */
         .glass-card {
             background: rgba(20, 20, 20, 0.85);
             backdrop-filter: blur(20px);
@@ -52,13 +60,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 1.25rem;
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Gradient Borders */
-        .gradient-border-bottom {
-            border-bottom: 2px solid;
-            border-image-slice: 1;
-            border-image-source: linear-gradient(to right, #3B82F6, #8B5CF6);
+            transition: all 0.3s ease;
         }
 
         /* Inputs */
@@ -74,10 +76,20 @@
             outline: none;
         }
 
-        /* Custom Scrollbar for Editor */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        /* Uptime Counter Gradient Text */
+        .uptime-text {
+            background: linear-gradient(to right, #10B981, #3B82F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Code Editor Area */
+        .code-area {
+            background-color: #050505;
+            background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
 
         /* Loaders */
         .loader-spin {
@@ -88,41 +100,33 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* Code Editor Area */
-        .code-area {
-            background-color: #050505;
-            background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
-            background-size: 20px 20px;
+        
+        /* AI Button Glow */
+        .ai-glow:hover {
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
         }
     </style>
 </head>
 <body class="min-h-screen pb-32 select-none">
 
-    <!-- ========================================== -->
-    <!-- 1. LOADING SCREEN & PLATFORM CHECKER -->
-    <!-- ========================================== -->
+    <!-- 1. LOADING SCREEN -->
     <div id="loader" class="fixed inset-0 z-[999] bg-[#000000] flex flex-col items-center justify-center transition-opacity duration-500">
         <div class="relative w-16 h-16 mb-6">
             <div class="absolute inset-0 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
             <div class="absolute inset-3 border-4 border-brand-secondary border-b-transparent rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
         </div>
-        <h2 id="loader-msg" class="text-sm font-bold tracking-[0.3em] text-gray-400 uppercase">System Loading</h2>
+        <h2 id="loader-msg" class="text-sm font-bold tracking-[0.3em] text-gray-400 uppercase">System Initializing</h2>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 2. MAIN APPLICATION CONTENT -->
-    <!-- ========================================== -->
+    <!-- 2. MAIN APP -->
     <main id="app" class="hidden relative z-10 p-5 max-w-md mx-auto fade-in">
         
-        <!-- A. Header Section -->
+        <!-- Header -->
         <header class="flex justify-between items-center mb-8 pt-2">
             <div class="flex items-center gap-4">
                 <div class="relative group cursor-pointer" onclick="toggleAdmin()">
-                    <!-- Avatar with Gradient Ring -->
                     <div class="absolute -inset-0.5 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full opacity-70 blur-sm group-hover:opacity-100 transition"></div>
                     <img id="userAvatar" src="" class="relative w-12 h-12 rounded-full border border-black bg-dark-800 object-cover">
-                    <!-- Online Dot -->
                     <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-brand-success rounded-full border-2 border-black z-20"></div>
                 </div>
                 <div>
@@ -133,35 +137,26 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Hidden Admin Button -->
             <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition">
                 <i data-lucide="shield-check" class="w-5 h-5"></i>
             </button>
         </header>
 
-        <!-- B. Referral Card (Matches Image Design) -->
+        <!-- Referral Card -->
         <div class="glass-card p-6 mb-8 relative overflow-hidden group">
-            <!-- Background Glow -->
             <div class="absolute top-0 right-0 w-40 h-40 bg-brand-primary/20 blur-[60px] -mr-10 -mt-10 rounded-full pointer-events-none"></div>
-            
             <div class="relative z-10 flex justify-between items-start">
                 <div>
                     <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Total Referrals</p>
                     <h2 id="refCount" class="text-5xl font-bold font-sans text-white">0</h2>
                 </div>
-                <button onclick="copyLink()" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow-lg shadow-brand-primary/30 active:scale-95 transition hover:shadow-brand-secondary/40">
+                <button onclick="copyLink()" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow-lg shadow-brand-primary/30 active:scale-95 transition hover:shadow-brand-secondary/40 animate-float">
                     <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
                 </button>
             </div>
-            
-            <div class="relative z-10 mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-                <p class="text-[11px] text-gray-500 font-medium">Invite friends & unlock Premium</p>
-                <button onclick="copyLink()" class="text-[11px] font-bold text-brand-primary hover:text-white transition">Copy Link -></button>
-            </div>
         </div>
 
-        <!-- C. Deploy Server Button -->
+        <!-- Deploy Button -->
         <button onclick="openModal('createModal')" class="w-full mb-8 relative group overflow-hidden rounded-2xl">
             <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary opacity-50 blur-md group-hover:opacity-70 transition duration-500 animate-pulse-slow"></div>
             <div class="relative bg-dark-900/90 backdrop-blur-md border border-white/10 rounded-2xl h-16 flex items-center justify-center gap-3 active:scale-[0.98] transition">
@@ -170,7 +165,7 @@
             </div>
         </button>
 
-        <!-- D. Active Instances Section -->
+        <!-- Active Instances -->
         <div class="mb-10">
             <div class="flex items-center justify-between mb-4 px-1">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Instances</h3>
@@ -178,10 +173,9 @@
             </div>
 
             <div id="botsContainer" class="space-y-4 min-h-[100px]">
-                <!-- Bots will be injected here via JS -->
+                <!-- Bots Injected Here -->
             </div>
             
-            <!-- Empty State -->
             <div id="emptyState" class="hidden glass-card border-dashed border-white/10 p-8 text-center opacity-60">
                 <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i data-lucide="server" class="w-6 h-6 text-gray-400"></i>
@@ -191,11 +185,10 @@
             </div>
         </div>
 
-        <!-- E. Upgrade Plans -->
+        <!-- Upgrade Plans -->
         <div class="mb-8">
             <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 text-center">Upgrade Plan</h3>
             <div class="space-y-3">
-                <!-- Pro Plan -->
                 <div onclick="openPay('Pro', 50)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-primary">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -208,10 +201,8 @@
                     </div>
                     <div class="text-right">
                         <h4 class="font-bold text-white text-lg">50৳</h4>
-                        <span class="text-[10px] text-brand-primary font-bold bg-brand-primary/10 px-2 py-0.5 rounded">or 50 Refers</span>
                     </div>
                 </div>
-                <!-- VIP Plan -->
                 <div onclick="openPay('VIP', 80)" class="glass-card p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition border-l-2 border-transparent hover:border-brand-secondary">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
@@ -224,36 +215,35 @@
                     </div>
                     <div class="text-right">
                         <h4 class="font-bold text-white text-lg">80৳</h4>
-                        <span class="text-[10px] text-brand-secondary font-bold bg-brand-secondary/10 px-2 py-0.5 rounded">or 80 Refers</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- F. Admin Panel (Conditional) -->
+        <!-- Admin Panel with AI -->
         <div id="adminPanel" class="hidden glass-card p-5 mb-10 border-l-4 border-brand-danger animate-fade-in">
-            <h3 class="font-bold text-sm mb-3 text-white flex items-center gap-2">
-                <i data-lucide="radio" class="w-4 h-4 text-brand-danger"></i> Admin Broadcast
-            </h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <i data-lucide="radio" class="w-4 h-4 text-brand-danger"></i> Admin Broadcast
+                </h3>
+                <button onclick="openAI('broadcast')" class="text-[10px] bg-brand-secondary/20 text-brand-secondary px-2 py-1 rounded border border-brand-secondary/30 hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> AI Write
+                </button>
+            </div>
             <textarea id="bdMsg" class="modern-input w-full rounded-xl p-3 text-xs text-white mb-3 h-20 resize-none font-mono" placeholder="Write HTML Message..."></textarea>
             <button onclick="sendBroadcast()" class="w-full bg-brand-danger/10 text-brand-danger py-2.5 rounded-lg text-xs font-bold border border-brand-danger/30 hover:bg-brand-danger hover:text-white transition">Send Announcement</button>
         </div>
 
     </main>
 
-    <!-- ========================================== -->
-    <!-- 3. MODALS (POPUPS) -->
-    <!-- ========================================== -->
+    <!-- 3. MODALS -->
 
     <!-- Create Bot Modal -->
     <div id="createModal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
         <div class="relative bg-[#0F0F0F] w-full max-w-sm rounded-t-[2rem] sm:rounded-2xl p-6 border-t sm:border border-white/10 transform transition-transform duration-300 translate-y-full sm:translate-y-0" id="createModalContent">
             <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-8"></div>
-            
             <h3 class="text-xl font-bold mb-2 text-white">New Instance</h3>
-            <p class="text-xs text-gray-500 mb-6">Enter your BotFather details below.</p>
-            
             <div class="space-y-5">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase ml-2">Bot Name</label>
@@ -277,14 +267,10 @@
                 <h3 class="text-lg font-bold">Unlock <span id="payPlan" class="text-brand-primary">Pro</span></h3>
                 <button onclick="closeModal('payModal')" class="p-2 bg-white/5 rounded-full hover:bg-white/10"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            
-            <!-- Tabs -->
             <div class="flex gap-2 mb-6 p-1.5 bg-black rounded-xl border border-white/10">
                 <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-primary text-white transition-all">Nagad</button>
                 <button onclick="setPayMode('ref')" id="tabRef" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all">Points</button>
             </div>
-
-            <!-- Cash Section -->
             <div id="cashSec">
                 <div class="bg-brand-success/10 border border-brand-success/20 p-4 rounded-xl flex justify-between items-center mb-5">
                     <div>
@@ -296,8 +282,6 @@
                 <input id="trxId" placeholder="Enter Transaction ID" class="modern-input w-full rounded-xl p-3.5 text-sm text-center mb-4 text-white font-mono">
                 <button onclick="submitPay()" class="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition">Confirm Payment</button>
             </div>
-
-            <!-- Referral Section -->
             <div id="refSec" class="hidden text-center py-4">
                 <div class="w-16 h-16 bg-brand-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-secondary">
                     <i data-lucide="users" class="w-8 h-8"></i>
@@ -309,75 +293,72 @@
         </div>
     </div>
 
-    <!-- JS Editor Modal (Full Screen) -->
+    <!-- JS Editor Modal -->
     <div id="editorModal" class="fixed inset-0 z-[100] hidden bg-[#050505] flex flex-col transform translate-x-full transition-transform duration-300">
-        <!-- Editor Header -->
         <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#0A0A0A]">
             <button onclick="closeModal('editorModal')" class="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
             <span class="font-mono font-bold text-brand-primary tracking-widest">JS EDITOR</span>
             <div class="flex gap-2">
+                <button onclick="openAI('code')" class="p-2 text-brand-secondary bg-brand-secondary/10 rounded-lg border border-brand-secondary/20 animate-pulse ai-glow"><i data-lucide="sparkles" class="w-4 h-4"></i></button>
                 <button onclick="deleteCmd()" class="p-2 text-brand-danger bg-brand-danger/10 rounded-lg border border-brand-danger/20"><i data-lucide="trash" class="w-4 h-4"></i></button>
                 <button onclick="saveCmd()" class="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-blue-600"><i data-lucide="save" class="w-3 h-3"></i> SAVE</button>
             </div>
         </div>
-
         <div class="flex-1 flex flex-col p-5 overflow-hidden">
-            <!-- Chips -->
             <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cmdList"></div>
-            
             <div class="relative mb-4">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span class="text-gray-500 font-mono font-bold">/</span>
                 </div>
                 <input id="cmdNameInput" placeholder="command_name" class="modern-input w-full rounded-xl py-3 pl-8 pr-4 font-mono text-sm text-white focus:ring-0">
             </div>
-            
             <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 code-area">
-                <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-xs resize-none outline-none leading-relaxed" spellcheck="false" placeholder="// Write logic here...&#10;ctx.reply('Hello World');"></textarea>
+                <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-xs resize-none outline-none leading-relaxed" spellcheck="false" placeholder="// Select AI button to generate code..."></textarea>
             </div>
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 4. JAVASCRIPT LOGIC -->
-    <!-- ========================================== -->
+    <!-- AI Prompt Modal -->
+    <div id="aiModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('aiModal')"></div>
+        <div class="relative glass-card bg-[#111] w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300" id="aiModalContent">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/30">
+                    <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">AI Assistant</h3>
+                <p class="text-xs text-gray-400">Describe what you want to create</p>
+            </div>
+            <textarea id="aiPrompt" class="modern-input w-full rounded-xl p-3 text-sm text-white mb-4 h-24 resize-none" placeholder="e.g., Create a welcome command with a photo and button..."></textarea>
+            <button onclick="generateAI()" class="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2">
+                <span>Generate Code</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. LOGIC -->
     <script>
-        // Init Icons
         lucide.createIcons();
         const tg = window.Telegram.WebApp;
-        
-        // Telegram UI Setup
         tg.expand();
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
-        tg.enableClosingConfirmation();
 
-        // --- GLOBAL STATE ---
-        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Guest', username: 'guest' }; // Fallback for dev
+        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Dev', username: 'dev' };
         let currentBotId = null;
         let payDetails = {};
         let payMode = 'cash';
+        let aiMode = 'code'; // code or broadcast
+        let activeTimers = {}; // Store timer intervals
 
-        // --- PLATFORM CHECK ---
-        if (!tg.initData && window.location.hostname !== 'localhost') {
-            document.getElementById('loader-msg').innerText = "Access Denied";
-            document.getElementById('loader-msg').classList.add('text-red-500');
-            throw new Error("Must open in Telegram");
-        }
-
-        // --- INITIALIZATION ---
+        // --- INIT ---
         async function init() {
-            // UI Pre-fill
             document.getElementById('userName').innerText = user.first_name || 'User';
             document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=random&color=fff`;
 
-            // Admin Button Check
-            if(user.id.toString() === '7605281774') {
-                document.getElementById('adminBtn').classList.remove('hidden');
-            }
+            if(user.id.toString() === '7605281774') document.getElementById('adminBtn').classList.remove('hidden');
 
             try {
-                // Fetch Data
                 const response = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -385,41 +366,37 @@
                 });
                 const data = await response.json();
 
-                // Update User Stats
                 if(data.user) {
                     const u = data.user;
                     document.getElementById('planBadge').innerText = u.plan;
                     document.getElementById('refCount').innerText = u.referrals;
                     document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
-                    
                     if(u.plan !== 'Free') {
                         document.getElementById('planBadge').className = "text-[10px] font-bold bg-brand-primary text-white px-2 py-0.5 rounded uppercase tracking-wide";
                         document.getElementById('validity').innerText = "Premium Active";
                         document.getElementById('validity').className = "text-[10px] text-brand-success font-mono";
                     }
                 }
-
-                // Render Bots
                 renderBots(data.bots);
-
-                // Show App
                 setTimeout(() => {
                     document.getElementById('loader').classList.add('opacity-0', 'pointer-events-none');
                     document.getElementById('app').classList.remove('hidden');
                 }, 500);
-
             } catch (error) {
                 console.error(error);
                 document.getElementById('loader-msg').innerText = "Network Error";
-                document.getElementById('loader-msg').classList.add('text-brand-danger');
             }
         }
 
-        // --- RENDER FUNCTIONS ---
+        // --- RENDER & UPTIME ---
         function renderBots(bots) {
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
             
+            // Clear old timers
+            Object.values(activeTimers).forEach(clearInterval);
+            activeTimers = {};
+
             if(!bots || bots.length === 0) {
                 document.getElementById('emptyState').classList.remove('hidden');
                 return;
@@ -428,12 +405,51 @@
 
             bots.forEach(bot => {
                 const isRun = bot.status === 'RUNNING';
-                
                 const card = document.createElement('div');
                 card.className = `glass-card p-5 border-l-2 transition-all duration-300 ${isRun ? 'border-brand-success shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'border-gray-800'}`;
                 
+                // Uptime Logic
+                let uptimeHtml = '';
+                if(isRun && bot.startedAt) {
+                    uptimeHtml = `<div class="mt-2 text-xs font-mono bg-black/40 rounded px-2 py-1 inline-block border border-white/5">
+                        ⏳ <span id="timer-${bot._id}" class="uptime-text">Calculating...</span>
+                    </div>`;
+                    startUptimeTimer(bot._id, bot.startedAt);
+                }
+
+                // Action Buttons Logic
+                let actionsHtml = '';
+                if(isRun) {
+                    // Running: Restart, Stop, Editor
+                    actionsHtml = `
+                        <div class="grid grid-cols-3 gap-2 mt-4">
+                            <button onclick="restartBot('${bot._id}')" class="bg-brand-warning/10 text-brand-warning border border-brand-warning/20 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-brand-warning/20 transition active:scale-95">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> <span class="text-[10px] font-bold">RESTART</span>
+                            </button>
+                            <button onclick="toggleBot(this, '${bot._id}', 'stop')" class="bg-brand-danger/10 text-brand-danger border border-brand-danger/20 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-brand-danger/20 transition active:scale-95">
+                                <i data-lucide="square" class="w-4 h-4 fill-current"></i> <span class="text-[10px] font-bold">STOP</span>
+                            </button>
+                            <button onclick="openEditor('${bot._id}')" class="bg-white/5 text-gray-300 border border-white/10 rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition active:scale-95">
+                                <i data-lucide="code" class="w-4 h-4"></i> <span class="text-[10px] font-bold">EDITOR</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Stopped: Start Only
+                    actionsHtml = `
+                        <div class="mt-4">
+                            <button onclick="toggleBot(this, '${bot._id}', 'start')" class="w-full bg-brand-success/10 text-brand-success border border-brand-success/20 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-brand-success/20 transition active:scale-95 shadow-lg shadow-green-900/20">
+                                <i data-lucide="play" class="w-5 h-5 fill-current"></i> <span class="text-sm font-bold">START SERVER</span>
+                            </button>
+                            <div class="flex justify-end mt-2">
+                                <button onclick="deleteBot('${bot._id}')" class="text-[10px] text-gray-600 hover:text-red-500 flex items-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="flex justify-between items-start">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-xl ${isRun ? 'bg-brand-success/10' : 'bg-white/5'} flex items-center justify-center relative">
                                 <i data-lucide="bot" class="w-6 h-6 ${isRun ? 'text-brand-success' : 'text-gray-500'}"></i>
@@ -442,47 +458,49 @@
                             <div>
                                 <h4 class="font-bold text-white text-base leading-tight">${bot.name}</h4>
                                 <p class="text-[10px] font-bold uppercase tracking-widest mt-1 ${isRun ? 'text-brand-success' : 'text-gray-500'}">${bot.status}</p>
+                                ${uptimeHtml}
                             </div>
                         </div>
-                        <button onclick="deleteBot('${bot._id}')" class="p-2 text-gray-600 hover:text-brand-danger transition bg-white/5 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="toggleBot(this, '${bot._id}', '${isRun ? 'stop' : 'start'}')" 
-                            class="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 ${isRun ? 'bg-brand-danger/10 text-brand-danger border border-brand-danger/20 hover:bg-brand-danger/20' : 'bg-brand-success/10 text-brand-success border border-brand-success/20 hover:bg-brand-success/20'}">
-                            <i data-lucide="${isRun ? 'square' : 'play'}" class="w-3 h-3 fill-current"></i>
-                            <span>${isRun ? 'Stop Server' : 'Start Server'}</span>
-                        </button>
-                        
-                        <button onclick="openEditor('${bot._id}')" 
-                            class="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-xs font-bold hover:bg-white/10 hover:text-white transition-all active:scale-95">
-                            <i data-lucide="code" class="w-3 h-3"></i> JS Editor
-                        </button>
-                    </div>
+                    ${actionsHtml}
                 `;
                 container.appendChild(card);
             });
             lucide.createIcons();
         }
 
-        // --- BOT ACTIONS ---
+        function startUptimeTimer(botId, startTimeString) {
+            const start = new Date(startTimeString).getTime();
+            
+            const update = () => {
+                const now = new Date().getTime();
+                const diff = now - start;
+                
+                if(diff < 0) return; // Should not happen
 
-        // 1. Create
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const el = document.getElementById(`timer-${botId}`);
+                if(el) {
+                    el.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                }
+            };
+            
+            update(); // First run
+            activeTimers[botId] = setInterval(update, 1000);
+        }
+
+        // --- BOT ACTIONS ---
         async function createBot() {
             const btn = document.querySelector('#createModal button');
             const originalText = btn.innerText;
-            btn.innerText = "Deploying...";
-            btn.disabled = true;
+            btn.innerText = "Deploying..."; btn.disabled = true;
 
             const name = document.getElementById('botName').value;
             const token = document.getElementById('botToken').value;
-
-            if(!name || !token) {
-                alert('Please fill all fields');
-                btn.innerText = originalText;
-                btn.disabled = false;
-                return;
-            }
 
             const res = await fetch('/api/createBot', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -491,42 +509,50 @@
 
             if(res.success) {
                 closeModal('createModal');
-                document.getElementById('botName').value = '';
-                document.getElementById('botToken').value = '';
+                document.getElementById('botName').value = ''; document.getElementById('botToken').value = '';
                 tg.HapticFeedback.notificationOccurred('success');
                 init();
             } else {
                 tg.HapticFeedback.notificationOccurred('error');
                 alert(res.message);
             }
-            btn.innerText = originalText;
-            btn.disabled = false;
+            btn.innerText = originalText; btn.disabled = false;
         }
 
-        // 2. Toggle (Start/Stop)
         async function toggleBot(btn, id, action) {
-            // Loading State
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = `<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full loader-spin"></div>`;
-            
+            if(btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full loader-spin"></div>`;
             const res = await fetch('/api/toggleBot', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id, action })
             }).then(r => r.json());
-
+            
             if(res.success) {
                 tg.HapticFeedback.impactOccurred('medium');
-                init(); // Refresh UI
+                init();
             } else {
                 tg.HapticFeedback.notificationOccurred('error');
-                alert(res.message || 'Error toggling bot');
-                btn.innerHTML = originalContent;
+                alert(res.message);
+                init(); // Revert UI
             }
         }
 
-        // 3. Delete
+        async function restartBot(id) {
+            tg.HapticFeedback.impactOccurred('medium');
+            const res = await fetch('/api/restartBot', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ botId: id })
+            }).then(r => r.json());
+            
+            if(res.success) {
+                tg.showPopup({ message: 'Server Restarted Successfully!' });
+                init();
+            } else {
+                alert('Restart Failed');
+            }
+        }
+
         function deleteBot(id) {
-            tg.showConfirm("Are you sure you want to delete this server?\nThis action cannot be undone.", async (ok) => {
+            tg.showConfirm("Are you sure? This will delete all user data.", async (ok) => {
                 if(ok) {
                     await fetch('/api/deleteBot', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -538,33 +564,23 @@
             });
         }
 
-        // --- JS EDITOR LOGIC ---
-        
+        // --- JS EDITOR & AI ---
         async function openEditor(id) {
             currentBotId = id;
             document.getElementById('editorModal').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('editorModal').classList.remove('translate-x-full');
-            }, 10);
-
-            // Fetch Commands
+            setTimeout(() => document.getElementById('editorModal').classList.remove('translate-x-full'), 10);
+            
             const res = await fetch('/api/getCommands', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id })
             }).then(r => r.json());
-            
             renderChips(res || {});
-            newCmd(); // Reset inputs
+            newCmd();
         }
 
         function renderChips(cmds) {
             const list = document.getElementById('cmdList');
-            list.innerHTML = `
-                <button onclick="newCmd()" class="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20">
-                    <i data-lucide="plus" class="w-3 h-3"></i> New
-                </button>
-            `;
-            
+            list.innerHTML = `<button onclick="newCmd()" class="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2 shadow-lg shadow-blue-900/20"><i data-lucide="plus" class="w-3 h-3"></i> New</button>`;
             Object.entries(cmds).forEach(([name, code]) => {
                 const btn = document.createElement('button');
                 btn.className = 'px-4 py-2 bg-white/10 border border-white/5 rounded-lg text-xs font-mono text-gray-300 hover:text-white hover:bg-white/20 transition whitespace-nowrap';
@@ -581,40 +597,72 @@
 
         function newCmd() {
             document.getElementById('cmdNameInput').value = '';
-            document.getElementById('cmdCodeInput').value = "// Example Command\n// Available: ctx, bot\n\nctx.reply('Hello World!');";
+            document.getElementById('cmdCodeInput').value = "";
         }
 
         async function saveCmd() {
             const name = document.getElementById('cmdNameInput').value;
             const code = document.getElementById('cmdCodeInput').value;
+            if(!name) return alert('Name required!');
             
-            if(!name) return alert('Command name is required!');
-
             await fetch('/api/saveCommand', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: currentBotId, command: name, code })
             });
-            
             tg.HapticFeedback.notificationOccurred('success');
-            openEditor(currentBotId); // Refresh list
+            openEditor(currentBotId);
         }
 
         async function deleteCmd() {
             const name = document.getElementById('cmdNameInput').value;
             if(!name) return;
-            
-            if(confirm('Delete command /' + name + '?')) {
+            if(confirm('Delete?')) {
                 await fetch('/api/deleteCommand', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ botId: currentBotId, command: name })
                 });
-                tg.HapticFeedback.impactOccurred('light');
                 openEditor(currentBotId);
             }
         }
 
-        // --- PAYMENT & UTILS ---
+        // --- AI LOGIC ---
+        function openAI(mode) {
+            aiMode = mode; // 'code' or 'broadcast'
+            document.getElementById('aiModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('aiModalContent').classList.remove('scale-95', 'opacity-0'), 10);
+            document.getElementById('aiPrompt').focus();
+        }
 
+        async function generateAI() {
+            const prompt = document.getElementById('aiPrompt').value;
+            const btn = document.querySelector('#aiModal button');
+            const originalText = btn.innerHTML;
+            
+            if(!prompt) return;
+            
+            btn.innerHTML = `<span class="loader-spin w-4 h-4 border-2 border-black border-t-transparent"></span> Generating...`;
+            
+            const res = await fetch('/api/ai-generate', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prompt, type: aiMode })
+            }).then(r => r.json());
+
+            if(res.success) {
+                closeModal('aiModal');
+                if(aiMode === 'code') {
+                    document.getElementById('cmdCodeInput').value = res.result;
+                } else {
+                    document.getElementById('bdMsg').value = res.result;
+                }
+                tg.HapticFeedback.notificationOccurred('success');
+                document.getElementById('aiPrompt').value = '';
+            } else {
+                alert(res.message);
+            }
+            btn.innerHTML = originalText;
+        }
+
+        // --- PAYMENT & UTILS ---
         function openPay(plan, price) {
             payDetails = { plan, price };
             document.getElementById('payPlan').innerText = plan;
@@ -632,92 +680,68 @@
             if(mode === 'cash') {
                 btnCash.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-primary text-white transition-all shadow-lg shadow-blue-900/20";
                 btnRef.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all hover:bg-white/5";
-                cashSec.classList.remove('hidden');
-                refSec.classList.add('hidden');
+                cashSec.classList.remove('hidden'); refSec.classList.add('hidden');
             } else {
                 btnRef.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-brand-secondary text-white transition-all shadow-lg shadow-purple-900/20";
                 btnCash.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all hover:bg-white/5";
-                refSec.classList.remove('hidden');
-                cashSec.classList.add('hidden');
+                refSec.classList.remove('hidden'); cashSec.classList.add('hidden');
             }
-            tg.HapticFeedback.selectionChanged();
         }
 
         async function submitPay() {
             const trx = document.getElementById('trxId').value;
-            if(payMode === 'cash' && !trx) return alert('Please enter Transaction ID');
-
+            if(payMode === 'cash' && !trx) return alert('Enter TrxID');
             const res = await fetch('/api/submit-payment', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    userId: user.id.toString(),
-                    user: user.username,
+                    userId: user.id.toString(), user: user.username,
                     method: payMode === 'cash' ? 'manual' : 'referral',
-                    plan: payDetails.plan,
-                    amount: payDetails.price,
-                    trxId: trx
+                    plan: payDetails.plan, amount: payDetails.price, trxId: trx
                 })
             }).then(r => r.json());
-
             if(res.success) {
                 closeModal('payModal');
                 tg.showPopup({ title: 'Success', message: res.message });
-                tg.HapticFeedback.notificationOccurred('success');
                 if(payMode === 'referral') init();
             } else {
-                tg.HapticFeedback.notificationOccurred('error');
                 alert(res.message);
             }
         }
 
-        // --- ADMIN BROADCAST ---
-        function toggleAdminPanel() {
-            document.getElementById('adminPanel').classList.toggle('hidden');
-        }
+        function toggleAdminPanel() { document.getElementById('adminPanel').classList.toggle('hidden'); }
         
         async function sendBroadcast() {
             const msg = document.getElementById('bdMsg').value;
             if(!msg) return;
-            
             const res = await fetch('/api/broadcast', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ message: msg, adminId: user.id.toString() })
             }).then(r => r.json());
-            
             alert(`Sent to ${res.total} users`);
             document.getElementById('bdMsg').value = '';
         }
 
-        // --- GENERAL UTILS ---
         function copyLink() {
             navigator.clipboard.writeText(`https://t.me/lagahostbot?start=${user.id}`);
-            tg.showPopup({ message: 'Referral Link Copied!' });
-            tg.HapticFeedback.notificationOccurred('success');
+            tg.showPopup({ message: 'Copied!' });
         }
 
         function openModal(id) {
             const el = document.getElementById(id);
             el.classList.remove('hidden');
-            if(id === 'createModal') {
-                setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
-            } else if(id === 'payModal') {
-                setTimeout(() => el.querySelector('#payModalContent').classList.remove('scale-95', 'opacity-0'), 10);
-            }
+            if(id === 'createModal') setTimeout(() => el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
+            else if(id === 'payModal') setTimeout(() => el.querySelector('#payModalContent').classList.remove('scale-95', 'opacity-0'), 10);
+            else if(id === 'aiModal') setTimeout(() => document.getElementById('aiModalContent').classList.remove('scale-95', 'opacity-0'), 10);
         }
 
         function closeModal(id) {
             const el = document.getElementById(id);
-            if(id === 'createModal') {
-                el.querySelector('#createModalContent').classList.add('translate-y-full');
-            } else if(id === 'payModal') {
-                el.querySelector('#payModalContent').classList.add('scale-95', 'opacity-0');
-            } else if(id === 'editorModal') {
-                el.classList.add('translate-x-full');
-            }
+            if(id === 'createModal') el.querySelector('#createModalContent').classList.add('translate-y-full');
+            else if(id === 'payModal' || id === 'aiModal') el.querySelector(id === 'payModal' ? '#payModalContent' : '#aiModalContent').classList.add('scale-95', 'opacity-0');
+            else if(id === 'editorModal') el.classList.add('translate-x-full');
             setTimeout(() => el.classList.add('hidden'), 300);
         }
 
-        // Start App
         window.onload = init;
     </script>
 </body>
