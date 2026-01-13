@@ -9,37 +9,36 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    fontFamily: { sans: ['Space Grotesk', 'sans-serif'], mono: ['Fira Code', 'monospace'] },
                     colors: {
-                        dark: { 900: '#000000', 800: '#0A0A0A', 700: '#141414' },
+                        dark: { 900: '#050505', 800: '#0f0f0f', 700: '#1a1a1a' },
                         brand: { 
-                            blue: '#007AFF', // Apple Blue
-                            purple: '#AF52DE', 
-                            green: '#34C759', 
-                            red: '#FF3B30',
-                            gold: '#FFD700'
+                            primary: '#3B82F6', // Blue
+                            accent: '#8B5CF6', // Violet
+                            success: '#10B981', // Emerald
+                            danger: '#EF4444', // Red
+                            warning: '#F59E0B' // Amber
                         }
                     },
                     animation: {
-                        'float': 'float 6s ease-in-out infinite',
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'enter': 'enter 0.5s ease-out forwards'
+                        'pulse-glow': 'pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.4s ease-out forwards'
                     },
                     keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: '0.1' },
+                            '50%': { opacity: '0.3' },
                         },
-                        enter: {
-                            '0%': { opacity: '0', transform: 'scale(0.95)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
                         }
                     }
                 }
@@ -48,223 +47,165 @@
     </script>
 
     <style>
-        body { background-color: #000000; color: #ffffff; -webkit-font-smoothing: antialiased; }
+        body { background-color: #050505; color: #ffffff; -webkit-tap-highlight-color: transparent; }
         
-        /* Premium Glass Effect */
-        .glass-card {
-            background: rgba(20, 20, 20, 0.6);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+        /* Modern Glassmorphism */
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.3);
         }
         
         .glass-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             color: white;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
         .glass-input:focus {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #007AFF;
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #3B82F6;
             outline: none;
-            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
         }
 
-        /* Ambient Glows */
-        .glow-spot {
-            position: absolute;
-            width: 250px; height: 250px;
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+        .loader-spin {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-left-color: #3B82F6;
             border-radius: 50%;
-            filter: blur(90px);
-            opacity: 0.15;
-            z-index: 0;
-            pointer-events: none;
+            width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
         }
-
-        /* Scrollbar Hide */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen relative overflow-x-hidden pb-40 selection:bg-brand-blue selection:text-white">
+<body class="min-h-screen pb-32 selection:bg-brand-primary selection:text-white">
 
-    <!-- Background Ambience -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="glow-spot bg-brand-blue top-[-50px] left-[-50px] animate-pulse-slow"></div>
-        <div class="glow-spot bg-brand-purple bottom-[-50px] right-[-50px] animate-pulse-slow" style="animation-delay: 2s"></div>
+    <!-- Background Gradients -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary rounded-full mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-glow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent rounded-full mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-glow" style="animation-delay: 1.5s"></div>
     </div>
 
-    <!-- Loader -->
-    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-700">
-        <div class="relative w-20 h-20">
-            <div class="absolute inset-0 border-4 border-white/10 rounded-full"></div>
-            <div class="absolute inset-0 border-4 border-brand-blue border-t-transparent rounded-full animate-spin"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                <i data-lucide="zap" class="w-8 h-8 text-brand-blue fill-current animate-pulse"></i>
-            </div>
+    <!-- Preloader -->
+    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-500">
+        <div class="relative w-16 h-16 mb-4">
+            <div class="absolute inset-0 border-t-4 border-brand-primary rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-4 border-brand-accent rounded-full animate-spin" style="animation-duration: 1.5s"></div>
         </div>
-        <h2 class="mt-6 text-xl font-bold tracking-[0.3em] text-white uppercase">Laga Host</h2>
-        <p class="text-xs text-gray-500 mt-2 font-mono">Initializing Dashboard...</p>
+        <h2 class="text-xl font-bold tracking-widest uppercase text-white">Laga Host</h2>
     </div>
 
-    <!-- Main Content -->
-    <main id="app" class="relative z-10 hidden px-5 pt-8 max-w-xl mx-auto">
+    <!-- Main App -->
+    <main id="app" class="relative z-10 hidden max-w-lg mx-auto p-5">
         
-        <!-- Header Profile -->
-        <header class="flex justify-between items-center mb-8 animate-enter">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 animate-slide-up">
             <div class="flex items-center gap-4">
-                <div class="relative">
-                    <div class="absolute -inset-0.5 bg-gradient-to-tr from-brand-blue to-brand-purple rounded-full opacity-75 blur"></div>
-                    <img id="userAvatar" src="" class="relative w-14 h-14 rounded-full border-2 border-black object-cover">
-                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-brand-green border-2 border-black rounded-full"></div>
+                <div class="relative group">
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-brand-primary to-brand-accent rounded-full opacity-50 blur group-hover:opacity-75 transition"></div>
+                    <img id="userAvatar" src="" class="relative w-12 h-12 rounded-full border border-white/10 object-cover bg-dark-800">
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold leading-tight flex items-center gap-2">
-                        Hi, <span id="userName">User</span>
-                        <span id="planBadge" class="text-[10px] bg-white/10 border border-white/10 px-2 py-0.5 rounded-full uppercase tracking-wider text-gray-300">Free</span>
-                    </h1>
-                    <p id="planExpiry" class="text-xs text-gray-500 font-mono mt-1">Checking Validity...</p>
+                    <h1 class="font-bold text-lg leading-none" id="userName">Loading...</h1>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span id="planBadge" class="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400 font-mono uppercase">FREE</span>
+                        <span id="expiryBadge" class="text-[10px] text-brand-warning font-mono hidden"></span>
+                    </div>
                 </div>
             </div>
-            <!-- Admin Icon (Hidden by default) -->
-            <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition border border-white/10">
-                <i data-lucide="shield-alert" class="w-5 h-5 text-brand-red"></i>
+            <!-- Admin Btn -->
+            <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition">
+                <i data-lucide="shield" class="w-5 h-5"></i>
             </button>
         </header>
 
-        <!-- Referral & Stats Card -->
-        <div class="glass-card rounded-3xl p-6 mb-8 relative overflow-hidden group animate-enter" style="animation-delay: 0.1s">
-            <!-- Background Decoration -->
-            <div class="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10"></div>
-            
-            <div class="flex justify-between items-start relative z-10">
-                <div>
-                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Referrals</p>
-                    <h2 id="refCount" class="text-4xl font-extrabold text-white">0</h2>
-                </div>
-                <div onclick="copyReferral()" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-blue to-brand-purple flex items-center justify-center cursor-pointer shadow-lg shadow-blue-900/30 hover:scale-105 transition">
-                    <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
-                </div>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-6 animate-slide-up" style="animation-delay: 0.1s">
+            <div class="glass-panel p-4 rounded-2xl relative overflow-hidden group">
+                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition group-hover:scale-110"><i data-lucide="users" class="w-12 h-12"></i></div>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Referrals</p>
+                <h3 id="refCount" class="text-2xl font-bold font-mono">0</h3>
             </div>
-
-            <div class="mt-6 pt-4 border-t border-white/10">
-                <div class="flex justify-between items-center">
-                    <p class="text-xs text-gray-400">Invite friends & unlock Premium</p>
-                    <span class="text-xs font-bold text-brand-blue cursor-pointer" onclick="copyReferral()">Copy Link -></span>
-                </div>
+            <div onclick="copyReferral()" class="glass-panel p-4 rounded-2xl bg-gradient-to-br from-brand-primary/20 to-brand-accent/20 border-brand-primary/30 cursor-pointer active:scale-95 transition flex flex-col justify-center items-center text-center">
+                <i data-lucide="copy" class="w-6 h-6 mb-2 text-brand-primary"></i>
+                <span class="text-xs font-bold text-white">Copy Link</span>
             </div>
         </div>
 
-        <!-- Action Button -->
-        <button onclick="openModal('createModal')" class="w-full relative group overflow-hidden rounded-2xl p-[1px] mb-8 animate-enter" style="animation-delay: 0.2s">
-            <div class="absolute inset-0 bg-gradient-to-r from-brand-blue via-brand-purple to-brand-green opacity-70 group-hover:opacity-100 transition duration-500 animate-gradient"></div>
-            <div class="relative bg-dark-800/90 hover:bg-dark-800/80 backdrop-blur-xl rounded-2xl p-4 flex items-center justify-center gap-3 transition duration-300 h-16">
-                <i data-lucide="rocket" class="w-6 h-6 text-white"></i>
-                <span class="font-bold text-lg text-white">Deploy New Server</span>
+        <!-- Create Button -->
+        <button onclick="openModal('createModal')" class="w-full mb-8 relative group overflow-hidden rounded-2xl animate-slide-up" style="animation-delay: 0.2s">
+            <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-accent to-brand-primary opacity-80 group-hover:opacity-100 transition duration-500 bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]"></div>
+            <div class="relative bg-dark-900/90 backdrop-blur-xl m-[1px] rounded-[15px] h-14 flex items-center justify-center gap-3 transition group-hover:bg-dark-900/80">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-white"></i>
+                <span class="font-bold text-white tracking-wide">DEPLOY SERVER</span>
             </div>
         </button>
 
-        <!-- Bots Section -->
-        <div class="mb-12 animate-enter" style="animation-delay: 0.3s">
+        <!-- Bots List -->
+        <div class="mb-20 animate-slide-up" style="animation-delay: 0.3s">
             <div class="flex items-center justify-between mb-4 px-1">
-                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Active Instances</h3>
-                <span id="limitBadge" class="text-xs font-mono bg-white/5 px-2 py-1 rounded text-gray-400">0/1</span>
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Instances</h3>
+                <span id="limitBadge" class="text-[10px] font-mono bg-white/5 px-2 py-1 rounded text-gray-400">0/1</span>
             </div>
 
-            <div id="botsContainer" class="space-y-4">
-                <!-- Bots will be injected here -->
+            <div id="botsContainer" class="space-y-4 pb-10">
+                <!-- Bot Cards Injected Here -->
             </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden glass-card rounded-3xl p-10 text-center border-dashed border-white/10">
-                <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i data-lucide="server-off" class="w-10 h-10 text-gray-600"></i>
-                </div>
-                <h3 class="text-lg font-bold text-white mb-2">No Active Bots</h3>
-                <p class="text-sm text-gray-500">Deploy your first Telegram bot server instantly.</p>
-            </div>
-        </div>
-
-        <!-- Store Section -->
-        <div class="mb-10 animate-enter" style="animation-delay: 0.4s">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-1 text-center">Upgrade Plan</h3>
             
-            <div class="space-y-3">
-                <!-- Pro Plan -->
-                <div onclick="openPay('Pro', 50, 50)" class="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-brand-blue/50 transition duration-300 group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue group-hover:scale-110 transition">
-                            <i data-lucide="zap" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-white text-lg">Pro</h4>
-                            <p class="text-xs text-gray-400">5 Bots • Priority Support</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-xl font-bold text-white">50৳</span>
-                        <span class="text-[10px] text-gray-400">or 50 Refers</span>
-                    </div>
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden glass-panel border-dashed border-white/10 rounded-2xl p-8 text-center">
+                <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="server" class="w-8 h-8 text-gray-600"></i>
                 </div>
+                <h3 class="text-sm font-bold text-gray-300">No Servers Running</h3>
+                <p class="text-xs text-gray-500 mt-1">Create your first bot to get started.</p>
+            </div>
+        </div>
 
-                <!-- VIP Plan -->
-                <div onclick="openPay('VIP', 80, 80)" class="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-brand-gold/50 transition duration-300 group relative overflow-hidden">
-                    <div class="absolute -right-6 -top-6 w-20 h-20 bg-brand-gold/20 rounded-full blur-xl"></div>
-                    <div class="flex items-center gap-4 relative z-10">
-                        <div class="w-12 h-12 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold group-hover:scale-110 transition">
-                            <i data-lucide="crown" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-white text-lg">VIP</h4>
-                            <p class="text-xs text-gray-400">10 Bots • 24/7 Uptime</p>
-                        </div>
-                    </div>
-                    <div class="text-right relative z-10">
-                        <span class="block text-xl font-bold text-white">80৳</span>
-                        <span class="text-[10px] text-gray-400">or 80 Refers</span>
-                    </div>
+        <!-- Upgrade Section -->
+        <div class="mb-8 animate-slide-up" style="animation-delay: 0.4s">
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-white">Upgrade Plan</h3>
+                    <p class="text-xs text-gray-500 mt-1">Unlock 24/7 Uptime & More Bots</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openPay('Pro', 50, 50)" class="px-3 py-2 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-xs font-bold hover:bg-brand-primary/20 transition">Pro</button>
+                    <button onclick="openPay('VIP', 80, 80)" class="px-3 py-2 rounded-lg bg-brand-warning/10 border border-brand-warning/30 text-brand-warning text-xs font-bold hover:bg-brand-warning/20 transition">VIP</button>
                 </div>
             </div>
         </div>
 
-        <!-- Admin Broadcast Panel (Hidden) -->
-        <div id="adminPanel" class="hidden glass-card rounded-3xl p-6 mb-10 border-t-4 border-brand-red animate-enter">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="radio" class="w-5 h-5 text-brand-red"></i> Admin Broadcast
-            </h3>
-            <textarea id="broadcastMsg" class="glass-input w-full rounded-xl p-4 text-sm font-mono h-32 mb-4 resize-none" placeholder="Type your announcement here... HTML supported."></textarea>
-            <button onclick="sendBroadcast()" class="w-full bg-brand-red hover:bg-red-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-red-900/30">
-                Send to All Users
-            </button>
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="hidden glass-panel p-5 rounded-2xl mb-10 border-l-4 border-brand-danger animate-slide-up">
+            <h3 class="font-bold mb-3 flex items-center gap-2"><i data-lucide="radio" class="w-4 h-4 text-brand-danger"></i> Admin Broadcast</h3>
+            <textarea id="broadcastMsg" class="glass-input w-full rounded-xl p-3 text-xs font-mono h-24 mb-3 resize-none" placeholder="HTML Message..."></textarea>
+            <button onclick="sendBroadcast()" class="w-full bg-brand-danger/20 text-brand-danger border border-brand-danger/50 py-2 rounded-lg text-xs font-bold hover:bg-brand-danger hover:text-white transition">Send Broadcast</button>
         </div>
 
     </main>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Create Bot Modal -->
+    <!-- Create Modal -->
     <div id="createModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity" onclick="closeModal('createModal')"></div>
-        <div class="absolute bottom-0 left-0 right-0 glass-card bg-[#0A0A0A] rounded-t-[2.5rem] p-8 border-t border-white/10 transform transition-transform translate-y-full duration-500" id="createModalContent">
-            <div class="w-16 h-1.5 bg-white/20 rounded-full mx-auto mb-8"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-panel bg-[#0A0A0A] rounded-t-[2rem] p-6 transform transition-transform translate-y-full duration-300" id="createModalContent">
+            <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+            <h3 class="text-xl font-bold mb-1">New Instance</h3>
+            <p class="text-xs text-gray-500 mb-6">Enter details from BotFather</p>
             
-            <h3 class="text-2xl font-bold mb-2">Deploy Server</h3>
-            <p class="text-sm text-gray-500 mb-8">Create a new Telegram bot instance.</p>
-            
-            <div class="space-y-5">
-                <div class="relative">
-                    <i data-lucide="bot" class="absolute left-4 top-4 w-5 h-5 text-gray-500"></i>
-                    <input id="botName" type="text" placeholder="Bot Name" class="glass-input w-full rounded-2xl py-4 pl-12 pr-4 font-bold">
-                </div>
-                <div class="relative">
-                    <i data-lucide="key" class="absolute left-4 top-4 w-5 h-5 text-gray-500"></i>
-                    <input id="botToken" type="text" placeholder="Bot Token (from @BotFather)" class="glass-input w-full rounded-2xl py-4 pl-12 pr-4 font-mono text-sm">
-                </div>
-                
-                <button onclick="createBot()" class="w-full bg-brand-blue hover:bg-blue-600 text-white font-bold py-5 rounded-2xl transition shadow-lg shadow-blue-900/30 mt-4 flex items-center justify-center gap-2">
-                    <i data-lucide="rocket" class="w-5 h-5"></i> Deploy Now
-                </button>
+            <div class="space-y-4">
+                <input id="botName" type="text" placeholder="Bot Name" class="glass-input w-full rounded-xl p-4 font-bold">
+                <input id="botToken" type="text" placeholder="Bot Token" class="glass-input w-full rounded-xl p-4 font-mono text-xs">
+                <button onclick="createBot()" class="w-full bg-brand-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 active:scale-95 transition">Deploy Now</button>
             </div>
             <div class="h-6"></div>
         </div>
@@ -272,343 +213,312 @@
 
     <!-- Payment Modal -->
     <div id="payModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('payModal')"></div>
-        <div class="relative w-full max-w-sm glass-card bg-[#0A0A0A] rounded-[2rem] p-6 transform scale-95 opacity-0 transition-all duration-300" id="payModalContent">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" onclick="closeModal('payModal')"></div>
+        <div class="relative w-full max-w-sm glass-panel bg-[#0F0F0F] rounded-2xl p-6 transform scale-95 opacity-0 transition-all duration-300" id="payModalContent">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold">Unlock <span id="payPlanName" class="text-brand-blue">Pro</span></h3>
-                <button onclick="closeModal('payModal')" class="p-2 bg-white/5 rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <h3 class="font-bold text-lg">Unlock <span id="payPlanName" class="text-brand-primary">Pro</span></h3>
+                <button onclick="closeModal('payModal')" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
 
-            <!-- Tabs -->
-            <div class="flex bg-black rounded-xl p-1 mb-6">
-                <button onclick="switchTab('cash')" id="tabCash" class="flex-1 py-2 rounded-lg text-xs font-bold bg-white/10 text-white transition">Nagad Pay</button>
-                <button onclick="switchTab('refer')" id="tabRefer" class="flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-white transition">Referral Balance</button>
+            <div class="flex bg-black/50 p-1 rounded-lg mb-6">
+                <button onclick="switchTab('cash')" id="tabCash" class="flex-1 py-2 text-xs font-bold rounded-md bg-white/10 text-white">Nagad</button>
+                <button onclick="switchTab('refer')" id="tabRefer" class="flex-1 py-2 text-xs font-bold rounded-md text-gray-500">Refer Balance</button>
             </div>
             
-            <!-- Cash Section -->
             <div id="payCashSection">
-                <div class="bg-brand-green/10 border border-brand-green/20 p-4 rounded-2xl flex justify-between items-center mb-4">
+                <div class="bg-brand-success/10 border border-brand-success/20 p-3 rounded-xl flex justify-between items-center mb-4">
                     <div>
-                        <p class="text-[10px] text-brand-green uppercase font-bold">Personal Number</p>
-                        <p class="text-lg font-mono font-bold text-white tracking-widest">01761494948</p>
+                        <p class="text-[10px] text-brand-success uppercase font-bold">Send Money To</p>
+                        <p class="text-md font-mono font-bold text-white">01761494948</p>
                     </div>
-                    <button onclick="navigator.clipboard.writeText('01761494948'); showToast('Number Copied!')" class="p-2 bg-brand-green/20 rounded-lg text-brand-green"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                    <button onclick="navigator.clipboard.writeText('01761494948'); showToast('Copied!')" class="p-2 bg-brand-success/20 rounded text-brand-success"><i data-lucide="copy" class="w-4 h-4"></i></button>
                 </div>
-                <div class="text-center mb-4">
-                    <p class="text-xs text-gray-500">Send <span id="payAmountCash" class="text-white font-bold">50</span> Tk then enter TrxID</p>
-                </div>
-                <input id="trxId" type="text" placeholder="Enter Transaction ID" class="glass-input w-full rounded-2xl p-4 text-center font-mono text-sm mb-4">
-                <button onclick="submitPayment('cash')" class="w-full bg-brand-green hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition">Verify Payment</button>
+                <p class="text-center text-xs text-gray-500 mb-2">Amount: <span id="payAmountCash" class="text-white font-bold">50</span> BDT</p>
+                <input id="trxId" type="text" placeholder="Enter TrxID" class="glass-input w-full rounded-xl p-3 text-center font-mono text-sm mb-4">
+                <button onclick="submitPayment('cash')" class="w-full bg-brand-success text-white font-bold py-3 rounded-xl">Verify</button>
             </div>
 
-            <!-- Referral Section -->
-            <div id="payReferSection" class="hidden text-center py-4">
-                <div class="w-20 h-20 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="users" class="w-10 h-10 text-brand-purple"></i>
-                </div>
-                <h4 class="text-3xl font-bold text-white mb-2"><span id="payAmountRef">50</span> Refs</h4>
-                <p class="text-sm text-gray-400 mb-8">Required to unlock this plan</p>
-                <button onclick="submitPayment('referral')" class="w-full bg-brand-purple hover:bg-purple-600 text-white font-bold py-4 rounded-2xl transition">Unlock with Referrals</button>
+            <div id="payReferSection" class="hidden text-center py-2">
+                <h4 class="text-3xl font-bold text-white mb-1"><span id="payAmountRef">50</span> Refs</h4>
+                <p class="text-xs text-gray-500 mb-6">Cost for this plan</p>
+                <button onclick="submitPayment('referral')" class="w-full bg-brand-accent text-white font-bold py-3 rounded-xl">Purchase with Points</button>
             </div>
         </div>
     </div>
 
-    <!-- Command Editor Modal (Full Screen) -->
-    <div id="cmdModal" class="fixed inset-0 z-[60] hidden bg-black flex flex-col animate-enter">
-        <div class="p-4 border-b border-white/10 bg-[#0A0A0A] flex justify-between items-center">
-            <button onclick="closeCmdEditor()" class="p-2 text-gray-400 hover:text-white"><i data-lucide="arrow-left"></i></button>
-            <h3 class="font-bold font-mono text-brand-blue">JS Editor</h3>
+    <!-- JS Editor Modal (Full Screen) -->
+    <div id="cmdModal" class="fixed inset-0 z-[60] hidden bg-[#050505] flex flex-col transition-all duration-300 transform translate-x-full">
+        <!-- Editor Header -->
+        <div class="flex items-center justify-between p-4 border-b border-white/10 bg-[#0A0A0A]">
+            <button onclick="closeCmdEditor()" class="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+            <span class="font-mono font-bold text-brand-primary">JS EDITOR</span>
             <div class="flex gap-2">
-                <button onclick="deleteCommand()" class="p-2 text-brand-red hover:bg-brand-red/10 rounded-lg"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                <button onclick="saveCommand()" class="bg-brand-blue text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
-                    <i data-lucide="save" class="w-3 h-3"></i> Save
+                <button onclick="deleteCommand()" class="p-2 text-brand-danger bg-brand-danger/10 rounded-lg"><i data-lucide="trash" class="w-5 h-5"></i></button>
+                <button onclick="saveCommand()" class="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center gap-2">
+                    <i data-lucide="save" class="w-3 h-3"></i> SAVE
                 </button>
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col p-4">
-            <!-- Chips -->
-            <div class="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide" id="cmdList"></div>
+        <div class="flex-1 flex flex-col p-4 overflow-hidden">
+            <!-- Command Chips -->
+            <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cmdList"></div>
             
-            <!-- Inputs -->
-            <div class="space-y-4 flex-1 flex flex-col">
-                <div class="relative">
-                    <span class="absolute left-4 top-3.5 text-gray-500 font-mono font-bold">/</span>
-                    <input id="cmdNameInput" placeholder="start" class="glass-input w-full rounded-xl py-3 pl-8 pr-4 font-mono text-white border-brand-blue/30 focus:border-brand-blue">
-                </div>
-                
-                <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 bg-[#050505]">
-                    <div class="absolute top-0 right-0 px-3 py-1 bg-white/5 text-[10px] text-gray-500 font-mono rounded-bl-xl">node.js</div>
-                    <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-sm resize-none focus:outline-none leading-relaxed" spellcheck="false" placeholder="// Write Telegraf logic here...
-ctx.reply('Hello World!');"></textarea>
-                </div>
-                
-                <div class="text-[10px] text-gray-600 font-mono text-center">
-                    Available: <span class="text-brand-purple">ctx</span>, <span class="text-brand-purple">bot</span>, <span class="text-brand-purple">Telegraf</span>
-                </div>
+            <!-- Command Name -->
+            <div class="relative mb-4">
+                <span class="absolute left-4 top-3 text-gray-500 font-mono font-bold">/</span>
+                <input id="cmdNameInput" placeholder="command_name" class="glass-input w-full rounded-xl py-2.5 pl-8 pr-4 font-mono text-sm border-brand-primary/30 focus:border-brand-primary">
+            </div>
+            
+            <!-- Code Area -->
+            <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10 bg-[#080808]">
+                <div class="absolute top-0 right-0 px-3 py-1 bg-white/5 text-[10px] text-gray-500 font-mono rounded-bl-xl border-l border-b border-white/5">node.js</div>
+                <textarea id="cmdCodeInput" class="w-full h-full p-4 bg-transparent text-gray-300 font-mono text-xs resize-none focus:outline-none leading-relaxed" spellcheck="false" placeholder="// ctx.reply('Hello');"></textarea>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 glass-card bg-black/90 border-brand-blue/30 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl z-[100] transition-all duration-300 -translate-y-32 opacity-0">
-        <i data-lucide="bell" class="w-4 h-4 text-brand-blue"></i>
-        <span id="toastMsg" class="text-xs font-bold tracking-wide">Notification</span>
+    <!-- Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 glass-panel bg-black/90 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl z-[100] transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none">
+        <i data-lucide="check-circle" class="w-4 h-4 text-brand-success"></i>
+        <span id="toastMsg" class="text-xs font-bold">Success</span>
     </div>
 
-    <!-- Logic -->
+    <!-- Scripts -->
     <script>
         lucide.createIcons();
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.enableClosingConfirmation();
         
-        // Theme
-        tg.setHeaderColor('#000000');
-        tg.setBackgroundColor('#000000');
+        // --- Colors ---
+        tg.setHeaderColor('#050505');
+        tg.setBackgroundColor('#050505');
 
-        // User Setup (Fallback for browser testing)
-        const user = tg.initDataUnsafe?.user || { id: '7605281774', username: 'Guest', first_name: 'Guest User' }; // Replace ID with Admin ID to test admin panel
+        // --- User Data Init ---
+        // Prioritize Telegram data to avoid "Undefined" flash
+        const tgUser = tg.initDataUnsafe?.user || { id: '7605281774', username: 'Guest', first_name: 'Guest User', photo_url: '' };
         
-        // Check Admin
-        if(user.id.toString() === '7605281774') {
+        // Admin Check (Static ID check for UI toggle)
+        if(tgUser.id.toString() === '7605281774') {
             document.getElementById('adminBtn').classList.remove('hidden');
         }
 
-        // State
+        // --- Variables ---
         let currentBotId = null;
-        let currentCommands = {};
         let payInfo = {};
+        let refreshInterval = null;
 
-        // API Helper
+        // --- API Wrapper ---
         const api = async (path, body={}) => {
             try {
                 const res = await fetch('/api'+path, {
                     method:'POST', 
                     headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({...body, userId: user.id.toString(), username: user.username, firstName: user.first_name})
+                    body: JSON.stringify({...body, userId: tgUser.id.toString(), username: tgUser.username, firstName: tgUser.first_name})
                 });
                 return await res.json();
             } catch(e) {
-                showToast('Network Error!');
+                showToast('Connection Failed 🔴');
                 return { success: false };
             }
         };
 
-        // --- Core ---
+        // --- Core Functions ---
         async function init() {
-            const res = await fetch(`/api/bots?userId=${user.id}&username=${user.username}&firstName=${user.first_name}`).then(r=>r.json());
-            const userData = res.user;
-            
-            // Update UI
-            document.getElementById('userName').innerText = userData.firstName;
-            document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${userData.firstName}&background=007AFF&color=fff`;
-            
-            // Plan Badge
-            const badge = document.getElementById('planBadge');
-            badge.innerText = userData.plan;
-            badge.className = userData.plan === 'Free' 
-                ? 'text-[10px] bg-white/10 border border-white/10 px-2 py-0.5 rounded-full uppercase tracking-wider text-gray-300'
-                : 'text-[10px] bg-brand-gold/20 border border-brand-gold/50 px-2 py-0.5 rounded-full uppercase tracking-wider text-brand-gold font-bold';
+            // Set basic profile from TG first
+            document.getElementById('userName').innerText = tgUser.first_name || 'User';
+            document.getElementById('userAvatar').src = tgUser.photo_url || `https://ui-avatars.com/api/?name=${tgUser.first_name}&background=3B82F6&color=fff`;
 
-            // Expiry
-            if(userData.plan !== 'Free' && userData.planExpiresAt) {
-                const d = new Date(userData.planExpiresAt);
-                document.getElementById('planExpiry').innerText = `Valid until: ${d.toLocaleDateString()}`;
-                document.getElementById('planExpiry').classList.add('text-brand-green');
-            } else {
-                document.getElementById('planExpiry').innerText = 'Lifetime Validity';
+            // Fetch Real Data
+            const res = await api('/bots');
+            const userData = res.user;
+
+            if(userData) {
+                // Update Plan
+                document.getElementById('planBadge').innerText = userData.plan;
+                if(userData.plan !== 'Free') {
+                    document.getElementById('planBadge').className = "text-[10px] bg-brand-warning/10 border border-brand-warning/30 px-2 py-0.5 rounded text-brand-warning font-bold uppercase";
+                    startCountdown(userData.planExpiresAt);
+                } else {
+                    document.getElementById('planBadge').className = "text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400 font-mono uppercase";
+                    document.getElementById('expiryBadge').classList.add('hidden');
+                }
+
+                document.getElementById('refCount').innerText = userData.referrals;
+                document.getElementById('limitBadge').innerText = `${res.bots.length}/${userData.botLimit}`;
             }
 
-            // Stats
-            document.getElementById('refCount').innerText = userData.referrals;
-            document.getElementById('limitBadge').innerText = `${res.bots.length}/${userData.botLimit}`;
+            renderBots(res.bots);
 
-            // Bots List
+            // Hide Loader
+            document.getElementById('loader').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => document.getElementById('app').classList.remove('hidden'), 300);
+        }
+
+        function renderBots(bots) {
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
             
-            if(res.bots.length === 0) {
+            if(!bots || bots.length === 0) {
                 document.getElementById('emptyState').classList.remove('hidden');
-            } else {
-                document.getElementById('emptyState').classList.add('hidden');
-                
-                res.bots.forEach(bot => {
-                    const isRun = bot.status === 'RUNNING';
-                    const div = document.createElement('div');
-                    div.className = `glass-card p-5 rounded-3xl transition-all duration-300 border-l-4 ${isRun ? 'border-brand-green' : 'border-gray-700'}`;
-                    div.innerHTML = `
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-2xl ${isRun ? 'bg-brand-green/10' : 'bg-white/5'} flex items-center justify-center relative">
-                                    <i data-lucide="bot" class="${isRun ? 'text-brand-green' : 'text-gray-500'} w-6 h-6"></i>
-                                    ${isRun ? '<div class="absolute -top-1 -right-1 w-3 h-3 bg-brand-green rounded-full animate-pulse"></div>' : ''}
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-white text-lg">${bot.name}</h4>
-                                    <p class="text-xs ${isRun ? 'text-brand-green' : 'text-gray-500'} font-bold uppercase tracking-wide">${bot.status}</p>
-                                </div>
-                            </div>
-                            <button onclick="deleteBot('${bot._id}')" class="p-2 text-gray-600 hover:text-brand-red transition"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="toggleBot('${bot._id}', '${isRun ? 'stop' : 'start'}')" 
-                                class="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition ${isRun ? 'bg-brand-red/10 text-brand-red hover:bg-brand-red/20' : 'bg-brand-green/10 text-brand-green hover:bg-brand-green/20'}">
-                                <i data-lucide="${isRun ? 'square' : 'play'}" class="w-4 h-4 fill-current"></i>
-                                ${isRun ? 'Stop Server' : 'Start Server'}
-                            </button>
-                            <button onclick="openCmdEditor('${bot._id}')" 
-                                class="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold bg-white/5 text-gray-300 hover:bg-white/10 transition hover:text-white">
-                                <i data-lucide="code" class="w-4 h-4"></i>
-                                JS Editor
-                            </button>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
-                lucide.createIcons();
+                return;
             }
+            document.getElementById('emptyState').classList.add('hidden');
 
-            // Hide Loader
-            document.getElementById('loader').classList.add('opacity-0');
-            setTimeout(() => {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-            }, 500);
+            bots.forEach(bot => {
+                const isRun = bot.status === 'RUNNING';
+                const div = document.createElement('div');
+                div.id = `bot-card-${bot._id}`;
+                div.className = `glass-panel p-5 rounded-2xl transition-all duration-300 border-l-2 ${isRun ? 'border-brand-success' : 'border-gray-700'}`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl ${isRun ? 'bg-brand-success/10' : 'bg-white/5'} flex items-center justify-center relative">
+                                <i data-lucide="bot" class="${isRun ? 'text-brand-success' : 'text-gray-500'} w-5 h-5"></i>
+                                <span id="status-dot-${bot._id}" class="absolute -top-1 -right-1 w-2.5 h-2.5 ${isRun?'bg-brand-success animate-pulse':'bg-gray-500'} rounded-full border-2 border-[#141414]"></span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white leading-tight">${bot.name}</h4>
+                                <p id="status-text-${bot._id}" class="text-[10px] ${isRun ? 'text-brand-success' : 'text-gray-500'} font-bold uppercase tracking-widest mt-0.5">${bot.status}</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteBot('${bot._id}')" class="p-2 text-gray-600 hover:text-brand-danger transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-toggle-${bot._id}" onclick="toggleBot('${bot._id}', '${isRun ? 'stop' : 'start'}')" 
+                            class="flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition ${isRun ? 'bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20' : 'bg-brand-success/10 text-brand-success hover:bg-brand-success/20'}">
+                            <i data-lucide="${isRun ? 'square' : 'play'}" class="w-3 h-3 fill-current"></i>
+                            <span id="btn-text-${bot._id}">${isRun ? 'Stop' : 'Start'}</span>
+                        </button>
+                        <button onclick="openCmdEditor('${bot._id}')" 
+                            class="flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i data-lucide="code" class="w-3 h-3"></i> Editor
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
         }
 
-        // Actions
+        // --- Actions ---
+        
+        // Create
         async function createBot() {
             const name = document.getElementById('botName').value;
             const token = document.getElementById('botToken').value;
             if(!name || !token) return showToast('Please fill all fields');
             
-            showToast('Deploying Server...');
+            showToast('Deploying...');
             const res = await api('/createBot', { name, token });
             if(res.success) {
                 closeModal('createModal');
                 document.getElementById('botName').value = '';
                 document.getElementById('botToken').value = '';
                 init();
-                showToast('Server Deployed Successfully!');
+                showToast('Deployed Successfully ✅');
             } else {
-                showToast(res.message);
+                showToast(res.message || 'Error');
             }
         }
 
+        // Toggle (Live Update)
         async function toggleBot(id, action) {
-            showToast(action==='start' ? 'Booting System...' : 'Shutting Down...');
+            // Optimistic UI update or Loader could be added here
+            const btnText = document.getElementById(`btn-text-${id}`);
+            const originalText = btnText.innerText;
+            btnText.innerText = '...';
+            
             const res = await api('/toggleBot', { botId: id, action });
+            
             if(res.success) {
-                // IMPORTANT: Immediate refresh to update status
-                await init(); 
-                showToast(action==='start' ? 'System Online 🟢' : 'System Offline 🔴');
+                // Manually Update DOM to avoid reload
+                const isStart = action === 'start';
+                const card = document.getElementById(`bot-card-${id}`);
+                const statusDot = document.getElementById(`status-dot-${id}`);
+                const statusText = document.getElementById(`status-text-${id}`);
+                const btn = document.getElementById(`btn-toggle-${id}`);
+                
+                // Update Logic
+                statusText.innerText = isStart ? 'RUNNING' : 'STOPPED';
+                statusText.className = `text-[10px] ${isStart ? 'text-brand-success' : 'text-gray-500'} font-bold uppercase tracking-widest mt-0.5`;
+                
+                statusDot.className = `absolute -top-1 -right-1 w-2.5 h-2.5 ${isStart?'bg-brand-success animate-pulse':'bg-gray-500'} rounded-full border-2 border-[#141414]`;
+                
+                card.classList.remove('border-brand-success', 'border-gray-700');
+                card.classList.add(isStart ? 'border-brand-success' : 'border-gray-700');
+
+                // Update Button
+                btn.onclick = () => toggleBot(id, isStart ? 'stop' : 'start');
+                btn.className = `flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition ${isStart ? 'bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20' : 'bg-brand-success/10 text-brand-success hover:bg-brand-success/20'}`;
+                btn.innerHTML = `<i data-lucide="${isStart ? 'square' : 'play'}" class="w-3 h-3 fill-current"></i> <span id="btn-text-${id}">${isStart ? 'Stop' : 'Start'}</span>`;
+                
+                lucide.createIcons();
+                showToast(isStart ? 'Server Online 🟢' : 'Server Offline 🔴');
             } else {
+                btnText.innerText = originalText;
                 showToast(res.message);
             }
         }
 
-        async function deleteBot(id) {
-            tg.showConfirm("Are you sure? This action is irreversible.", async (ok) => {
+        // Delete with Confirmation
+        function deleteBot(id) {
+            tg.showConfirm("⚠️ Are you sure you want to delete this server? This cannot be undone.", async (ok) => {
                 if(ok) {
                     await api('/deleteBot', { botId: id });
-                    init();
-                    showToast('Server Deleted');
+                    init(); // Refresh list
+                    showToast('Server Deleted 🗑️');
                 }
             });
         }
 
-        // Referral & Payment
-        function copyReferral() {
-            const link = `https://t.me/lagahostbot?start=${user.id}`;
-            navigator.clipboard.writeText(link);
-            showToast('Referral Link Copied!');
-        }
-
-        function openPay(plan, cashAmt, refAmt) {
-            payInfo = { plan, cashAmt, refAmt };
-            document.getElementById('payPlanName').innerText = plan;
-            document.getElementById('payAmountCash').innerText = cashAmt;
-            document.getElementById('payAmountRef').innerText = refAmt;
-            openModal('payModal');
-            switchTab('cash'); // Reset tab
-        }
-
-        function switchTab(tab) {
-            const tCash = document.getElementById('tabCash');
-            const tRef = document.getElementById('tabRefer');
-            const sCash = document.getElementById('payCashSection');
-            const sRef = document.getElementById('payReferSection');
-
-            if(tab === 'cash') {
-                tCash.className = 'flex-1 py-2 rounded-lg text-xs font-bold bg-white/10 text-white transition';
-                tRef.className = 'flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-white transition';
-                sCash.classList.remove('hidden');
-                sRef.classList.add('hidden');
-            } else {
-                tRef.className = 'flex-1 py-2 rounded-lg text-xs font-bold bg-white/10 text-white transition';
-                tCash.className = 'flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-white transition';
-                sRef.classList.remove('hidden');
-                sCash.classList.add('hidden');
-            }
-        }
-
-        async function submitPayment(method) {
-            const trx = document.getElementById('trxId').value;
-            if(method === 'cash' && !trx) return showToast('Enter Transaction ID');
-
-            const res = await api('/submit-payment', {
-                method,
-                trxId: trx,
-                plan: payInfo.plan,
-                amount: payInfo.cashAmt,
-                userId: user.id.toString()
-            });
-
-            if(res.success) {
-                closeModal('payModal');
-                document.getElementById('trxId').value = '';
-                showToast(res.message || 'Request Sent to Admin');
-                if(method === 'referral') init(); // Auto refresh if unlocked immediately
-            } else {
-                showToast(res.message);
-            }
-        }
-
-        // Editor
+        // --- Editor ---
         async function openCmdEditor(id) {
             currentBotId = id;
-            document.getElementById('cmdModal').classList.remove('hidden');
+            const modal = document.getElementById('cmdModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('translate-x-full'), 10); // Slide in
+            
             const cmds = await api('/getCommands', { botId: id });
-            currentCommands = cmds || {};
-            renderChips();
+            renderChips(cmds || {});
             document.getElementById('cmdNameInput').value = '';
-            document.getElementById('cmdCodeInput').value = "// Select a command or type new one";
+            document.getElementById('cmdCodeInput').value = "// Select a command above or create new";
         }
 
-        function renderChips() {
+        function closeCmdEditor() {
+            const modal = document.getElementById('cmdModal');
+            modal.classList.add('translate-x-full'); // Slide out
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function renderChips(commands) {
             const list = document.getElementById('cmdList');
             list.innerHTML = '';
-            Object.keys(currentCommands).forEach(cmd => {
-                const btn = document.createElement('button');
-                btn.className = 'px-4 py-2 bg-[#0A0A0A] border border-white/10 rounded-lg text-xs font-mono text-gray-400 hover:border-brand-blue hover:text-white transition whitespace-nowrap';
-                btn.innerText = '/'+cmd;
-                btn.onclick = () => {
-                    document.getElementById('cmdNameInput').value = cmd;
-                    document.getElementById('cmdCodeInput').value = currentCommands[cmd];
-                };
-                list.appendChild(btn);
-            });
+            
             // New Button
             const add = document.createElement('button');
-            add.className = 'px-4 py-2 bg-brand-blue text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap';
+            add.className = 'px-3 py-1.5 bg-brand-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap mr-2';
             add.innerHTML = '<i data-lucide="plus" class="w-3 h-3"></i> New';
             add.onclick = () => {
                 document.getElementById('cmdNameInput').value = '';
-                document.getElementById('cmdCodeInput').value = "// Write Telegraf Logic\nctx.reply('Hello');";
+                document.getElementById('cmdCodeInput').value = "// Write logic here\n// Available: ctx, bot\n\nctx.reply('Hello World');";
             };
             list.appendChild(add);
+
+            Object.entries(commands).forEach(([name, code]) => {
+                const btn = document.createElement('button');
+                btn.className = 'px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-gray-400 hover:border-brand-primary hover:text-white transition whitespace-nowrap';
+                btn.innerText = '/'+name;
+                btn.onclick = () => {
+                    document.getElementById('cmdNameInput').value = name;
+                    document.getElementById('cmdCodeInput').value = code;
+                };
+                list.appendChild(btn);
+            });
             lucide.createIcons();
         }
 
@@ -618,60 +528,130 @@ ctx.reply('Hello World!');"></textarea>
             if(!name) return showToast('Enter command name');
             
             await api('/saveCommand', { botId: currentBotId, command: name, code });
-            currentCommands[name] = code;
-            renderChips();
-            showToast('Script Saved');
+            showToast('Script Saved 💾');
+            // Refresh list logic needed if we want to show new chip immediately
+            const cmds = await api('/getCommands', { botId: currentBotId });
+            renderChips(cmds);
         }
 
         async function deleteCommand() {
-            const name = document.getElementById('cmdNameInput').value.replace('/','').trim();
-            if(!name || !currentCommands[name]) return;
-            if(confirm('Delete command?')) {
+            const name = document.getElementById('cmdNameInput').value;
+            if(confirm('Delete /'+name+'?')) {
                 await api('/deleteCommand', { botId: currentBotId, command: name });
-                delete currentCommands[name];
-                renderChips();
                 document.getElementById('cmdNameInput').value = '';
                 document.getElementById('cmdCodeInput').value = '';
+                const cmds = await api('/getCommands', { botId: currentBotId });
+                renderChips(cmds);
                 showToast('Deleted');
             }
         }
 
-        // Admin
+        // --- Admin Broadcast ---
         function toggleAdminPanel() {
-            const p = document.getElementById('adminPanel');
-            p.classList.toggle('hidden');
+            document.getElementById('adminPanel').classList.toggle('hidden');
         }
 
         async function sendBroadcast() {
             const msg = document.getElementById('broadcastMsg').value;
-            if(!msg) return showToast('Empty message');
-            showToast('Broadcasting...');
-            const res = await api('/broadcast', { message: msg, adminId: user.id.toString() });
-            showToast(`Sent to ${res.total} users`);
+            if(!msg) return showToast('Message empty!');
+            if(!confirm('Send to ALL users?')) return;
+            
+            showToast('Sending...');
+            const res = await api('/broadcast', { message: msg, adminId: tgUser.id.toString() });
+            showToast(`Sent to ${res.total} users ✅`);
         }
 
-        // Helpers
+        // --- Helpers ---
+        function copyReferral() {
+            navigator.clipboard.writeText(`https://t.me/lagahostbot?start=${tgUser.id}`);
+            showToast('Link Copied! 🔗');
+        }
+
+        function startCountdown(expiryDate) {
+            if(!expiryDate) return;
+            const badge = document.getElementById('expiryBadge');
+            badge.classList.remove('hidden');
+            
+            if(refreshInterval) clearInterval(refreshInterval);
+            
+            refreshInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = new Date(expiryDate).getTime() - now;
+                
+                if (distance < 0) {
+                    clearInterval(refreshInterval);
+                    badge.innerText = "EXPIRED";
+                    badge.className = "text-[10px] text-brand-danger font-mono";
+                    return;
+                }
+                
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                badge.innerText = `${days}d ${hours}h LEFT`;
+            }, 1000);
+        }
+
         function openModal(id) {
             const el = document.getElementById(id);
             el.classList.remove('hidden');
-            if(id === 'createModal') setTimeout(()=>el.querySelector('#createModalContent').classList.remove('translate-y-full'),10);
-            if(id === 'payModal') setTimeout(()=>{
-                el.querySelector('#payModalContent').classList.remove('scale-95','opacity-0');
-            },10);
+            if(id==='createModal') setTimeout(()=>el.querySelector('#createModalContent').classList.remove('translate-y-full'), 10);
+            if(id==='payModal') setTimeout(()=>el.querySelector('#payModalContent').classList.remove('scale-95','opacity-0'), 10);
         }
-
+        
         function closeModal(id) {
             const el = document.getElementById(id);
-            if(id === 'createModal') el.querySelector('#createModalContent').classList.add('translate-y-full');
-            if(id === 'payModal') el.querySelector('#payModalContent').classList.add('scale-95','opacity-0');
-            setTimeout(()=>el.classList.add('hidden'),300);
+            if(id==='createModal') el.querySelector('#createModalContent').classList.add('translate-y-full');
+            if(id==='payModal') el.querySelector('#payModalContent').classList.add('scale-95','opacity-0');
+            setTimeout(()=>el.classList.add('hidden'), 300);
+        }
+
+        function openPay(plan, cash, ref) {
+            payInfo = { plan, cash, ref };
+            document.getElementById('payPlanName').innerText = plan;
+            document.getElementById('payAmountCash').innerText = cash;
+            document.getElementById('payAmountRef').innerText = ref;
+            openModal('payModal');
+            switchTab('cash');
+        }
+
+        function switchTab(tab) {
+            if(tab === 'cash') {
+                document.getElementById('payCashSection').classList.remove('hidden');
+                document.getElementById('payReferSection').classList.add('hidden');
+                document.getElementById('tabCash').className = "flex-1 py-2 text-xs font-bold rounded-md bg-white/10 text-white transition";
+                document.getElementById('tabRefer').className = "flex-1 py-2 text-xs font-bold rounded-md text-gray-500 transition";
+            } else {
+                document.getElementById('payReferSection').classList.remove('hidden');
+                document.getElementById('payCashSection').classList.add('hidden');
+                document.getElementById('tabRefer').className = "flex-1 py-2 text-xs font-bold rounded-md bg-white/10 text-white transition";
+                document.getElementById('tabCash').className = "flex-1 py-2 text-xs font-bold rounded-md text-gray-500 transition";
+            }
+        }
+
+        async function submitPayment(method) {
+            const trx = document.getElementById('trxId').value;
+            if(method === 'cash' && !trx) return showToast('Enter TrxID!');
+            
+            showToast('Processing...');
+            const res = await api('/submit-payment', {
+                method, trxId: trx, plan: payInfo.plan, amount: payInfo.cash,
+                user: tgUser.username, userId: tgUser.id.toString()
+            });
+            
+            if(res.success) {
+                closeModal('payModal');
+                showToast(res.message || 'Request Sent! ⏳');
+                if(method === 'referral') init();
+            } else {
+                showToast(res.message);
+            }
         }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
             document.getElementById('toastMsg').innerText = msg;
-            t.classList.remove('-translate-y-32', 'opacity-0');
-            setTimeout(() => t.classList.add('-translate-y-32', 'opacity-0'), 3000);
+            t.classList.remove('-translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('-translate-y-20', 'opacity-0'), 2500);
         }
 
         // Start
