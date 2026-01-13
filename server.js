@@ -10,9 +10,8 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ IMPORTANT: এখানে আপনার Render বা Hosting এর ডাইরেক্ট লিংক দিন (t.me লিংক দেবেন না)
-// উদাহরণ: "https://laga-host.onrender.com"
-const WEB_APP_URL = "https://laga-host-ultimate.onrender.com"; 
+// ⚠️ আপডেট করা URL (আপনার লগ অনুযায়ী)
+const WEB_APP_URL = "https://laga-host-front.onrender.com"; 
 
 // --- CONFIGURATION ---
 const ADMIN_CONFIG = {
@@ -68,20 +67,17 @@ async function checkSubscription(userId, telegram) {
     for (const channel of ADMIN_CONFIG.channels) {
         try {
             const member = await telegram.getChatMember(channel.username, userId);
-            // Member status check
             if (['left', 'kicked', 'restricted'].includes(member.status)) {
                 return false;
             }
         } catch (e) {
             console.log(`⚠️ Skipping check for ${channel.username} (Bot needs to be Admin there)`);
-            // যদি বোট চ্যানেলে এডমিন না থাকে, তাহলে বাইপাস করবে না এরর দেবে?
-            // আপাতত বাইপাস করা হলো যাতে ইউজাররা আটকে না যায়। স্ট্রিক্ট করতে চাইলে 'return false' দিন।
         }
     }
     return true;
 }
 
-// Cron Job: Check Expired Plans
+// Cron Job
 cron.schedule('0 0 * * *', async () => {
     const now = new Date();
     const expiredUsers = await UserModel.find({ 
@@ -150,9 +146,7 @@ mainBot.action('check_sub', async (ctx) => {
     const isJoined = await checkSubscription(ctx.from.id, ctx.telegram);
     
     if (isJoined) {
-        try {
-            await ctx.deleteMessage(); // Delete previous "Join" message
-        } catch(e) {}
+        try { await ctx.deleteMessage(); } catch(e) {}
 
         await ctx.replyWithHTML(
             `✅ <b>Verified Successfully!</b>\n\n` +
@@ -160,7 +154,6 @@ mainBot.action('check_sub', async (ctx) => {
             `Deploy, Manage & Edit your bots 24/7.\n\n` +
             `👇 <b>Click below to open Dashboard:</b>`,
             Markup.inlineKeyboard([
-                // FIX: Using actual HTTPS URL, not t.me link
                 [Markup.button.webApp('🚀 Open Dashboard', WEB_APP_URL)],
                 [Markup.button.callback('👤 Profile', 'my_status'), Markup.button.callback('💰 Plans', 'my_plans')]
             ])
@@ -219,8 +212,6 @@ mainBot.action(/^decline:(\d+)$/, async (ctx) => {
     await ctx.editMessageText(`❌ Declined request for ${ctx.match[1]}`);
     try { await mainBot.telegram.sendMessage(ctx.match[1], `❌ Your payment request was declined.`); } catch(e){}
 });
-
-mainBot.launch();
 
 // --- SERVER MIDDLEWARE ---
 app.use(cors());
@@ -443,6 +434,19 @@ app.post('/api/broadcast', async (req, res) => {
 
     res.json({ success: true, total: count });
 });
+
+// --- SAFE LAUNCH ---
+// এই অংশটি নিশ্চিত করবে যেন সার্ভার ক্র্যাশ না করে
+mainBot.launch({ dropPendingUpdates: true })
+    .then(() => console.log('🤖 Main Bot Started Successfully'))
+    .catch((err) => {
+        console.error('❌ Main Bot Failed to Start:', err.message);
+        console.log('⚠️ Warning: Bot might be running elsewhere. Web Interface is still active.');
+    });
+
+// Graceful Stop
+process.once('SIGINT', () => mainBot.stop('SIGINT'));
+process.once('SIGTERM', () => mainBot.stop('SIGTERM'));
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
