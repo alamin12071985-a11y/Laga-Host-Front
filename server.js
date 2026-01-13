@@ -32,7 +32,7 @@ if (GEMINI_API_KEY) {
     try {
         genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
         // Using 'gemini-1.5-flash' as it is fast and free-tier friendly
-        aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         console.log("✅ [System] Google Gemini AI Configured Successfully");
     } catch (error) {
         console.error("❌ [System] Failed to initialize Gemini AI:", error.message);
