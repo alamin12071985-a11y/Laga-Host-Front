@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
+const { GoogleGenerativeAI } = require("@google/generative-ai"); // AI Integration
 
 // --- 1. APP CONFIGURATION ---
 const app = express();
@@ -13,6 +14,10 @@ const PORT = process.env.PORT || 3000;
 
 // ⚠️ আপনার ওয়েব অ্যাপের লিংক (Frontend URL)
 const WEB_APP_URL = "https://laga-host-front.onrender.com"; 
+
+// AI কনফিগারেশন (আপনার Google Gemini API Key দিন, না থাকলে ডিফল্ট কাজ করবে)
+const GEN_AI_KEY = process.env.GEMINI_API_KEY || "AIzaSyDH_anrc3k5nWrWyAxI3qduefwkOwCmaJg";
+const genAI = new GoogleGenerativeAI(GEN_AI_KEY);
 
 // অ্যাডমিন এবং চ্যানেল কনফিগারেশন
 const ADMIN_CONFIG = {
@@ -44,7 +49,8 @@ const userSchema = new mongoose.Schema({
     referrals: { type: Number, default: 0 },
     referredBy: String,
     planExpiresAt: { type: Date, default: null }, 
-    joinedAt: { type: Date, default: Date.now }
+    joinedAt: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now }
 });
 const UserModel = mongoose.model('User', userSchema);
 
@@ -54,9 +60,11 @@ const botSchema = new mongoose.Schema({
     name: String,
     token: String,
     status: { type: String, default: 'STOPPED' }, 
+    startedAt: { type: Date, default: null }, // Uptime ট্র্যাকিং এর জন্য
     commands: { type: Object, default: {} }, // JS Codes stored here
     isFirstLive: { type: Boolean, default: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    restartCount: { type: Number, default: 0 }
 });
 const BotModel = mongoose.model('Bot', botSchema);
 
@@ -121,6 +129,7 @@ cron.schedule('0 0 * * *', async () => {
                 }
                 // Update DB Status
                 bots[i].status = 'STOPPED';
+                bots[i].startedAt = null;
                 await bots[i].save();
             }
         }
@@ -181,9 +190,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 async function startBotEngine(botDoc) {
     const botId = botDoc._id.toString();
 
-    // যদি অলরেডি রান থাকে তবে আবার রান করার দরকার নেই
+    // যদি অলরেডি রান থাকে তবে আগেরটা বন্ধ করে নতুন করে রান করো (Restart Safe)
     if (activeBotInstances[botId]) {
-        return { success: true, message: 'Bot is already running' };
+        try { activeBotInstances[botId].stop(); } catch(e){}
+        delete activeBotInstances[botId];
     }
 
     try {
@@ -278,9 +288,11 @@ app.post('/api/bots', async (req, res) => {
     // ইউজার সিঙ্ক করা
     if (!user) {
         user = await UserModel.create({ userId, username, firstName });
-    } else if(firstName && user.firstName !== firstName) {
-        user.firstName = firstName;
-        user.username = username;
+    } else {
+        // আপডেট ইউজার ইনফো
+        if(firstName && user.firstName !== firstName) user.firstName = firstName;
+        if(username && user.username !== username) user.username = username;
+        user.lastActive = new Date();
         await user.save();
     }
 
@@ -323,8 +335,9 @@ app.post('/api/toggleBot', async (req, res) => {
         const result = await startBotEngine(bot);
         if (result.success) {
             bot.status = 'RUNNING';
+            bot.startedAt = new Date(); // Uptime শুরু
             await bot.save();
-            res.json({ success: true });
+            res.json({ success: true, startedAt: bot.startedAt });
         } else {
             res.json({ success: false, message: result.message });
         }
@@ -335,12 +348,92 @@ app.post('/api/toggleBot', async (req, res) => {
             delete activeBotInstances[botId];
         }
         bot.status = 'STOPPED';
+        bot.startedAt = null; // Uptime রিসেট
         await bot.save();
         res.json({ success: true });
     }
 });
 
-// D. Delete Bot
+// D. Restart Bot (New Feature)
+app.post('/api/restartBot', async (req, res) => {
+    const { botId } = req.body;
+    const bot = await BotModel.findById(botId);
+    
+    if(!bot) return res.json({ success: false, message: 'Bot not found' });
+
+    // Stop if running
+    if (activeBotInstances[botId]) {
+        try { activeBotInstances[botId].stop(); } catch(e) {}
+        delete activeBotInstances[botId];
+    }
+
+    // Start again
+    const result = await startBotEngine(bot);
+    if (result.success) {
+        bot.status = 'RUNNING';
+        bot.startedAt = new Date(); // Reset timer on restart
+        bot.restartCount += 1;
+        await bot.save();
+        res.json({ success: true, startedAt: bot.startedAt });
+    } else {
+        bot.status = 'STOPPED';
+        await bot.save();
+        res.json({ success: false, message: result.message });
+    }
+});
+
+// E. AI Generator Route (New Feature)
+app.post('/api/ai-generate', async (req, res) => {
+    const { prompt, type } = req.body; // type = 'code' or 'broadcast'
+    
+    try {
+        let aiResponse = "";
+        
+        // Simple Rule-Based AI Fallback (যদি API Key না থাকে বা কাজ না করে)
+        if (!process.env.GEMINI_API_KEY) {
+            if (type === 'code') {
+                if (prompt.includes('welcome') || prompt.includes('start')) {
+                    aiResponse = `ctx.reply('👋 Welcome to the bot! How can I help you?');`;
+                } else if (prompt.includes('photo') || prompt.includes('image')) {
+                    aiResponse = `ctx.replyWithPhoto('https://picsum.photos/200/300', { caption: 'Here is a random photo!' });`;
+                } else if (prompt.includes('button') || prompt.includes('link')) {
+                    aiResponse = `ctx.reply('Click below:', Markup.inlineKeyboard([\n  Markup.button.url('Open Google', 'https://google.com')\n]));`;
+                } else {
+                    aiResponse = `// I am a basic AI. For advanced code, please set GEMINI_API_KEY.\nctx.reply('You said: ${prompt}');`;
+                }
+            } else {
+                aiResponse = `📢 <b>Announcement</b>\n\n${prompt}\n\n<i>Stay tuned for more updates!</i>`;
+            }
+        } else {
+            // Real AI Generation (Google Gemini)
+            const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+            let systemInstruction = "";
+            
+            if(type === 'code') {
+                systemInstruction = `You are a Telegram Bot JavaScript Code Generator for Telegraf.js. 
+                Write ONLY the javascript code inside the function body. 
+                Available variables: ctx, bot, Markup. 
+                Do not wrap in markdown code blocks. Just raw code.
+                User Request: ${prompt}`;
+            } else {
+                systemInstruction = `You are a professional copywriter. Write a catchy Telegram Broadcast message in HTML format based on this topic: "${prompt}". 
+                Use emojis. Do not include <html> tags, just the inner body content.`;
+            }
+
+            const result = await model.generateContent(systemInstruction);
+            const response = await result.response;
+            aiResponse = response.text().replace(/```javascript/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
+        }
+
+        res.json({ success: true, result: aiResponse });
+
+    } catch (e) {
+        console.error("AI Error:", e);
+        res.json({ success: false, message: "AI Busy, try again." });
+    }
+});
+
+// F. Delete Bot
 app.post('/api/deleteBot', async (req, res) => {
     const { botId } = req.body;
     
@@ -356,7 +449,7 @@ app.post('/api/deleteBot', async (req, res) => {
     res.json({ success: true });
 });
 
-// E. JS Editor APIs
+// G. JS Editor APIs
 app.post('/api/getCommands', async (req, res) => {
     const bot = await BotModel.findById(req.body.botId);
     res.json(bot ? bot.commands : {});
@@ -375,7 +468,7 @@ app.post('/api/deleteCommand', async (req, res) => {
     res.json({ success: true });
 });
 
-// F. Payment System
+// H. Payment System
 app.post('/api/submit-payment', async (req, res) => {
     const { trxId, plan, amount, userId, user, method } = req.body;
 
@@ -424,7 +517,7 @@ app.post('/api/submit-payment', async (req, res) => {
     }
 });
 
-// 🔥 G. GLOBAL BROADCAST SYSTEM (Your Requirement) 🔥
+// 🔥 I. GLOBAL BROADCAST SYSTEM 🔥
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
     
