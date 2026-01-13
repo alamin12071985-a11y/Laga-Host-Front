@@ -20,9 +20,10 @@ const PORT = process.env.PORT || 3000;
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender.com"; 
 
 // 🤖 AI Configuration (OpenRouter)
-// User provided key and model
+// User provided key
 const OPENROUTER_API_KEY = "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";
-const AI_MODEL = "google/gemini-2.0-flash-exp:free";
+// Using a reliable free model that supports streaming
+const AI_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"; 
 
 // 🛠️ Admin & Channel Config
 const ADMIN_CONFIG = {
@@ -131,7 +132,6 @@ async function startBotEngine(botDoc) {
 
     // 1. Check if already running in RAM
     if (activeBotInstances[botId]) {
-        console.log(`⚠️ [Engine] Bot ${botDoc.name} is already active.`);
         return { success: true, message: 'Bot is already active.' };
     }
 
@@ -395,8 +395,8 @@ app.post('/api/deleteBot', async (req, res) => {
 });
 
 /**
- * 🔹 ROUTE: AI Generation (OpenRouter)
- * ✅ Updated to use google/gemma-3n-e4b-it:free
+ * 🔹 ROUTE: AI Generation (OpenRouter Stream Fix)
+ * ✅ This route now handles "Stream" responses correctly by parsing `delta.content`
  */
 app.post('/api/ai-generate', async (req, res) => {
     const { prompt, type } = req.body; // type = 'code' or 'broadcast'
@@ -415,36 +415,65 @@ app.post('/api/ai-generate', async (req, res) => {
             Do NOT include <html>, <body> or markdown backticks. Use Emojis. Keep it concise.`;
         }
 
-        // Call OpenRouter API
-        const aiResponse = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+        // Call OpenRouter API with Streaming Enabled
+        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
             model: AI_MODEL,
             messages: [
                 { role: "system", content: systemInstruction },
                 { role: "user", content: prompt }
-            ]
+            ],
+            stream: true // ✅ Requesting Stream
         }, {
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
                 "Content-Type": "application/json",
-                "HTTP-Referer": WEB_APP_URL, // Optional
-                "X-Title": "Laga Host Bot"   // Optional
+                "HTTP-Referer": WEB_APP_URL,
+                "X-Title": "Laga Host Bot"
+            },
+            responseType: 'stream' // ✅ Handling Stream
+        });
+
+        let fullText = "";
+
+        // Process Incoming Data Chunks
+        response.data.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed === 'data: [DONE]') continue;
+                
+                if (trimmed.startsWith('data: ')) {
+                    try {
+                        const json = JSON.parse(trimmed.replace('data: ', ''));
+                        // 🔥 The Fix: Extract delta content
+                        if (json.choices?.[0]?.delta?.content) {
+                            fullText += json.choices[0].delta.content;
+                        }
+                    } catch (e) { /* Ignore partial chunk errors */ }
+                }
             }
         });
 
-        let content = aiResponse.data.choices[0].message.content;
+        // When Stream Ends, Send Response
+        response.data.on('end', () => {
+            // Cleanup Markdown
+            const cleanText = fullText
+                .replace(/```javascript/g, '')
+                .replace(/```html/g, '')
+                .replace(/```/g, '')
+                .trim();
+            
+            res.json({ success: true, result: cleanText });
+        });
 
-        // Clean up Markdown blocks if AI adds them
-        content = content
-            .replace(/```javascript/g, '')
-            .replace(/```html/g, '')
-            .replace(/```/g, '')
-            .trim();
-
-        res.json({ success: true, result: content });
+        response.data.on('error', (err) => {
+            console.error("Stream Error:", err);
+            res.json({ success: false, message: "Stream Interrupted" });
+        });
 
     } catch (e) {
-        console.error("OpenRouter AI Error:", e.response ? e.response.data : e.message);
-        res.json({ success: false, message: "AI Request Failed. Try again." });
+        console.error("AI Request Failed:", e.message);
+        res.json({ success: false, message: "AI Service Busy or Invalid Key." });
     }
 });
 
@@ -523,7 +552,7 @@ app.post('/api/submit-payment', async (req, res) => {
 
 /**
  * 🔹 ROUTE: Global Broadcast System
- * ✅ FIX: Removed "Global Broadcast" Prefix. Sends EXACTLY what you write.
+ * ✅ FIX: Removed "Global Broadcast" Prefix. Sends EXACTLY what user typed.
  */
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
