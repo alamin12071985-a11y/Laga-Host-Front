@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 const WEB_APP_URL = "https://laga-host-front.onrender.com"; 
 
 // AI কনফিগারেশন (আপনার Google Gemini API Key দিন, না থাকলে ডিফল্ট কাজ করবে)
-const GEN_AI_KEY = process.env.GEMINI_API_KEY || "AIzaSyDH_anrc3k5nWrWyAxI3qduefwkOwCmaJg";
+const GEN_AI_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEN_AI_KEY);
 
 // অ্যাডমিন এবং চ্যানেল কনফিগারেশন
@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema({
     referredBy: String,
     planExpiresAt: { type: Date, default: null }, 
     joinedAt: { type: Date, default: Date.now },
-    lastActive: { type: Date, default: Date.now }
+    lastActive: { type: Date, default: Date.now } // ইউজারের লাস্ট অ্যাক্টিভিটি ট্র্যাক করার জন্য
 });
 const UserModel = mongoose.model('User', userSchema);
 
@@ -60,11 +60,11 @@ const botSchema = new mongoose.Schema({
     name: String,
     token: String,
     status: { type: String, default: 'STOPPED' }, 
-    startedAt: { type: Date, default: null }, // Uptime ট্র্যাকিং এর জন্য
+    startedAt: { type: Date, default: null }, // Uptime কাউন্ট করার জন্য
+    restartCount: { type: Number, default: 0 }, // কতবার রিস্টার্ট হয়েছে
     commands: { type: Object, default: {} }, // JS Codes stored here
     isFirstLive: { type: Boolean, default: true },
-    createdAt: { type: Date, default: Date.now },
-    restartCount: { type: Number, default: 0 }
+    createdAt: { type: Date, default: Date.now }
 });
 const BotModel = mongoose.model('Bot', botSchema);
 
@@ -84,7 +84,7 @@ const EndUserModel = mongoose.model('EndUser', endUserSchema);
 let activeBotInstances = {}; // RAM Storage for running bots to prevent re-login
 const mainBot = new Telegraf(ADMIN_CONFIG.token);
 
-// সাবস্ক্রিপশন চেক করার ফাংশন
+// সাবস্ক্রিপশন চেক করার ফাংশন (আপনার অরিজিনাল কোড থেকে রাখা হয়েছে)
 async function checkSubscription(userId, telegram) {
     for (const channel of ADMIN_CONFIG.channels) {
         try {
@@ -190,10 +190,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 async function startBotEngine(botDoc) {
     const botId = botDoc._id.toString();
 
-    // যদি অলরেডি রান থাকে তবে আগেরটা বন্ধ করে নতুন করে রান করো (Restart Safe)
+    // যদি অলরেডি রান থাকে তবে চেক করো (Server Spin Fix)
     if (activeBotInstances[botId]) {
-        try { activeBotInstances[botId].stop(); } catch(e){}
-        delete activeBotInstances[botId];
+        return { success: true, message: 'Bot is already running' };
     }
 
     try {
@@ -264,15 +263,22 @@ async function startBotEngine(botDoc) {
             }
         });
 
-        // বট লঞ্চ করা
+        // বট লঞ্চ করা (Safe Launch with retry logic prevention)
         await bot.launch({ dropPendingUpdates: true });
+        
         activeBotInstances[botId] = bot; // RAM এ সেভ রাখা
         console.log(`✅ Started Bot: ${botDoc.name}`);
         return { success: true };
 
     } catch (e) {
         console.error(`❌ Failed to start [${botDoc.name}]:`, e.message);
-        return { success: false, message: 'Invalid Token' };
+        
+        // Specific Error for Token Conflict (409)
+        if (e.message.includes('409 Conflict')) {
+            return { success: false, message: 'Bot running elsewhere! Revoke token in BotFather.' };
+        }
+        
+        return { success: false, message: 'Invalid Token or Network Error' };
     }
 }
 
@@ -289,7 +295,7 @@ app.post('/api/bots', async (req, res) => {
     if (!user) {
         user = await UserModel.create({ userId, username, firstName });
     } else {
-        // আপডেট ইউজার ইনফো
+        // আপডেট ইউজার ইনফো (Last Active & Name)
         if(firstName && user.firstName !== firstName) user.firstName = firstName;
         if(username && user.username !== username) user.username = username;
         user.lastActive = new Date();
@@ -324,7 +330,7 @@ app.post('/api/createBot', async (req, res) => {
     res.json({ success: true, bot: newBot });
 });
 
-// C. Toggle Bot (Start/Stop)
+// C. Toggle Bot (Start/Stop) - UPDATED FOR STABILITY
 app.post('/api/toggleBot', async (req, res) => {
     const { botId, action } = req.body;
     const bot = await BotModel.findById(botId);
@@ -333,12 +339,14 @@ app.post('/api/toggleBot', async (req, res) => {
 
     if (action === 'start') {
         const result = await startBotEngine(bot);
+        
         if (result.success) {
             bot.status = 'RUNNING';
-            bot.startedAt = new Date(); // Uptime শুরু
+            bot.startedAt = new Date(); // Uptime Start
             await bot.save();
             res.json({ success: true, startedAt: bot.startedAt });
         } else {
+            // যদি ফেইল হয়, মেসেজ পাঠাও কিন্তু স্ট্যাটাস RUNNING করো না
             res.json({ success: false, message: result.message });
         }
     } else {
@@ -348,31 +356,31 @@ app.post('/api/toggleBot', async (req, res) => {
             delete activeBotInstances[botId];
         }
         bot.status = 'STOPPED';
-        bot.startedAt = null; // Uptime রিসেট
+        bot.startedAt = null; // Uptime Reset
         await bot.save();
         res.json({ success: true });
     }
 });
 
-// D. Restart Bot (New Feature)
+// D. Restart Bot Route (NEW FEATURE)
 app.post('/api/restartBot', async (req, res) => {
     const { botId } = req.body;
     const bot = await BotModel.findById(botId);
     
     if(!bot) return res.json({ success: false, message: 'Bot not found' });
 
-    // Stop if running
+    // ১. স্টপ করা (যদি রান থাকে)
     if (activeBotInstances[botId]) {
         try { activeBotInstances[botId].stop(); } catch(e) {}
         delete activeBotInstances[botId];
     }
 
-    // Start again
+    // ২. স্টার্ট করা
     const result = await startBotEngine(bot);
     if (result.success) {
         bot.status = 'RUNNING';
-        bot.startedAt = new Date(); // Reset timer on restart
-        bot.restartCount += 1;
+        bot.startedAt = new Date(); // Reset Uptime
+        bot.restartCount = (bot.restartCount || 0) + 1;
         await bot.save();
         res.json({ success: true, startedAt: bot.startedAt });
     } else {
@@ -382,27 +390,19 @@ app.post('/api/restartBot', async (req, res) => {
     }
 });
 
-// E. AI Generator Route (New Feature)
+// E. AI Generation Route (NEW FEATURE)
 app.post('/api/ai-generate', async (req, res) => {
     const { prompt, type } = req.body; // type = 'code' or 'broadcast'
     
     try {
         let aiResponse = "";
         
-        // Simple Rule-Based AI Fallback (যদি API Key না থাকে বা কাজ না করে)
-        if (!process.env.GEMINI_API_KEY) {
+        // যদি API Key না থাকে, ফলব্যাক লজিক
+        if (!GEN_AI_KEY) {
             if (type === 'code') {
-                if (prompt.includes('welcome') || prompt.includes('start')) {
-                    aiResponse = `ctx.reply('👋 Welcome to the bot! How can I help you?');`;
-                } else if (prompt.includes('photo') || prompt.includes('image')) {
-                    aiResponse = `ctx.replyWithPhoto('https://picsum.photos/200/300', { caption: 'Here is a random photo!' });`;
-                } else if (prompt.includes('button') || prompt.includes('link')) {
-                    aiResponse = `ctx.reply('Click below:', Markup.inlineKeyboard([\n  Markup.button.url('Open Google', 'https://google.com')\n]));`;
-                } else {
-                    aiResponse = `// I am a basic AI. For advanced code, please set GEMINI_API_KEY.\nctx.reply('You said: ${prompt}');`;
-                }
+                aiResponse = `// AI Key Missing. Here is a demo:\nctx.reply('You said: ${prompt}');\n// Add GEMINI_API_KEY in .env for real AI.`;
             } else {
-                aiResponse = `📢 <b>Announcement</b>\n\n${prompt}\n\n<i>Stay tuned for more updates!</i>`;
+                aiResponse = `📢 <b>Announcement</b>\n\n${prompt}\n\n<i>(Generated by Demo AI)</i>`;
             }
         } else {
             // Real AI Generation (Google Gemini)
@@ -410,26 +410,31 @@ app.post('/api/ai-generate', async (req, res) => {
             let systemInstruction = "";
             
             if(type === 'code') {
-                systemInstruction = `You are a Telegram Bot JavaScript Code Generator for Telegraf.js. 
-                Write ONLY the javascript code inside the function body. 
+                systemInstruction = `You are a specialized Telegram Bot Code Generator using Telegraf.js syntax. 
+                Write ONLY the javascript code block that goes inside the function body. 
+                Do not include function declaration. 
                 Available variables: ctx, bot, Markup. 
-                Do not wrap in markdown code blocks. Just raw code.
                 User Request: ${prompt}`;
             } else {
-                systemInstruction = `You are a professional copywriter. Write a catchy Telegram Broadcast message in HTML format based on this topic: "${prompt}". 
-                Use emojis. Do not include <html> tags, just the inner body content.`;
+                systemInstruction = `You are a professional copywriter. Write an engaging Telegram Broadcast message in HTML format about: "${prompt}". 
+                Do not include <html> or <body> tags. Use Emojis to make it attractive.`;
             }
 
             const result = await model.generateContent(systemInstruction);
             const response = await result.response;
-            aiResponse = response.text().replace(/```javascript/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
+            // Clean up code blocks
+            aiResponse = response.text()
+                .replace(/```javascript/g, '')
+                .replace(/```html/g, '')
+                .replace(/```/g, '')
+                .trim();
         }
 
         res.json({ success: true, result: aiResponse });
 
     } catch (e) {
         console.error("AI Error:", e);
-        res.json({ success: false, message: "AI Busy, try again." });
+        res.json({ success: false, message: "AI Service Busy. Please try again." });
     }
 });
 
@@ -517,7 +522,7 @@ app.post('/api/submit-payment', async (req, res) => {
     }
 });
 
-// 🔥 I. GLOBAL BROADCAST SYSTEM 🔥
+// I. GLOBAL BROADCAST SYSTEM (UPDATED)
 app.post('/api/broadcast', async (req, res) => {
     const { message, adminId } = req.body;
     
@@ -538,7 +543,6 @@ app.post('/api/broadcast', async (req, res) => {
     });
 
     // ২. চাইল্ড বটের ইউজারদের পাঠানো (END USERS)
-    // সব বট লোড করি
     const allBots = await BotModel.find({});
 
     for (const bot of allBots) {
@@ -550,7 +554,6 @@ app.post('/api/broadcast', async (req, res) => {
         if(endUsers.length === 0) continue;
 
         // মেসেজ পাঠানোর জন্য বটের ইন্সট্যান্স রেডি করি
-        // যদি বট অলরেডি রান থাকে, সেটি ব্যবহার করি। না হলে নতুন বানাই।
         let senderBot = activeBotInstances[bot._id.toString()];
         if (!senderBot) {
             try { senderBot = new Telegraf(bot.token); } catch(e) { continue; }
