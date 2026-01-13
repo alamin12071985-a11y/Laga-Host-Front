@@ -1,6 +1,6 @@
 {
-  "name": "laga-host-pro",
-  "version": "4.0.0",
+  "name": "laga-host-ultimate",
+  "version": "5.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,7 +11,8 @@
     "cors": "^2.8.5",
     "body-parser": "^1.20.2",
     "mongoose": "^8.2.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
   },
   "engines": {
     "node": ">=18.0.0"
