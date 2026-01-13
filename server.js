@@ -22,7 +22,7 @@ const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender
 // 🤖 AI Configuration (OpenRouter)
 // User provided key and model
 const OPENROUTER_API_KEY = "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";
-const AI_MODEL = "google/gemma-3n-e4b-it:free";
+const AI_MODEL = "google/gemini-2.0-flash-exp:free";
 
 // 🛠️ Admin & Channel Config
 const ADMIN_CONFIG = {
