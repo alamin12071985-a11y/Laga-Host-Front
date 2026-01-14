@@ -424,9 +424,8 @@ app.post('/api/ai-generate', async (req, res) => {
             // Using a reliable free model, or falling back to user choice
             model: "google/gemini-2.0-flash-exp:free", 
             messages: [
-                { role: "system", content: systemInstruction },
-                { role: "user", content: prompt }
-            ]
+    { role: "user", content: systemInstruction }
+]
         }, {
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -436,32 +435,32 @@ app.post('/api/ai-generate', async (req, res) => {
             }
         });
 
-        let aiContent = response.data?.choices?.[0]?.message?.content;
+        const choice = response.data?.choices?.[0];
 
-if (!aiContent) {
+let aiContent = "";
+
+// OpenRouter compatible response handling
+if (choice?.message?.content) {
+    if (Array.isArray(choice.message.content)) {
+        aiContent = choice.message.content
+            .map(c => c.text || "")
+            .join("");
+    } else {
+        aiContent = choice.message.content;
+    }
+}
+
+if (!aiContent || typeof aiContent !== "string") {
     throw new Error("Empty response from AI Provider");
-}
-
-// 🔥 OpenRouter array response handle
-if (Array.isArray(aiContent)) {
-    aiContent = aiContent
-        .map(item => item.text || '')
-        .join('');
-}
-
-if (typeof aiContent !== 'string') {
-    throw new Error("Invalid AI response format");
 }
 
 console.log("✅ [AI Success] Content Generated");
 
-const cleanText = aiContent
-    .replace(/```javascript/g, '')
-    .replace(/```html/g, '')
-    .replace(/```/g, '')
+aiContent = aiContent
+    .replace(/```(javascript|html)?/g, "")
     .trim();
 
-res.json({ success: true, result: cleanText });
+res.json({ success: true, result: aiContent });
 
     } catch (e) {
         console.error("❌ [AI Error]:", e.response ? e.response.data : e.message);
