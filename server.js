@@ -21,7 +21,7 @@ const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender
 
 // 🤖 AI Configuration (OpenRouter)
 // ✅ Updated API Key provided by you
-const OPENROUTER_API_KEY = "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";
+const OPENROUTER_API_KEY = "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";
 
 // 🛠️ Admin & Channel Config
 // Using Environment variables with fallbacks
