@@ -436,19 +436,32 @@ app.post('/api/ai-generate', async (req, res) => {
             }
         });
 
-        const aiText = response.data.choices?.[0]?.message?.content;
+        let aiContent = response.data?.choices?.[0]?.message?.content;
 
-        if (aiText) {
-            console.log("✅ [AI Success] Content Generated via OpenRouter");
-            const cleanText = aiText
-                .replace(/```javascript/g, '')
-                .replace(/```html/g, '')
-                .replace(/```/g, '')
-                .trim();
-            res.json({ success: true, result: cleanText });
-        } else {
-            throw new Error("Empty response from AI Provider");
-        }
+if (!aiContent) {
+    throw new Error("Empty response from AI Provider");
+}
+
+// 🔥 OpenRouter array response handle
+if (Array.isArray(aiContent)) {
+    aiContent = aiContent
+        .map(item => item.text || '')
+        .join('');
+}
+
+if (typeof aiContent !== 'string') {
+    throw new Error("Invalid AI response format");
+}
+
+console.log("✅ [AI Success] Content Generated");
+
+const cleanText = aiContent
+    .replace(/```javascript/g, '')
+    .replace(/```html/g, '')
+    .replace(/```/g, '')
+    .trim();
+
+res.json({ success: true, result: cleanText });
 
     } catch (e) {
         console.error("❌ [AI Error]:", e.response ? e.response.data : e.message);
