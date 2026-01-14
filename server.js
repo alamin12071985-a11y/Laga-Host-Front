@@ -7,8 +7,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 const moment = require('moment');
-// 👇 Official Google AI Library (Updated for Gemini 1.5 Flash)
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const axios = require('axios'); // ✅ Added for OpenRouter API
 
 // =================================================================================
 // 1. SYSTEM CONFIGURATION & CONSTANTS
@@ -20,26 +19,9 @@ const PORT = process.env.PORT || 3000;
 // ⚠️ Frontend URL (Must match your Render Frontend URL for CORS)
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender.com"; 
 
-// 🤖 AI Configuration (Google Gemini)
-// ⚠️ NOTE: This key must be set in Render's "Environment Variables" section.
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
-
-// Initialize AI Instance safely
-let genAI = null;
-let aiModel = null;
-
-if (GEMINI_API_KEY) {
-    try {
-        genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Using 'gemini-1.5-flash' as it is fast and free-tier friendly
-        aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-        console.log("✅ [System] Google Gemini AI Configured Successfully");
-    } catch (error) {
-        console.error("❌ [System] Failed to initialize Gemini AI:", error.message);
-    }
-} else {
-    console.warn("⚠️ [System] GEMINI_API_KEY is missing in Render Environment Variables! AI features will not work.");
-}
+// 🤖 AI Configuration (OpenRouter)
+// ✅ Updated API Key provided by you
+const OPENROUTER_API_KEY = "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";
 
 // 🛠️ Admin & Channel Config
 // Using Environment variables with fallbacks
@@ -407,19 +389,17 @@ app.post('/api/deleteBot', async (req, res) => {
 });
 
 /**
- * 🔹 ROUTE: AI Generation (Google Gemini - Render Environment)
- * ✅ Uses Official SDK for stability
- * ✅ Uses 'gemini-1.5-flash' model
+ * 🔹 ROUTE: AI Generation (OpenRouter API - Backend Proxy)
+ * ✅ Replaced Google SDK with Axios Call to OpenRouter
+ * ✅ Fixes 'Model Not Found' Error
  */
 app.post('/api/ai-generate', async (req, res) => {
-    const { prompt, type } = req.body;
+    const { prompt, type, model } = req.body;
     
     console.log(`🤖 [AI Request] Type: ${type}`);
 
-    // Check configuration
-    if (!aiModel) {
-        console.error("❌ [AI Error] GEMINI_API_KEY is not set or SDK init failed.");
-        return res.json({ success: false, message: "AI Config Missing in Server" });
+    if (!OPENROUTER_API_KEY) {
+        return res.json({ success: false, message: "AI API Key Missing in Server" });
     }
 
     try {
@@ -439,13 +419,27 @@ app.post('/api/ai-generate', async (req, res) => {
             Do NOT use markdown.`;
         }
 
-        // Generate Content
-        const result = await aiModel.generateContent(systemInstruction);
-        const response = await result.response;
-        const aiText = response.text();
+        // Call OpenRouter API
+        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+            // Using a reliable free model, or falling back to user choice
+            model: "google/gemini-2.0-flash-exp:free", 
+            messages: [
+                { role: "system", content: systemInstruction },
+                { role: "user", content: prompt }
+            ]
+        }, {
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": WEB_APP_URL, // Site URL for rankings on openrouter.ai.
+                "X-Title": "Laga Host Bot"  // Site title for rankings on openrouter.ai.
+            }
+        });
+
+        const aiText = response.data.choices?.[0]?.message?.content;
 
         if (aiText) {
-            console.log("✅ [AI Success] Content Generated");
+            console.log("✅ [AI Success] Content Generated via OpenRouter");
             const cleanText = aiText
                 .replace(/```javascript/g, '')
                 .replace(/```html/g, '')
@@ -453,15 +447,14 @@ app.post('/api/ai-generate', async (req, res) => {
                 .trim();
             res.json({ success: true, result: cleanText });
         } else {
-            throw new Error("Empty response from Google AI");
+            throw new Error("Empty response from AI Provider");
         }
 
     } catch (e) {
-        console.error("❌ [AI Error]:", e.message);
+        console.error("❌ [AI Error]:", e.response ? e.response.data : e.message);
         
         let msg = "AI Service Busy. Try again later.";
-        if (e.message.includes('API key not valid')) msg = "Invalid API Key in Server Config";
-        if (e.message.includes('404')) msg = "Model Not Found (Check package.json)";
+        if (e.response && e.response.status === 401) msg = "Invalid API Key in Server";
         
         res.json({ success: false, message: msg });
     }
@@ -660,7 +653,7 @@ mainBot.command('start', async (ctx) => {
     await ctx.replyWithHTML(
         `👋 <b>Welcome to Laga Host!</b>\n\n` +
         `Create, Manage & Edit Telegram Bots easily.\n` +
-        `Powered by Google Gemini AI.\n\n` +
+        `Powered by OpenRouter AI (Gemini 2.0).\n\n` +
         `👇 <b>Click below to start:</b>`,
         Markup.inlineKeyboard(buttons)
     );
