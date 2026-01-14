@@ -395,83 +395,86 @@ app.post('/api/deleteBot', async (req, res) => {
  */
 app.post('/api/ai-generate', async (req, res) => {
     const { prompt, type, model } = req.body;
-    
-    console.log(`🤖 [AI Request] Type: ${type}`);
+
+    if (!prompt) {
+        return res.json({ success: false, message: "Prompt is required" });
+    }
 
     if (!OPENROUTER_API_KEY) {
         return res.json({ success: false, message: "AI API Key Missing in Server" });
     }
 
+    let systemInstruction = "";
+
+    if (type === 'code') {
+        systemInstruction =
+            "You are a Telegram Bot code generator using Telegraf.js. " +
+            "Write ONLY raw JavaScript code for the command body. " +
+            "No markdown, no explanations, no imports, no function wrapper. " +
+            "Use ctx.reply, ctx.replyWithPhoto, Markup when needed.";
+    } else {
+        systemInstruction =
+            "Write a Telegram broadcast message in HTML format. " +
+            "No <html> or <body> tags. No markdown. Use emojis lightly.";
+    }
+
     try {
-        let systemInstruction = "";
-        
-        if(type === 'code') {
-            systemInstruction = `You are a specialized Telegram Bot Code Generator using Telegraf.js syntax. 
-            Write ONLY the javascript code block that goes inside the function body. 
-            Do NOT include function declaration, imports or requires.
-            Do NOT use markdown like \`\`\`javascript.
-            Use 'ctx.reply', 'ctx.replyWithPhoto', 'Markup' etc.
-            
-            USER PROMPT: "${prompt}"`;
-        } else {
-            systemInstruction = `Write a Telegram Broadcast message in HTML format based on this topic: "${prompt}".
-            Do NOT include <html> or <body> tags. Use Emojis to make it attractive. Keep it concise.
-            Do NOT use markdown.`;
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: model || "google/gemini-2.0-flash-exp:free",
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: prompt }
+                ]
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": WEB_APP_URL,
+                    "X-Title": "Laga Host Bot"
+                }
+            }
+        );
+
+        const msg = response.data?.choices?.[0]?.message;
+        let aiContent = "";
+
+        if (typeof msg?.content === "string") {
+            aiContent = msg.content;
+        } else if (Array.isArray(msg?.content)) {
+            aiContent = msg.content
+                .map(c => c.text || c.content || "")
+                .join("")
+                .trim();
         }
 
-        // Call OpenRouter API
-        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-            // Using a reliable free model, or falling back to user choice
-            model: "google/gemini-2.0-flash-exp:free", 
-            messages: [
-    { role: "user", content: systemInstruction }
-]
-        }, {
-            headers: {
-                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": WEB_APP_URL, // Site URL for rankings on openrouter.ai.
-                "X-Title": "Laga Host Bot"  // Site title for rankings on openrouter.ai.
-            }
-        });
+        if (!aiContent) {
+            console.error("⚠️ AI EMPTY RESPONSE:", JSON.stringify(response.data));
+            return res.json({
+                success: false,
+                message: "AI returned empty response. Try again or change model."
+            });
+        }
 
-        const choice = response.data?.choices?.[0];
+        aiContent = aiContent
+            .replace(/```(javascript|html)?/gi, "")
+            .replace(/```/g, "")
+            .trim();
 
-let aiContent = "";
-
-// OpenRouter compatible response handling
-if (choice?.message?.content) {
-    if (Array.isArray(choice.message.content)) {
-        aiContent = choice.message.content
-            .map(c => c.text || "")
-            .join("");
-    } else {
-        aiContent = choice.message.content;
-    }
-}
-
-if (!aiContent || typeof aiContent !== "string") {
-    throw new Error("Empty response from AI Provider");
-}
-
-console.log("✅ [AI Success] Content Generated");
-
-aiContent = aiContent
-    .replace(/```(javascript|html)?/g, "")
-    .trim();
-
-res.json({ success: true, result: aiContent });
+        res.json({ success: true, result: aiContent });
 
     } catch (e) {
-        console.error("❌ [AI Error]:", e.response ? e.response.data : e.message);
-        
-        let msg = "AI Service Busy. Try again later.";
-        if (e.response && e.response.status === 401) msg = "Invalid API Key in Server";
-        
+        console.error("❌ AI ERROR:", e.response?.data || e.message);
+
+        let msg = "AI service temporarily unavailable.";
+        if (e.response?.status === 401) msg = "Invalid AI API Key";
+        if (e.response?.status === 429) msg = "AI rate limit exceeded";
+
         res.json({ success: false, message: msg });
     }
 });
-
 /**
  * 🔹 ROUTES: JS Editor (CRUD Operations)
  */
