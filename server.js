@@ -743,126 +743,104 @@ app.post('/api/deleteBot', async (req, res) => {
 });
 
 // =================================================================================================
-// SECTION 9: AI GENERATION API (FIXED PROMPTS FOR ASYNC EXECUTION)
+// SECTION 9: AI GENERATION API (FREE - NO KEY REQUIRED - POLLINATIONS)
 // =================================================================================================
 
 /**
- * AI CODE GENERATOR
- * This endpoint talks to OpenRouter/Gemini to generate Telegraf.js code.
- * CRITICAL UPDATE: The prompt now instructs the AI to use 'await' properly.
+ * AI CODE GENERATOR (POLLINATIONS.AI EDITION)
+ * This uses a free public API that does NOT require an API Key.
+ * It is perfect for free tier users.
  */
 app.post('/api/ai-generate', async (req, res) => {
     // 1. Destructure Data
-    const { prompt, type, model } = req.body;
+    const { prompt, type } = req.body;
 
     // 2. Validate
     if (!prompt) {
         return res.json({ success: false, message: "Prompt cannot be empty." });
     }
 
-    // 3. DEFINE SYSTEM INSTRUCTION (The "Brain")
+    // 3. DEFINE SYSTEM INSTRUCTION
     let systemInstruction = "";
     
     if (type === 'code') {
         systemInstruction =
-            "🔴 ROLE: You are an Expert Telegraf.js v4 Code Generator.\n" +
-            "🟡 CONTEXT: Your code runs inside an **ASYNC FUNCTION**: `async (ctx, Markup, axios, moment) => { YOUR_CODE_HERE }`.\n" +
-            "🟢 NOTE: You MUST use `await` for promises (e.g., `await ctx.reply(...)`, `await axios.get(...)`).\n\n" +
-            
-            "⛔ STRICT PROHIBITIONS (Violating these will crash the bot):\n" +
-            "1. NO `require(...)` or `import` statements.\n" +
-            "2. NO `new Telegraf(...)`, NO `bot.launch()`.\n" +
-            "3. NO `bot.command(...)` wrappers. Just write the logic inside the function.\n" +
-            "4. NO Markdown backticks (```). Return RAW JavaScript only.\n\n" +
-
-            "✨ CORRECT SYNTAX EXAMPLES:\n" +
-            "✅ Correct: `await ctx.reply('Hello');`\n" +
-            "❌ Wrong: `ctx.reply('Hello');` (Missing await)\n\n" +
-
-            "⚡ TASK: Generate valid, executable, ASYNC inner-function logic for: '" + prompt + "'";
+            "ROLE: Expert Telegraf.js v4 Bot Developer.\n" +
+            "CONTEXT: Code runs inside: `async (ctx, Markup, axios, moment) => { CODE }`.\n" +
+            "RULES:\n" +
+            "1. USE `await` for all promises (ctx.reply, axios.get).\n" +
+            "2. NO `require`, NO `import`, NO `bot.launch`.\n" +
+            "3. RETURN RAW JAVASCRIPT ONLY. No Markdown ``` blocks.\n" +
+            "4. Example: `await ctx.reply('Hello');`";
     } else {
-        // Broadcast / Text Writer Mode
-        systemInstruction =
-            "ACT AS: A Professional Digital Marketer & Copywriter for Telegram.\n" +
-            "TASK: Write a broadcast message based on user input.\n" +
-            "FORMAT: Use HTML tags (<b>, <i>, <a href>). No Markdown.";
+        systemInstruction = "ACT AS: Copywriter. Write short, engaging Telegram broadcast text in HTML.";
     }
 
     try {
-        // 4. Call External AI API
+        logSystem('AI', `Requesting Free AI generation for: ${type}`);
+
+        // 4. Call Pollinations AI (NO API KEY NEEDED)
+        // We use a random seed to ensure fresh responses
+        const seed = Math.floor(Math.random() * 1000000);
+        
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://text.pollinations.ai/",
             {
-                model: model || AI_CONFIG.model,
                 messages: [
                     { role: "system", content: systemInstruction },
                     { role: "user", content: prompt }
                 ],
-                // Low temperature for deterministic code
-                temperature: 0.1, 
-                max_tokens: 1600
+                model: "openai", // Uses GPT-4o-mini or similar for free
+                seed: seed,
+                json: false
             },
             {
-                headers: {
-                    Authorization: `Bearer ${AI_CONFIG.apiKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": WEB_APP_URL,
-                    "X-Title": "Laga Host AI Platform"
-                }
+                headers: { "Content-Type": "application/json" }
             }
         );
 
-        let finalContent = response.data?.choices?.[0]?.message?.content || "";
+        let finalContent = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
 
         // =================================================================
-        // 5. SMART DATA SANITIZATION (CLEANUP)
+        // 5. SANITIZATION (CLEANUP)
         // =================================================================
         
-        // Remove Markdown code blocks if AI added them
+        // Remove Markdown wrappers if present
         finalContent = finalContent
             .replace(/^```(javascript|js|ts)?/gim, "") 
             .replace(/```$/gim, "")              
             .trim();
 
-        // If AI wrapped code in bot.command, extract the inner part
+        // Extract inner logic if wrapped in bot.command
         const wrapperRegex = /(?:bot\.(?:start|command|on|action)|ctx\.action|bot\.use)\s*\([^{]*\{\s*([\s\S]*?)\s*\}\s*\)?\s*;?$/i;
         const match = finalContent.match(wrapperRegex);
-        
         if (match && match[1]) {
             finalContent = match[1].trim();
         }
 
-        // Safety Filter: Remove dangerous keywords line by line
-        const forbiddenPhrases = [
-            "require(", 
-            "new Telegraf", 
-            "bot.launch", 
-            "const bot =", 
-            "import "
-        ];
-
+        // Remove dangerous lines
+        const forbiddenPhrases = ["require(", "new Telegraf", "bot.launch", "const bot =", "import "];
         finalContent = finalContent
             .split('\n')
             .filter(line => !forbiddenPhrases.some(phrase => line.includes(phrase)))
             .join('\n')
-            // Cleanup trailing braces
             .replace(/^\s*}\s*\)\s*;\s*$/gm, "") 
             .trim();
 
         if (!finalContent) {
-            throw new Error("Received empty response after sanitization.");
+            throw new Error("AI returned empty response.");
         }
 
-        // 6. Return Clean Code
+        // 6. Return Result
         res.json({ success: true, result: finalContent });
 
     } catch (e) {
-        const errorMessage = e.response?.data?.error?.message || e.message;
-        logSystem('ERROR', `AI Gen Failed: ${errorMessage}`);
+        logSystem('ERROR', `AI Failed: ${e.message}`);
         
+        // Fallback response so user doesn't get stuck
         res.json({ 
             success: false, 
-            message: "AI Service is busy. Please try again later." 
+            message: "Free AI server is busy. Please try again in 5 seconds." 
         });
     }
 });
