@@ -674,7 +674,7 @@ app.post('/api/deleteBot', async (req, res) => {
 });
 
 // =================================================================================
-// 9. AI GENERATION API (ULTIMATE EDITION: FORCE JOIN, MENUS, KEYBOARDS)
+// 9. AI GENERATION API (ULTIMATE EDITION: SMART EXTRACTOR & MULTI-COMMAND)
 // =================================================================================
 
 app.post('/api/ai-generate', async (req, res) => {
@@ -695,43 +695,30 @@ app.post('/api/ai-generate', async (req, res) => {
     
     if (type === 'code') {
         systemInstruction =
-            "🔴 ROLE: You are a Telegraf.js Code Generator. You DO NOT create the bot, you only create the RESPONSE logic.\n" +
-            "🟡 CONTEXT: Your code runs inside: `async (ctx, Markup) => { ... YOUR CODE HERE ... }`.\n\n" +
+            "🔴 ROLE: You are an Expert Telegraf.js v4 Code Generator.\n" +
+            "🟡 CONTEXT: Your code runs inside a specific function scope: `async (ctx, Markup, axios, moment) => { YOUR_CODE_HERE }`.\n\n" +
             
-            "⛔ STRICT PROHIBITIONS (If you write these, the code will fail):\n" +
-            "1. NO `require(...)` or `import`.\n" +
-            "2. NO `new Telegraf(...)` or `bot.launch()`.\n" +
-            "3. NO `bot.command(...)`. You are already inside the command handler.\n" +
-            "4. NO Markdown (```). Output raw code only.\n\n" +
+            "⛔ STRICT PROHIBITIONS (Violating these will crash the bot):\n" +
+            "1. NO `require(...)` or `import` statements.\n" +
+            "2. NO `new Telegraf(...)`, NO `bot.launch()`.\n" +
+            "3. NO `bot.command(...)` or `bot.on(...)` wrappers. Just write the logic that happens INSIDE the command.\n" +
+            "4. NO Markdown backticks (```). Return RAW JavaScript only.\n\n" +
 
-            "✨ REQUIRED OUTPUT FORMAT:\n" +
-            "You must use `ctx.replyWithHTML` and Template Literals (backticks) for text.\n" +
-            "Follow this exact structure:\n\n" +
+            "✨ HOW TO HANDLE REQUESTS:\n" +
+            "👉 SCENARIO 1: MENUS & BUTTONS\n" +
+            "   Use `ctx.replyWithHTML('Text', Markup.inlineKeyboard([...]))`.\n" +
+            "👉 SCENARIO 2: ADMIN COMMANDS (Ban/Kick/Mute)\n" +
+            "   Use logic like: `await ctx.banChatMember(userId)` inside try/catch.\n" +
+            "👉 SCENARIO 3: EXTERNAL DATA (API)\n" +
+            "   Use `const res = await axios.get(...)` (axios is available).\n" +
+            "👉 SCENARIO 4: GENERAL REPLY\n" +
+            "   Use `ctx.replyWithHTML` with Template Literals (backticks).\n\n" +
 
-            "ctx.replyWithHTML(\n" +
-            "  `👋 <b>Title Here</b>\\n\\n` +\n" +
-            "  `Your description text here.\\n` +\n" +
-            "  `• Point 1\\n` +\n" +
-            "  `• Point 2\\n\\n` +\n" +
-            "  `👇 Instruction:`,\n" +
-            "  Markup.inlineKeyboard([\n" +
-            "    [Markup.button.callback('Button 1', 'data_1')],\n" +
-            "    [Markup.button.url('Link Button', 'https://example.com')]\n" +
-            "  ])\n" +
-            ");\n\n" +
-
-            "👉 SCENARIO 1: Main Menu / Dashboard\n" +
-            "   Use the structure above. Use emojis. Make it look professional.\n" +
-            "👉 SCENARIO 2: Force Join\n" +
-            "   Use `await ctx.telegram.getChatMember(...)` to check status.\n" +
-            "👉 SCENARIO 3: Reply Keyboard\n" +
-            "   Use `Markup.keyboard([...]).resize()` inside the reply options.\n\n" +
-
-            "⚡ YOUR TASK: Generate valid code for: '" + prompt + "'";
+            "⚡ TASK: Generate valid inner-function logic for: '" + prompt + "'";
     } else {
         // Broadcast / Text Copywriting Prompt
         systemInstruction =
-            "ACT AS: A Professional Digital Marketer for Telegram.\n" +
+            "ACT AS: A Professional Digital Marketer & Copywriter for Telegram.\n" +
             "TASK: Write a broadcast message based on user input.\n" +
             "FORMAT RULES:\n" +
             "1. Use HTML tags only (<b>Bold</b>, <i>Italic</i>, <a href='...'>Link</a>).\n" +
@@ -749,9 +736,9 @@ app.post('/api/ai-generate', async (req, res) => {
                     { role: "system", content: systemInstruction },
                     { role: "user", content: prompt }
                 ],
-                // Temperature 0.1 ensures strict adherence to the code structure
+                // Temperature 0.1 for precision
                 temperature: 0.1, 
-                max_tokens: 1500
+                max_tokens: 1600
             },
             {
                 headers: {
@@ -765,37 +752,49 @@ app.post('/api/ai-generate', async (req, res) => {
 
         let finalContent = response.data?.choices?.[0]?.message?.content || "";
 
-        // 5. AGGRESSIVE DATA SANITIZATION (The Fix for 'bot.launch' issues)
-        // We filter out lines that contain forbidden initialization code.
+        // =================================================================
+        // 5. SMART DATA SANITIZATION (THE FIX)
+        // =================================================================
         
-        // First, remove Markdown wrappers
+        // Step A: Remove Markdown wrappers (```javascript ... ```)
         finalContent = finalContent
-            .replace(/^```javascript\s*/gi, "") 
-            .replace(/^```js\s*/gi, "")        
-            .replace(/```$/gm, "")             
+            .replace(/^```(javascript|js|ts)?/gim, "") 
+            .replace(/```$/gim, "")              
             .trim();
 
-        // Second, remove forbidden lines line-by-line
+        // Step B: Wrapper Extraction Logic (Smart Fix)
+        // If AI wraps code in `bot.command('name', (ctx) => { ... })`, we extract just the inner `{ ... }`
+        const wrapperRegex = /(?:bot\.(?:start|command|on|action)|ctx\.action|bot\.use)\s*\([^{]*\{\s*([\s\S]*?)\s*\}\s*\)?\s*;?$/i;
+        const match = finalContent.match(wrapperRegex);
+        
+        if (match && match[1]) {
+            // Found a wrapper? Take the inner code only.
+            finalContent = match[1].trim();
+        }
+
+        // Step C: Line-by-Line Filtering (Safety Net)
+        // Remove lines that initialize bots or import modules
         const forbiddenPhrases = [
             "require(", 
             "new Telegraf", 
             "bot.launch", 
             "const bot =", 
-            "import ", 
-            "bot.command("
+            "import "
         ];
 
         finalContent = finalContent
-            .split('\n') // Split code into lines
+            .split('\n')
             .filter(line => {
-                // Keep the line ONLY if it doesn't contain any forbidden phrase
+                // Keep line only if it has NO forbidden phrases
                 return !forbiddenPhrases.some(phrase => line.includes(phrase));
             })
-            .join('\n') // Rejoin lines
+            .join('\n')
+            // Remove any trailing }); that might be left over from extraction
+            .replace(/^\s*}\s*\)\s*;\s*$/gm, "") 
             .trim();
 
         if (!finalContent) {
-            throw new Error("Received empty response from AI Provider or code was blocked by filters.");
+            throw new Error("Received empty response or code was blocked by security filter.");
         }
 
         // 6. Send Success Response
@@ -808,10 +807,11 @@ app.post('/api/ai-generate', async (req, res) => {
         
         res.json({ 
             success: false, 
-            message: "AI Service is currently busy. Please try again." 
+            message: "AI Service is currently busy or overloaded. Please try again." 
         });
     }
 });
+
 // =================================================================================
 // 10. EDITOR ROUTES
 // =================================================================================
