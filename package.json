@@ -1,20 +1,22 @@
 {
-  "name": "laga-host-ultimate-ai",
-  "version": "3.5.0",
-  "description": "Professional Telegram Bot Hosting Platform with AI Code Generation",
+  "name": "laga-host-ultimate-server-max",
+  "version": "6.0.0",
+  "description": "Enterprise Grade Telegram Bot Hosting Platform - Cyberpunk Edition",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "eslint ."
   },
   "keywords": [
     "telegram",
     "bot",
     "hosting",
     "ai",
-    "telegraf",
+    "gemini",
     "nodejs",
-    "openrouter"
+    "cyber-ui",
+    "enterprise"
   ],
   "dependencies": {
     "axios": "^1.6.8",
