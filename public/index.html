@@ -1,3 +1,11 @@
+<!-- 
+  =============================================================================
+  PROJECT: LAGA HOST FRONTEND (CYBER CORE UI)
+  VERSION: 6.1.0 (Full Enterprise Build)
+  DESCRIPTION: The interface for the Telegram Bot Hosting Platform.
+  UPDATES: Connected to Server-Side AI & Async Logic.
+  =============================================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,24 +15,29 @@
     <title>Laga Host: Cyber Core Enterprise</title>
     
     <!-- EXTERNAL LIBRARIES -->
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS (Utility First Styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (Vector Icons) -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- FONTS -->
+    <!-- GOOGLE FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@100;300;400;700&display=swap" rel="stylesheet">
 
-    <!-- TAILWIND CONFIGURATION -->
+    <!-- TAILWIND CUSTOM CONFIGURATION -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Rajdhani', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                        display: ['Orbitron', 'sans-serif']
+                        sans: ['Rajdhani', 'sans-serif'],     // Body Text
+                        mono: ['JetBrains Mono', 'monospace'], // Code & Numbers
+                        display: ['Orbitron', 'sans-serif']    // Headers
                     },
                     colors: {
                         black: '#000000',
@@ -34,38 +47,25 @@
                             700: '#121212',
                         },
                         brand: {
-                            cyan: '#06B6D4', // Primary
-                            blue: '#3B82F6', // Accent
-                            green: '#10B981', // Success
-                            red: '#EF4444',   // Danger
+                            cyan: '#06B6D4', // Primary Color (Neon Blue)
+                            blue: '#3B82F6', // Secondary Accent
+                            green: '#10B981', // Success State
+                            red: '#EF4444',   // Danger/Error State
                         }
                     },
                     animation: {
                         'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'scan': 'scan 4s linear infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        scan: {
-                            '0%': { backgroundPosition: '0% 0%' },
-                            '100%': { backgroundPosition: '0% 100%' }
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        }
                     }
                 }
             }
         }
     </script>
 
-    <!-- CUSTOM ADVANCED CSS (HEAVY STYLING) -->
+    <!-- CUSTOM ADVANCED CSS STYLES -->
     <style>
-        /* BASE STYLES */
+        /* BASE RESET & VARIABLES */
         :root {
             --color-primary: #06B6D4;
-            --color-accent: #3B82F6;
             --color-bg: #000000;
             --color-panel: rgba(10, 10, 10, 0.95);
             --color-border: #1f1f1f;
@@ -79,7 +79,7 @@
         }
 
         /* ---------------------------------------------------- */
-        /* CYBERPUNK GRID BACKGROUND SYSTEM */
+        /* CYBERPUNK GRID BACKGROUND */
         /* ---------------------------------------------------- */
         .cyber-grid {
             position: fixed;
@@ -95,6 +95,7 @@
             pointer-events: none;
         }
 
+        /* Vignette Effect */
         .cyber-grid::after {
             content: '';
             position: absolute;
@@ -106,7 +107,7 @@
         }
 
         /* ---------------------------------------------------- */
-        /* SCANLINE ANIMATION EFFECT */
+        /* SCANLINE ANIMATION */
         /* ---------------------------------------------------- */
         .scanline {
             width: 100%;
@@ -126,44 +127,28 @@
         }
 
         /* ---------------------------------------------------- */
-        /* GLASS PANEL COMPONENT (THE CARD) */
+        /* GLASS PANEL (THE CARDS) */
         /* ---------------------------------------------------- */
         .cyber-card {
             background: var(--color-panel);
             border: 1px solid var(--color-border);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-radius: 4px; /* Sharp edges for cyber look */
+            border-radius: 4px;
             position: relative;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
         }
 
-        /* Hover Glow Effect */
-        .cyber-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--color-primary);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
+        /* Hover Border Glow */
         .cyber-card:hover {
             border-color: #333;
             transform: translateY(-2px);
             box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15);
         }
 
-        .cyber-card:hover::before {
-            opacity: 1;
-        }
-
         /* ---------------------------------------------------- */
-        /* INPUT FIELDS (TERMINAL STYLE) */
+        /* INPUT FIELDS */
         /* ---------------------------------------------------- */
         .cyber-input {
             background: #050505;
@@ -188,7 +173,7 @@
         }
 
         /* ---------------------------------------------------- */
-        /* BUTTONS (FUTURISTIC SHAPES) */
+        /* BUTTONS */
         /* ---------------------------------------------------- */
         .btn-cyber {
             background: var(--color-primary);
@@ -197,6 +182,7 @@
             font-family: 'Orbitron', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1px;
+            /* Angled Corners */
             clip-path: polygon(
                 12px 0, 100% 0, 
                 100% calc(100% - 12px), 
@@ -215,9 +201,9 @@
         .btn-cyber:hover {
             background: #22d3ee;
             box-shadow: 0 0 25px rgba(6, 182, 212, 0.5);
-            text-shadow: 0 0 5px rgba(255,255,255,0.5);
         }
 
+        /* Outline Button Variant */
         .btn-outline {
             background: transparent;
             border: 1px solid var(--color-primary);
@@ -235,28 +221,10 @@
 
         .btn-outline:hover {
             background: rgba(6, 182, 212, 0.1);
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
         }
 
         /* ---------------------------------------------------- */
-        /* SCROLLBAR CUSTOMIZATION */
-        /* ---------------------------------------------------- */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #000;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--color-primary);
-        }
-
-        /* ---------------------------------------------------- */
-        /* HEXAGON LOADER ANIMATION */
+        /* LOADING SPINNER (HEXAGON) */
         /* ---------------------------------------------------- */
         .hex-loader {
             width: 60px;
@@ -282,21 +250,19 @@
         }
 
         /* ---------------------------------------------------- */
-        /* TOAST NOTIFICATIONS */
+        /* UTILITIES */
         /* ---------------------------------------------------- */
-        .toast-enter {
-            transform: translateY(-20px);
-            opacity: 0;
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 4px;
         }
-        .toast-active {
-            transform: translateY(0);
-            opacity: 1;
+        ::-webkit-scrollbar-track {
+            background: #000;
         }
-        .toast-exit {
-            transform: translateY(-20px);
-            opacity: 0;
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
         }
-
     </style>
 </head>
 <body class="min-h-screen pb-40 select-none">
@@ -323,7 +289,7 @@
         <div class="text-brand-cyan font-display text-2xl tracking-[0.2em] font-bold">SYSTEM BOOT</div>
         <div class="text-gray-600 text-xs mt-3 font-mono flex items-center gap-2">
             <span class="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse"></span> 
-            INITIALIZING SECURE PROTOCOLS...
+            CONNECTING TO NEURAL NET...
         </div>
     </div>
 
@@ -335,14 +301,14 @@
         <!-- HEADER SECTION -->
         <header class="flex justify-between items-center mb-10 border-b border-gray-800 pb-5">
             <div class="flex items-center gap-4">
-                <!-- User Avatar with Cyber Frame -->
+                <!-- User Avatar -->
                 <div class="relative group cursor-pointer">
                     <img id="userAvatar" src="" class="w-14 h-14 bg-dark-900 border border-gray-800 object-cover group-hover:border-brand-cyan transition duration-500" 
                          style="clip-path: polygon(20% 0, 100% 0, 100% 80%, 80% 100%, 0 100%, 0 20%);">
                     <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-brand-green shadow-[0_0_10px_#10B981]"></div>
                 </div>
                 
-                <!-- User Details -->
+                <!-- User Name & Title -->
                 <div>
                     <h1 class="text-white font-display font-bold text-xl leading-none tracking-wide">COMMAND CENTER</h1>
                     <div class="text-brand-cyan font-mono text-xs mt-1.5 flex items-center gap-1">
@@ -374,7 +340,7 @@
             <!-- Server Load Card -->
             <div class="cyber-card p-5">
                 <div class="flex justify-between items-start mb-2">
-                    <span class="text-gray-500 text-[10px] font-mono tracking-widest">SERVER LOAD</span>
+                    <span class="text-gray-500 text-[10px] font-mono tracking-widest">CPU LOAD</span>
                     <i data-lucide="activity" class="w-4 h-4 text-brand-cyan animate-pulse"></i>
                 </div>
                 <div id="limitBadge" class="text-4xl font-display font-bold text-white leading-none">0/1</div>
@@ -387,7 +353,7 @@
             </div>
         </div>
 
-        <!-- MAIN ACTION BUTTON -->
+        <!-- MAIN ACTION BUTTON (DEPLOY) -->
         <button onclick="openModal('createModal')" class="w-full btn-cyber py-5 mb-10 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(6,182,212,0.4)] group relative overflow-hidden">
             <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition duration-500"></div>
             <i data-lucide="plus-square" class="w-5 h-5 group-hover:rotate-90 transition duration-300"></i> 
@@ -402,7 +368,7 @@
             </div>
             
             <div id="botsContainer" class="space-y-5 min-h-[120px]">
-                <!-- Dynamic Content Will Be Injected Here -->
+                <!-- Bots will be injected here via JS -->
             </div>
 
             <!-- Empty State -->
@@ -556,29 +522,22 @@
     </div>
 
     <!-- =========================================================================================== -->
-    <!-- 4. CORE JAVASCRIPT LOGIC (EXPANDED & DETAILED) -->
+    <!-- 4. CORE JAVASCRIPT LOGIC -->
     <!-- =========================================================================================== -->
     <script>
-        // --- 1. INITIALIZATION & SETUP ---
-        
-        // Initialize Icons
+        // --- 1. INITIALIZATION ---
         lucide.createIcons();
-        
-        // Telegram WebApp Object
         const tg = window.Telegram.WebApp;
-        
-        // User Data State
         const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Admin', username: 'admin' };
         
-        // App State Variables
         let currentBotId = null;
         let payDetails = {};
         let payMode = 'cash';
         let activeTimers = {};
 
-        // Security Check (Console Warning only to allow Dev testing)
+        // Security Warning
         if (!tg.initData && !tg.initDataUnsafe?.user) {
-           console.warn("⚠️ Running in Non-Telegram Environment. Some features may simulate.");
+           console.warn("⚠️ Running in Standalone Mode (Browser)");
         }
         
         // Setup Telegram UI
@@ -587,85 +546,54 @@
         tg.setBackgroundColor('#000000');
         tg.enableClosingConfirmation();
 
-        // --- 2. NOTIFICATION SYSTEM (TOASTS) ---
-        
-        /**
-         * Displays a futuristic toast message.
-         * @param {string} msg - The message text
-         * @param {string} type - 'success', 'error', 'info'
-         */
+        // --- 2. TOAST NOTIFICATIONS ---
         function showToast(msg, type = 'info') {
             const container = document.getElementById('toast-container');
             const el = document.createElement('div');
             
-            // Color Mapping
             const styles = {
                 success: 'border-brand-green text-brand-green bg-brand-green/10',
                 error: 'border-brand-red text-brand-red bg-brand-red/10',
                 info: 'border-brand-cyan text-brand-cyan bg-brand-cyan/10'
             };
-            
-            const iconMap = {
-                success: 'check-circle',
-                error: 'alert-triangle',
-                info: 'info'
-            };
+            const iconMap = { success: 'check-circle', error: 'alert-triangle', info: 'info' };
 
             el.className = `flex items-center gap-3 px-5 py-3 border backdrop-blur-md shadow-lg font-mono text-xs font-bold transform transition-all duration-300 translate-y-[-20px] opacity-0 ${styles[type]}`;
-            el.innerHTML = `
-                <i data-lucide="${iconMap[type]}" class="w-4 h-4"></i>
-                <span class="tracking-wider">${msg.toUpperCase()}</span>
-            `;
+            el.innerHTML = `<i data-lucide="${iconMap[type]}" class="w-4 h-4"></i><span class="tracking-wider">${msg.toUpperCase()}</span>`;
             
             container.appendChild(el);
-            lucide.createIcons(); // Re-init icons for new element
+            lucide.createIcons();
             
-            // Animation In
-            requestAnimationFrame(() => {
-                el.classList.remove('translate-y-[-20px]', 'opacity-0');
-            });
+            requestAnimationFrame(() => el.classList.remove('translate-y-[-20px]', 'opacity-0'));
             
-            // Haptic Feedback
             if(type === 'success') tg.HapticFeedback.notificationOccurred('success');
             else if(type === 'error') tg.HapticFeedback.notificationOccurred('error');
-            else tg.HapticFeedback.impactOccurred('light');
             
-            // Auto Remove
             setTimeout(() => {
                 el.classList.add('opacity-0', 'translate-y-[-20px]');
                 setTimeout(() => el.remove(), 300);
             }, 3500);
         }
 
-        // --- 3. APPLICATION STARTUP LOGIC ---
-
+        // --- 3. STARTUP LOGIC ---
         async function init() {
-            // Update Header with User Data
             document.getElementById('userName').innerText = (user.first_name || 'USER').toUpperCase();
             document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=050505&color=06B6D4&bold=true`;
 
             try {
-                // Fetch All Data
                 const response = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        userId: user.id.toString(), 
-                        username: user.username, 
-                        firstName: user.first_name 
-                    })
+                    body: JSON.stringify({ userId: user.id.toString(), username: user.username, firstName: user.first_name })
                 });
                 
                 const data = await response.json();
-                
                 if(!data.success) throw new Error("API Failure");
 
-                // Update UI Stats
                 const u = data.user;
                 const planEl = document.getElementById('planBadge');
                 planEl.innerText = `${u.plan.toUpperCase()} TIER`;
                 
-                // Style Upgrade for Paid Plans
                 if(u.plan !== 'Free') {
                     planEl.className = "text-xs font-mono font-bold border border-brand-blue text-brand-blue px-4 py-1.5 bg-brand-blue/10 shadow-[0_0_15px_rgba(59,130,246,0.3)] tracking-widest";
                 }
@@ -673,10 +601,8 @@
                 document.getElementById('refCount').innerText = u.referrals;
                 document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
 
-                // Render the List
                 renderBots(data.bots);
 
-                // Reveal App (Boot Sequence)
                 setTimeout(() => {
                     document.getElementById('loader').classList.add('opacity-0', 'pointer-events-none');
                     document.getElementById('app').classList.remove('hidden', 'opacity-0');
@@ -689,30 +615,25 @@
             }
         }
 
-        // --- 4. RENDER LOGIC (THE GRID) ---
-
+        // --- 4. RENDER BOTS ---
         function renderBots(bots) {
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
             
-            // Clean up old timers
             Object.values(activeTimers).forEach(clearInterval);
             activeTimers = {};
 
-            // Empty State
             if(!bots || bots.length === 0) {
                 document.getElementById('emptyState').classList.remove('hidden');
                 return;
             }
             document.getElementById('emptyState').classList.add('hidden');
 
-            // Loop and Create Cards
             bots.forEach(bot => {
                 const isRun = bot.status === 'RUNNING';
                 const card = document.createElement('div');
                 card.className = `cyber-card p-5 border-l-4 transition-all duration-300 ${isRun ? 'border-l-brand-green' : 'border-l-gray-700'}`;
                 
-                // Uptime Logic
                 let uptimeHtml = '';
                 if(isRun && bot.startedAt) {
                     uptimeHtml = `<span id="timer-${bot._id}" class="text-brand-cyan ml-2 font-mono text-[10px] tracking-wider">CALCULATING...</span>`;
@@ -736,7 +657,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-${isRun ? '3' : '1'} gap-3">
                         ${isRun ? `
                             <button onclick="restartBot('${bot._id}')" class="py-3 bg-dark-900 border border-gray-800 text-[10px] font-bold text-brand-cyan hover:bg-gray-800 transition tracking-wider">REBOOT</button>
@@ -755,29 +675,22 @@
             lucide.createIcons();
         }
 
-        // --- 5. TIMER UTILITY ---
-
         function startUptimeTimer(id, startStr) {
             const start = new Date(startStr).getTime();
-            
             const update = () => {
                 const diff = Date.now() - start;
                 if(diff < 0) return;
-                
                 const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
                 const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
                 const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-                
                 const el = document.getElementById(`timer-${id}`);
                 if(el) el.innerText = `UPTIME: ${h}:${m}:${s}`;
             };
-            
             activeTimers[id] = setInterval(update, 1000);
             update();
         }
 
-        // --- 6. BOT CONTROL ACTIONS ---
-
+        // --- 5. BOT ACTIONS ---
         async function createBot() {
             const btn = document.querySelector('#createModal button:last-child');
             const originalText = btn.innerText;
@@ -807,26 +720,20 @@
                 } else {
                     showToast(res.message, 'error');
                 }
-            } catch(e) { 
-                showToast("NETWORK ERROR", 'error'); 
-            }
-            
+            } catch(e) { showToast("NETWORK ERROR", 'error'); }
             btn.innerText = originalText; btn.disabled = false;
         }
 
         async function toggleBot(btn, id, action) {
             const original = btn.innerText;
             btn.innerText = "...";
-            
             try {
                 const res = await fetch('/api/toggleBot', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ botId: id, action })
                 }).then(r => r.json());
-                
                 if(res.success) {
-                    if(action === 'start') showToast("SYSTEM ONLINE", 'success');
-                    else showToast("SYSTEM HALTED", 'info');
+                    showToast(action === 'start' ? "SYSTEM ONLINE" : "SYSTEM HALTED", action === 'start' ? 'success' : 'info');
                     init();
                 } else {
                     showToast(res.message, 'error');
@@ -836,7 +743,7 @@
         }
 
         async function restartBot(id) {
-            showToast("INITIATING REBOOT SEQUENCE...", 'info');
+            showToast("INITIATING REBOOT...", 'info');
             await fetch('/api/restartBot', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id })
@@ -858,8 +765,7 @@
             });
         }
 
-        // --- 7. CODE EDITOR LOGIC ---
-
+        // --- 6. CODE EDITOR & AI FIX ---
         async function openEditor(id) {
             currentBotId = id;
             const el = document.getElementById('editorModal');
@@ -870,7 +776,6 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id })
             }).then(r => r.json());
-            
             renderChips(res);
             newCmd();
         }
@@ -882,7 +787,6 @@
                     <i data-lucide="plus" class="w-3 h-3"></i> NEW
                 </button>
             `;
-            
             Object.entries(cmds).forEach(([name, code]) => {
                 const btn = document.createElement('button');
                 btn.className = 'px-4 py-2 bg-dark-900 border border-gray-800 text-gray-400 text-[10px] font-mono mr-2 hover:text-white hover:border-gray-600 transition whitespace-nowrap';
@@ -905,7 +809,6 @@
             const name = document.getElementById('cmdNameInput').value;
             const code = document.getElementById('cmdCodeInput').value;
             if(!name) return showToast("COMMAND NAME REQUIRED", 'error');
-
             await fetch('/api/saveCommand', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: currentBotId, command: name, code })
@@ -925,47 +828,41 @@
             }
         }
 
-        // --- 8. AI STREAMING INTEGRATION ---
+        // 🟢 FIXED AI GENERATION FUNCTION 🟢
+        function openAI(mode) { openModal('aiModal'); }
 
-        function openAI(mode) {
-            openModal('aiModal');
-        }
-
-        function generateAI() {
+        async function generateAI() {
             const prompt = document.getElementById('aiPrompt').value;
             if(!prompt) return;
             
             closeModal('aiModal');
             const target = document.getElementById('cmdCodeInput');
-            target.value = "// ESTABLISHING NEURAL LINK WITH AI CORE...\n// PLEASE WAIT...";
+            target.value = "// CONTACTING SERVER AI CORE...\n// GENERATING SECURE ASYNC CODE...";
             
-            // Websocket Connection
-            const ws = new WebSocket("wss://backend.buildpicoapps.com/ask_ai_streaming_v2");
-            
-            ws.addEventListener("open", () => {
-                ws.send(JSON.stringify({
-                    appId: "truth-choose",
-                    prompt: `ACT AS: Senior Telegram Bot Developer. 
-                             TASK: Write raw JavaScript code for Telegraf v4. 
-                             NO Markdown blocks. 
-                             USER PROMPT: ${prompt}`
-                }));
-            });
-            
-            let accumulated = "";
-            ws.addEventListener("message", (e) => {
-                if(target.value.startsWith("//")) target.value = "";
-                accumulated += e.data;
-                // Real-time cleanup
-                target.value = accumulated.replace(/```javascript/g, '').replace(/```/g, '');
-                target.scrollTop = target.scrollHeight;
-            });
-            
-            ws.addEventListener("close", () => showToast("GENERATION SEQUENCE COMPLETE", 'success'));
+            try {
+                // Call local backend instead of external WebSocket
+                const response = await fetch('/api/ai-generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt, type: 'code' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    target.value = data.result;
+                    showToast("AI CODE GENERATED", 'success');
+                } else {
+                    target.value = "// ERROR: " + data.message;
+                    showToast("GENERATION FAILED", 'error');
+                }
+            } catch (e) {
+                target.value = "// CRITICAL NETWORK FAILURE";
+                showToast("SERVER DISCONNECTED", 'error');
+            }
         }
 
-        // --- 9. PAYMENT HANDLING ---
-
+        // --- 7. PAYMENT ---
         function openPay(plan, price) {
             payDetails = { plan, price };
             document.getElementById('payPlan').innerText = plan;
@@ -977,24 +874,20 @@
             payMode = mode;
             const cash = document.getElementById('cashSec');
             const ref = document.getElementById('refSec');
-            const btnCash = document.getElementById('tabCash');
-            const btnRef = document.getElementById('tabRef');
-
             if(mode === 'cash') {
                 cash.classList.remove('hidden'); ref.classList.add('hidden');
-                btnCash.className = "flex-1 py-3 bg-dark-900 text-white text-[10px] font-bold font-mono transition shadow-inner";
-                btnRef.className = "flex-1 py-3 border border-transparent text-gray-500 text-[10px] font-bold font-mono hover:text-gray-300 transition";
+                document.getElementById('tabCash').className = "flex-1 py-3 bg-dark-900 text-white text-[10px] font-bold font-mono transition shadow-inner";
+                document.getElementById('tabRef').className = "flex-1 py-3 border border-transparent text-gray-500 text-[10px] font-bold font-mono hover:text-gray-300 transition";
             } else {
                 ref.classList.remove('hidden'); cash.classList.add('hidden');
-                btnRef.className = "flex-1 py-3 bg-brand-blue text-white text-[10px] font-bold font-mono transition shadow-[0_0_10px_#3B82F6]";
-                btnCash.className = "flex-1 py-3 border border-transparent text-gray-500 text-[10px] font-bold font-mono hover:text-gray-300 transition";
+                document.getElementById('tabRef').className = "flex-1 py-3 bg-brand-blue text-white text-[10px] font-bold font-mono transition shadow-[0_0_10px_#3B82F6]";
+                document.getElementById('tabCash').className = "flex-1 py-3 border border-transparent text-gray-500 text-[10px] font-bold font-mono hover:text-gray-300 transition";
             }
         }
 
         async function submitPay() {
             const trx = document.getElementById('trxId').value;
             if(payMode === 'cash' && !trx) return showToast("TRANSACTION ID MISSING", 'error');
-
             const res = await fetch('/api/submit-payment', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -1003,7 +896,6 @@
                     plan: payDetails.plan, amount: payDetails.price, trxId: trx
                 })
             }).then(r => r.json());
-
             if(res.success) {
                 closeModal('payModal');
                 showToast("REQUEST TRANSMITTED", 'success');
@@ -1013,32 +905,17 @@
             }
         }
 
-        // --- 10. UTILITY FUNCTIONS ---
-
-        function copyToClipboard(txt) { 
-            navigator.clipboard.writeText(txt); 
-            showToast("COPIED TO CLIPBOARD", 'success'); 
-        }
-        
-        function copyLink() { 
-            copyToClipboard(`https://t.me/lagahostbot?start=${user.id}`); 
-        }
-
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-
+        // --- 8. UTILS ---
+        function copyToClipboard(txt) { navigator.clipboard.writeText(txt); showToast("COPIED TO CLIPBOARD", 'success'); }
+        function copyLink() { copyToClipboard(`https://t.me/lagahostbot?start=${user.id}`); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { 
             const el = document.getElementById(id);
-            if(id === 'editorModal') {
-                el.classList.add('translate-x-full');
-            }
+            if(id === 'editorModal') el.classList.add('translate-x-full');
             setTimeout(() => el.classList.add('hidden'), 300);
         }
 
-        // START APP
         window.onload = init;
-
     </script>
 </body>
 </html>
