@@ -1,7 +1,7 @@
 /**
  * =================================================================================
- * PROJECT: LAGA HOST ULTIMATE SERVER
- * VERSION: 3.5.0 (Stable Release)
+ * PROJECT: LAGA HOST ULTIMATE SERVER (SECURE EDITION)
+ * VERSION: 3.6.0 (UI/UX Overhaul)
  * AUTHOR: Laga Host Team
  * DESCRIPTION: Backend server for Telegram Bot Hosting Platform with AI features.
  * =================================================================================
@@ -32,7 +32,6 @@ const PORT = process.env.PORT || 3000;
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender.com"; 
 
 // 🤖 AI CONFIGURATION (OpenRouter API)
-// Using the Key provided in your configuration
 const OPENROUTER_API_KEY = "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";
 const AI_MODEL = "google/gemini-2.0-flash-exp:free"; // Primary Model
 
@@ -63,7 +62,6 @@ const ADMIN_CONFIG = {
 };
 
 // 🗄️ DATABASE CONNECTION STRING
-// MongoDB Connection URI (Make sure IP is whitelisted in Atlas)
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
 
 // =================================================================================
@@ -711,68 +709,7 @@ app.post('/api/submit-payment', async (req, res) => {
 });
 
 // =================================================================================
-// 10. BROADCAST SYSTEM
-// =================================================================================
-
-app.post('/api/broadcast', async (req, res) => {
-    const { message, adminId } = req.body;
-    
-    // Security Check
-    if (adminId !== ADMIN_CONFIG.adminId) {
-        return res.json({ success: false, message: 'Unauthorized Access' });
-    }
-
-    logSystem('INFO', 'Starting Broadcast...');
-    let totalSent = 0;
-
-    // 1. Send to Main Bot Users
-    const mainUsers = await UserModel.find({}, 'userId');
-    
-    // Use for...of loop for controlled flow
-    for (const u of mainUsers) {
-        try {
-            await mainBot.telegram.sendMessage(u.userId, message, { parse_mode: 'HTML' });
-            totalSent++;
-            await new Promise(r => setTimeout(r, 30)); // Delay to prevent rate limit
-        } catch(e) {
-            // If user blocked bot, ignore
-        }
-    }
-
-    // 2. Send to Child Bot Users
-    // This iterates through all running bots and uses their instances to send messages
-    const runningBots = await BotModel.find({ status: 'RUNNING' });
-
-    for (const bot of runningBots) {
-        const endUsers = await EndUserModel.find({ botId: bot._id.toString() });
-        if(endUsers.length === 0) continue;
-
-        // Get active instance or create temp
-        let senderBot = activeBotInstances[bot._id.toString()];
-        if (!senderBot) {
-            try { senderBot = new Telegraf(bot.token); } catch(e) { continue; }
-        }
-
-        for (const eu of endUsers) {
-            try {
-                await senderBot.telegram.sendMessage(eu.tgId, message, { parse_mode: 'HTML' });
-                totalSent++;
-                await new Promise(r => setTimeout(r, 50)); // Slower for child bots
-            } catch(e) {
-                if(e.code === 403 || e.code === 400) {
-                    // User blocked bot or invalid ID, remove from DB
-                    await EndUserModel.findByIdAndDelete(eu._id);
-                }
-            }
-        }
-    }
-
-    logSystem('SUCCESS', `Broadcast Completed. Sent to ${totalSent} users.`);
-    res.json({ success: true, total: totalSent });
-});
-
-// =================================================================================
-// 11. CRON JOBS (AUTOMATION)
+// 10. CRON JOBS (AUTOMATION)
 // =================================================================================
 
 // Runs every day at midnight (00:00)
@@ -824,7 +761,7 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 // =================================================================================
-// 12. MAIN ADMIN BOT LOGIC
+// 11. MAIN ADMIN BOT LOGIC (IMPROVED & SECURE)
 // =================================================================================
 
 // START Command
@@ -961,8 +898,90 @@ mainBot.command('stats', async (ctx) => {
     );
 });
 
+// 🔥 SECURE ADMIN BROADCAST COMMAND (Moved from API)
+mainBot.command('broadcast', async (ctx) => {
+    // 1. Security Check: Only Admin
+    if (ctx.from.id.toString() !== ADMIN_CONFIG.adminId) {
+        return ctx.reply("⛔ Unauthorized: This command is for Admins only.");
+    }
+
+    // 2. Parse Message
+    // Usage: /broadcast <message>
+    const message = ctx.message.text.replace('/broadcast', '').trim();
+    if (!message) {
+        return ctx.reply("⚠️ Usage: <code>/broadcast Your Message Here</code> (HTML Supported)", { parse_mode: 'HTML' });
+    }
+
+    const statusMsg = await ctx.reply("⏳ <b>Starting Broadcast...</b>\nTarget: All Main Users & Hosted Bot Users", { parse_mode: 'HTML' });
+    let totalSent = 0;
+    let errors = 0;
+
+    logSystem('INFO', `Admin Broadcast Started by ${ctx.from.first_name}`);
+
+    // 3. PHASE 1: Send to Main Bot Users
+    try {
+        const mainUsers = await UserModel.find({}, 'userId');
+        for (const u of mainUsers) {
+            try {
+                await mainBot.telegram.sendMessage(u.userId, message, { parse_mode: 'HTML' });
+                totalSent++;
+                // Rate Limiting (30ms)
+                await new Promise(r => setTimeout(r, 30));
+            } catch(e) {
+                // Ignore blocks
+            }
+        }
+    } catch(e) { console.error('Main Broadcast Error', e); }
+
+    // 4. PHASE 2: Send to Child Bot Users
+    // This iterates through all running bots and uses their instances to send messages
+    try {
+        const runningBots = await BotModel.find({ status: 'RUNNING' });
+
+        for (const bot of runningBots) {
+            const endUsers = await EndUserModel.find({ botId: bot._id.toString() });
+            if(endUsers.length === 0) continue;
+
+            // Get active instance or create temp
+            let senderBot = activeBotInstances[bot._id.toString()];
+            if (!senderBot) {
+                try { senderBot = new Telegraf(bot.token); } catch(e) { continue; }
+            }
+
+            for (const eu of endUsers) {
+                try {
+                    await senderBot.telegram.sendMessage(eu.tgId, message, { parse_mode: 'HTML' });
+                    totalSent++;
+                    await new Promise(r => setTimeout(r, 50)); // Slower for child bots
+                } catch(e) {
+                    errors++;
+                    if(e.code === 403 || e.code === 400) {
+                        // User blocked bot or invalid ID, remove from DB
+                        await EndUserModel.findByIdAndDelete(eu._id);
+                    }
+                }
+            }
+        }
+    } catch(e) { console.error('Child Broadcast Error', e); }
+
+    // 5. Report Result
+    logSystem('SUCCESS', `Broadcast Completed. Sent: ${totalSent}`);
+    
+    // Delete status msg and send final report
+    try {
+        await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id);
+    } catch(e){}
+
+    await ctx.reply(
+        `✅ <b>Broadcast Complete</b>\n\n` +
+        `📨 Sent to: <b>${totalSent}</b> users\n` +
+        `❌ Errors/Blocks: <b>${errors}</b>`,
+        { parse_mode: 'HTML' }
+    );
+});
+
 // =================================================================================
-// 13. SYSTEM STARTUP SEQUENCE
+// 12. SYSTEM STARTUP SEQUENCE
 // =================================================================================
 
 /**
