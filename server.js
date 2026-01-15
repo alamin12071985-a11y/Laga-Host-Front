@@ -672,6 +672,7 @@ app.post('/api/deleteBot', async (req, res) => {
         res.json({ success: false, message: e.message });
     }
 });
+
 // =================================================================================
 // 9. AI GENERATION API (ULTIMATE EDITION: FORCE JOIN, MENUS, KEYBOARDS)
 // =================================================================================
@@ -690,62 +691,47 @@ app.post('/api/ai-generate', async (req, res) => {
     }
 
     // 3. DEFINE SYSTEM PROMPT (THE BRAIN)
-    // This tells the AI exactly how to behave and what code format to output.
     let systemInstruction = "";
     
     if (type === 'code') {
         systemInstruction =
-            "🔴 YOUR ROLE: You are an Expert Telegram Bot Developer specializing in Telegraf.js v4.\n" +
-            "🟡 EXECUTION CONTEXT: Your code runs inside a secure sandbox function: `new Function('ctx', 'bot', 'Markup', 'axios', 'moment', code)`.\n\n" +
+            "🔴 ROLE: You are a Telegraf.js Code Generator. You DO NOT create the bot, you only create the RESPONSE logic.\n" +
+            "🟡 CONTEXT: Your code runs inside: `async (ctx, Markup) => { ... YOUR CODE HERE ... }`.\n\n" +
             
-            "⛔ STRICT SECURITY RULES (FAILING THESE WILL BREAK THE BOT):\n" +
-            "1. DO NOT use `require`, `import`, or `const bot = new Telegraf(...)`.\n" +
-            "2. DO NOT use `bot.launch()`.\n" +
-            "3. DO NOT wrap code in `bot.command(...)`. Assume you are INSIDE the function already.\n" +
-            "4. DO NOT return Markdown (```). Return RAW JavaScript code only.\n\n" +
+            "⛔ STRICT PROHIBITIONS (If you write these, the code will fail):\n" +
+            "1. NO `require(...)` or `import`.\n" +
+            "2. NO `new Telegraf(...)` or `bot.launch()`.\n" +
+            "3. NO `bot.command(...)`. You are already inside the command handler.\n" +
+            "4. NO Markdown (```). Output raw code only.\n\n" +
 
-            "✨ HOW TO GENERATE SPECIFIC FEATURES (FOLLOW THESE PATTERNS):\n\n" +
+            "✨ REQUIRED OUTPUT FORMAT:\n" +
+            "You must use `ctx.replyWithHTML` and Template Literals (backticks) for text.\n" +
+            "Follow this exact structure:\n\n" +
 
-            "👉 SCENARIO 1: USER WANTS 'KEYBOARD BUTTONS' / 'MAIN MENU' (Like Screenshot 1)\n" +
-            "   Use `Markup.keyboard`. Always add `.resize()`.\n" +
-            "   CODE PATTERN:\n" +
-            "   ctx.reply('Select an option:', Markup.keyboard([\n" +
-            "       ['🤖 Create Bot', '📂 My Bots'],\n" +
-            "       ['💳 Deposit', '📞 Help']\n" +
-            "   ]).resize());\n\n" +
+            "ctx.replyWithHTML(\n" +
+            "  `👋 <b>Title Here</b>\\n\\n` +\n" +
+            "  `Your description text here.\\n` +\n" +
+            "  `• Point 1\\n` +\n" +
+            "  `• Point 2\\n\\n` +\n" +
+            "  `👇 Instruction:`,\n" +
+            "  Markup.inlineKeyboard([\n" +
+            "    [Markup.button.callback('Button 1', 'data_1')],\n" +
+            "    [Markup.button.url('Link Button', 'https://example.com')]\n" +
+            "  ])\n" +
+            ");\n\n" +
 
-            "👉 SCENARIO 2: USER WANTS 'INLINE BUTTONS' (Like Screenshot 2)\n" +
-            "   Use `Markup.inlineKeyboard`.\n" +
-            "   CODE PATTERN:\n" +
-            "   ctx.replyWithHTML('<b>Choose Action:</b>', Markup.inlineKeyboard([\n" +
-            "       [Markup.button.callback('💎 Buy Premium', 'buy_prem')],\n" +
-            "       [Markup.button.url('📢 Channel', 'https://t.me/lagatechofficial')]\n" +
-            "   ]));\n\n" +
+            "👉 SCENARIO 1: Main Menu / Dashboard\n" +
+            "   Use the structure above. Use emojis. Make it look professional.\n" +
+            "👉 SCENARIO 2: Force Join\n" +
+            "   Use `await ctx.telegram.getChatMember(...)` to check status.\n" +
+            "👉 SCENARIO 3: Reply Keyboard\n" +
+            "   Use `Markup.keyboard([...]).resize()` inside the reply options.\n\n" +
 
-            "👉 SCENARIO 3: USER WANTS 'FORCE JOIN' (Check Channel Subscription)\n" +
-            "   You must verify chat member status. Handle errors if bot is not admin.\n" +
-            "   CODE PATTERN:\n" +
-            "   const channel = '@your_channel_username'; // Change this\n" +
-            "   try {\n" +
-            "       const member = await ctx.telegram.getChatMember(channel, ctx.from.id);\n" +
-            "       if (['left', 'kicked'].includes(member.status)) {\n" +
-            "           return ctx.reply('⚠️ Join our channel first!', Markup.inlineKeyboard([\n" +
-            "               [Markup.button.url('Join Channel', 'https://t.me/' + channel.replace('@', ''))]\n" +
-            "           ]));\n" +
-            "       }\n" +
-            "   } catch (e) { ctx.reply('⚠️ Error: Bot is not admin in the channel.'); }\n" +
-            "   ctx.reply('✅ Verification Success! Welcome.');\n\n" +
-
-            "👉 SCENARIO 4: GENERAL MESSAGES\n" +
-            "   Use `ctx.replyWithHTML('<b>Bold Text</b>')` for better formatting.\n\n" +
-
-            "⚡ YOUR TASK NOW:\n" +
-            "Analyze the user's request: '" + prompt + "'.\n" +
-            "Generate the best possible Javascript code block to achieve this.";
+            "⚡ YOUR TASK: Generate valid code for: '" + prompt + "'";
     } else {
         // Broadcast / Text Copywriting Prompt
         systemInstruction =
-            "ACT AS: A Professional Digital Marketer & Copywriter for Telegram.\n" +
+            "ACT AS: A Professional Digital Marketer for Telegram.\n" +
             "TASK: Write a broadcast message based on user input.\n" +
             "FORMAT RULES:\n" +
             "1. Use HTML tags only (<b>Bold</b>, <i>Italic</i>, <a href='...'>Link</a>).\n" +
@@ -763,8 +749,8 @@ app.post('/api/ai-generate', async (req, res) => {
                     { role: "system", content: systemInstruction },
                     { role: "user", content: prompt }
                 ],
-                // Temperature 0.2 means very precise code, less creative hallucination
-                temperature: 0.2, 
+                // Temperature 0.1 ensures strict adherence to the code structure
+                temperature: 0.1, 
                 max_tokens: 1500
             },
             {
@@ -779,17 +765,37 @@ app.post('/api/ai-generate', async (req, res) => {
 
         let finalContent = response.data?.choices?.[0]?.message?.content || "";
 
-        // 5. Data Sanitization (Remove Markdown Wrappers if AI adds them)
-        // This ensures the frontend gets clean code ready to save.
+        // 5. AGGRESSIVE DATA SANITIZATION (The Fix for 'bot.launch' issues)
+        // We filter out lines that contain forbidden initialization code.
+        
+        // First, remove Markdown wrappers
         finalContent = finalContent
-            .replace(/^```javascript\s*/i, "") // Remove start ```javascript
-            .replace(/^```js\s*/i, "")         // Remove start ```js
-            .replace(/^```html\s*/i, "")       // Remove start ```html
-            .replace(/```$/m, "")              // Remove end ```
+            .replace(/^```javascript\s*/gi, "") 
+            .replace(/^```js\s*/gi, "")        
+            .replace(/```$/gm, "")             
+            .trim();
+
+        // Second, remove forbidden lines line-by-line
+        const forbiddenPhrases = [
+            "require(", 
+            "new Telegraf", 
+            "bot.launch", 
+            "const bot =", 
+            "import ", 
+            "bot.command("
+        ];
+
+        finalContent = finalContent
+            .split('\n') // Split code into lines
+            .filter(line => {
+                // Keep the line ONLY if it doesn't contain any forbidden phrase
+                return !forbiddenPhrases.some(phrase => line.includes(phrase));
+            })
+            .join('\n') // Rejoin lines
             .trim();
 
         if (!finalContent) {
-            throw new Error("Received empty response from AI Provider.");
+            throw new Error("Received empty response from AI Provider or code was blocked by filters.");
         }
 
         // 6. Send Success Response
@@ -802,7 +808,7 @@ app.post('/api/ai-generate', async (req, res) => {
         
         res.json({ 
             success: false, 
-            message: "AI Service is currently busy or overloaded. Please try again in a few seconds." 
+            message: "AI Service is currently busy. Please try again." 
         });
     }
 });
