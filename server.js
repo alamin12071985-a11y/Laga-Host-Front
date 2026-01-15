@@ -672,53 +672,89 @@ app.post('/api/deleteBot', async (req, res) => {
         res.json({ success: false, message: e.message });
     }
 });
-
 // =================================================================================
-// 9. AI GENERATION API (FIXED FOR MARKUP)
+// 9. AI GENERATION API (ULTIMATE EDITION: FORCE JOIN, MENUS, KEYBOARDS)
 // =================================================================================
 
 app.post('/api/ai-generate', async (req, res) => {
+    // 1. Destructure Request Body
     const { prompt, type, model } = req.body;
 
-    if (!prompt) return res.json({ success: false, message: "Prompt is empty" });
-    if (!AI_CONFIG.apiKey) return res.json({ success: false, message: "AI API Key Missing" });
+    // 2. Validate Inputs
+    if (!prompt) {
+        return res.json({ success: false, message: "Prompt cannot be empty." });
+    }
+    if (!AI_CONFIG.apiKey) {
+        logSystem('ERROR', 'OpenRouter API Key is missing in server config.');
+        return res.json({ success: false, message: "Server AI configuration missing." });
+    }
 
-    // 🎯 SYSTEM PROMPT ENGINEERING
-    // This is crucial to ensure the AI generates code that matches the Markup syntax we use.
+    // 3. DEFINE SYSTEM PROMPT (THE BRAIN)
+    // This tells the AI exactly how to behave and what code format to output.
     let systemInstruction = "";
     
     if (type === 'code') {
         systemInstruction =
-            "You are an expert Telegram Bot Developer using Telegraf.js v4.\n" +
-            "Your Task: Write ONLY the RAW JavaScript code body that goes inside a `bot.command` or `bot.on` function.\n" +
-            "Do NOT write the function wrapper (e.g. `bot.command('start', (ctx) => { ... })`).\n" +
-            "Do NOT include markdown blocks (```).\n\n" +
-            "AVAILABLE VARIABLES:\n" +
-            "- `ctx` (The Telegraf Context)\n" +
-            "- `bot` (The Telegraf Instance)\n" +
-            "- `Markup` (For Buttons/Keyboards)\n" +
-            "- `axios` (For HTTP Requests)\n" +
-            "- `moment` (For Time)\n\n" +
-            "RULES FOR MESSAGES:\n" +
-            "1. Use `ctx.replyWithHTML('Text', extra)` for sending messages.\n" +
-            "2. For Inline Buttons, strictly use this syntax:\n" +
-            "   `Markup.inlineKeyboard([\n" +
-            "     [Markup.button.callback('Button Name', 'callback_data')],\n" +
-            "     [Markup.button.url('Link Name', 'https://example.com')],\n" +
-            "     [Markup.button.webApp('Web App', 'https://webapp.com')]\n" +
-            "   ])`\n\n" +
-            "EXAMPLE OUTPUT:\n" +
-            "ctx.replyWithHTML('<b>Hello!</b>', Markup.inlineKeyboard([[Markup.button.callback('Click Me', 'click')]]));";
+            "🔴 YOUR ROLE: You are an Expert Telegram Bot Developer specializing in Telegraf.js v4.\n" +
+            "🟡 EXECUTION CONTEXT: Your code runs inside a secure sandbox function: `new Function('ctx', 'bot', 'Markup', 'axios', 'moment', code)`.\n\n" +
+            
+            "⛔ STRICT SECURITY RULES (FAILING THESE WILL BREAK THE BOT):\n" +
+            "1. DO NOT use `require`, `import`, or `const bot = new Telegraf(...)`.\n" +
+            "2. DO NOT use `bot.launch()`.\n" +
+            "3. DO NOT wrap code in `bot.command(...)`. Assume you are INSIDE the function already.\n" +
+            "4. DO NOT return Markdown (```). Return RAW JavaScript code only.\n\n" +
+
+            "✨ HOW TO GENERATE SPECIFIC FEATURES (FOLLOW THESE PATTERNS):\n\n" +
+
+            "👉 SCENARIO 1: USER WANTS 'KEYBOARD BUTTONS' / 'MAIN MENU' (Like Screenshot 1)\n" +
+            "   Use `Markup.keyboard`. Always add `.resize()`.\n" +
+            "   CODE PATTERN:\n" +
+            "   ctx.reply('Select an option:', Markup.keyboard([\n" +
+            "       ['🤖 Create Bot', '📂 My Bots'],\n" +
+            "       ['💳 Deposit', '📞 Help']\n" +
+            "   ]).resize());\n\n" +
+
+            "👉 SCENARIO 2: USER WANTS 'INLINE BUTTONS' (Like Screenshot 2)\n" +
+            "   Use `Markup.inlineKeyboard`.\n" +
+            "   CODE PATTERN:\n" +
+            "   ctx.replyWithHTML('<b>Choose Action:</b>', Markup.inlineKeyboard([\n" +
+            "       [Markup.button.callback('💎 Buy Premium', 'buy_prem')],\n" +
+            "       [Markup.button.url('📢 Channel', 'https://t.me/lagatechofficial')]\n" +
+            "   ]));\n\n" +
+
+            "👉 SCENARIO 3: USER WANTS 'FORCE JOIN' (Check Channel Subscription)\n" +
+            "   You must verify chat member status. Handle errors if bot is not admin.\n" +
+            "   CODE PATTERN:\n" +
+            "   const channel = '@your_channel_username'; // Change this\n" +
+            "   try {\n" +
+            "       const member = await ctx.telegram.getChatMember(channel, ctx.from.id);\n" +
+            "       if (['left', 'kicked'].includes(member.status)) {\n" +
+            "           return ctx.reply('⚠️ Join our channel first!', Markup.inlineKeyboard([\n" +
+            "               [Markup.button.url('Join Channel', 'https://t.me/' + channel.replace('@', ''))]\n" +
+            "           ]));\n" +
+            "       }\n" +
+            "   } catch (e) { ctx.reply('⚠️ Error: Bot is not admin in the channel.'); }\n" +
+            "   ctx.reply('✅ Verification Success! Welcome.');\n\n" +
+
+            "👉 SCENARIO 4: GENERAL MESSAGES\n" +
+            "   Use `ctx.replyWithHTML('<b>Bold Text</b>')` for better formatting.\n\n" +
+
+            "⚡ YOUR TASK NOW:\n" +
+            "Analyze the user's request: '" + prompt + "'.\n" +
+            "Generate the best possible Javascript code block to achieve this.";
     } else {
+        // Broadcast / Text Copywriting Prompt
         systemInstruction =
-            "You are a professional Copywriter for Telegram Marketing.\n" +
-            "Write a concise, engaging Broadcast message using HTML tags.\n" +
-            "Supported Tags: <b>, <i>, <a>, <code>, <pre>.\n" +
-            "Do NOT use Markdown (**bold**). Use HTML only.";
+            "ACT AS: A Professional Digital Marketer & Copywriter for Telegram.\n" +
+            "TASK: Write a broadcast message based on user input.\n" +
+            "FORMAT RULES:\n" +
+            "1. Use HTML tags only (<b>Bold</b>, <i>Italic</i>, <a href='...'>Link</a>).\n" +
+            "2. Do NOT use Markdown symbols (** or __).\n" +
+            "3. Make it engaging, include Emojis, and keep it concise.";
     }
 
     try {
-        // Request to OpenRouter
+        // 4. Request to OpenRouter (Gemini)
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
@@ -726,47 +762,50 @@ app.post('/api/ai-generate', async (req, res) => {
                 messages: [
                     { role: "system", content: systemInstruction },
                     { role: "user", content: prompt }
-                ]
+                ],
+                // Temperature 0.2 means very precise code, less creative hallucination
+                temperature: 0.2, 
+                max_tokens: 1500
             },
             {
                 headers: {
                     Authorization: `Bearer ${AI_CONFIG.apiKey}`,
                     "Content-Type": "application/json",
-                    "HTTP-Referer": AI_CONFIG.headers["HTTP-Referer"],
-                    "X-Title": AI_CONFIG.headers["X-Title"]
+                    "HTTP-Referer": WEB_APP_URL,
+                    "X-Title": "Laga Host AI Platform"
                 }
             }
         );
 
-        const msgData = response.data?.choices?.[0]?.message;
-        let finalContent = "";
+        let finalContent = response.data?.choices?.[0]?.message?.content || "";
 
-        if (msgData?.content) {
-            finalContent = msgData.content;
-        }
-
-        // CLEANUP: Remove Markdown delimiters if AI adds them despite instructions
+        // 5. Data Sanitization (Remove Markdown Wrappers if AI adds them)
+        // This ensures the frontend gets clean code ready to save.
         finalContent = finalContent
-            .replace(/```javascript/gi, "")
-            .replace(/```js/gi, "")
-            .replace(/```html/gi, "")
-            .replace(/```/g, "")
+            .replace(/^```javascript\s*/i, "") // Remove start ```javascript
+            .replace(/^```js\s*/i, "")         // Remove start ```js
+            .replace(/^```html\s*/i, "")       // Remove start ```html
+            .replace(/```$/m, "")              // Remove end ```
             .trim();
 
-        if (!finalContent) throw new Error("Empty AI Response");
+        if (!finalContent) {
+            throw new Error("Received empty response from AI Provider.");
+        }
 
+        // 6. Send Success Response
         res.json({ success: true, result: finalContent });
 
     } catch (e) {
-        const errMsg = e.response?.data?.error?.message || e.message;
-        logSystem('ERROR', `AI Gen Failed: ${errMsg}`);
+        // 7. Robust Error Handling
+        const errorMessage = e.response?.data?.error?.message || e.message;
+        logSystem('ERROR', `AI Generation Failed: ${errorMessage}`);
+        
         res.json({ 
             success: false, 
-            message: "AI Service is currently busy. Please try again." 
+            message: "AI Service is currently busy or overloaded. Please try again in a few seconds." 
         });
     }
 });
-
 // =================================================================================
 // 10. EDITOR ROUTES
 // =================================================================================
