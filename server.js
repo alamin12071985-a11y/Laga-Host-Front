@@ -1,66 +1,75 @@
 /**
  * =================================================================================================
- * PROJECT: LAGA HOST ULTIMATE (CYBER CORE ENTERPRISE EDITION)
- * VERSION: 6.0.0 (MAXIMUM EXPANDED)
- * AUTHOR: Laga Host Team
- * DESCRIPTION: 
- *   This is the central backend server for the Telegram Bot Hosting Platform.
- *   It handles:
- *    - Database Connections (MongoDB)
- *    - Bot Instance Management (Telegraf)
- *    - AI Code Generation (Gemini via OpenRouter)
- *    - User Management & Plans
- *    - Payment Processing
- *    - Targeted Broadcast Systems (Child-Bot Only)
+ *  PROJECT NAME: LAGA HOST ULTIMATE AI - ENTERPRISE CORE SERVER
+ *  VERSION: 10.0.0 (ULTRA EXTENDED & SECURE ARCHITECTURE)
+ *  
+ *  DEVELOPER: Laga Host Development Team
+ *  COPYRIGHT: © 2024-2025 Laga Host
+ *  
+ *  SYSTEM OVERVIEW:
+ *  This is the monolithic backend for the Telegram Bot Hosting Platform.
+ *  It integrates AI generation, Sandbox execution, Payment Gateways,
+ *  and Advanced Security protocols into a single unified server.
+ * 
+ *  KEY MODULES:
+ *  1. [CORE] Express.js REST API Server
+ *  2. [DB] MongoDB Connection with Mongoose ORM
+ *  3. [BOT] Telegraf v4 Bot Hosting Engine (Sandbox)
+ *  4. [AI] Gemini 2.0 Integration via OpenRouter
+ *  5. [SEC] IP Fingerprinting & Anti-Cheat System
+ *  6. [FIN] Manual Payment Processing System
+ *  7. [COM] Broadcast System with Smart Filtering
  * =================================================================================================
  */
 
 // =================================================================================================
-// SECTION 1: LIBRARY IMPORTS & DEPENDENCY MANAGEMENT
+// SECTION 1: LIBRARY IMPORTS
+// Description: Loading all necessary node modules required for operation.
 // =================================================================================================
 
-// Load Environment Variables
+// Securely load environment variables from .env file
 require('dotenv').config();
 
-// Express Framework for API Routing
+// Express Framework for handling HTTP Requests
 const express = require('express');
 
-// Telegram Bot Framework
+// Telegram Bot Framework (Telegraf) & Markup for Buttons
 const { Telegraf, Markup, session } = require('telegraf');
 
-// Request Parsing Utilities
+// Body Parser middleware to handle JSON and URL-encoded data
 const bodyParser = require('body-parser');
 
-// Cross-Origin Resource Sharing
+// Cross-Origin Resource Sharing to allow Frontend communication
 const cors = require('cors');
 
-// File System and Path Utilities
+// Native File System and Path modules
 const path = require('path');
 const fs = require('fs');
 
-// Database Driver
+// Database Driver for MongoDB
 const mongoose = require('mongoose');
 
-// Task Scheduling
+// Task Scheduler for Cron Jobs (Daily Checks)
 const cron = require('node-cron');
 
-// Date & Time Formatting
+// Date and Time formatting library
 const moment = require('moment');
 
-// HTTP Client for AI Requests
+// HTTP Client for external API requests (AI, etc.)
 const axios = require('axios');
 
 // =================================================================================================
 // SECTION 2: SYSTEM CONFIGURATION & CONSTANTS
+// Description: Defining global constants, API keys, and configuration objects.
 // =================================================================================================
 
-// Initialize Express Application
+// Initialize the Express Application
 const app = express();
 
-// Define Server Port
+// Define the Server Port
 const PORT = process.env.PORT || 3000;
 
-// Define Web App URL (For CORS and Referer headers)
+// Define the Frontend Web Application URL
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://lagahost.onrender.com"; 
 
 // -------------------------------------------------------------------------------------------------
@@ -70,30 +79,37 @@ const OPENROUTER_API_KEY = "sk-or-v1-601b38d658770ac797642e65d85f4d8425d9ded54dd
 const AI_MODEL = "google/gemini-2.0-flash-exp:free"; 
 
 // -------------------------------------------------------------------------------------------------
-// ADMIN & PLATFORM CONFIGURATION
+// ADMIN & PLATFORM CONFIGURATION OBJECT
 // -------------------------------------------------------------------------------------------------
 const ADMIN_CONFIG = {
-    // The Token for the Main Host Bot
+    // The Bot Token for the Main Hosting Bot
     token: process.env.BOT_TOKEN || "8264143788:AAH0fRkMqBw4rONo0WVEi-OyAVkPs9bRt84",
     
-    // The Telegram User ID of the Super Admin
+    // Super Admin Telegram ID (For Notifications)
     adminId: process.env.ADMIN_ID || "7605281774",
     
-    // Required Channels for Access
+    // Mandatory Channels for Users
     channels: [
         { 
             name: 'Laga Tech Official', 
-            username: '@lagatechofficial', 
+            username: '@lagatechofficial',
             url: 'https://t.me/lagatechofficial' 
         },
         { 
             name: 'Snowman Adventure', 
-            username: '@snowmanadventureannouncement', 
+            username: '@snowmanadventure',
             url: 'https://t.me/snowmanadventureannouncement' 
         }
     ],
     
-    // Payment Numbers
+    // Support Contact Information
+    support: {
+        telegram: '@lagatech',
+        youtube: 'https://youtube.com/@lagatech?si=LC_FiXS4BdwR11XR',
+        tutorial_video: 'https://youtube.com/@lagatech' 
+    },
+    
+    // Manual Payment Wallet Numbers
     payment: {
         nagad: "01761494948",
         bkash: "01761494948"
@@ -106,63 +122,97 @@ const ADMIN_CONFIG = {
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure";
 
 // =================================================================================================
-// SECTION 3: ADVANCED LOGGING UTILITY
+// SECTION 3: ADVANCED LOGGING SYSTEM
+// Description: A robust logger to track every system event, error, and security alert.
 // =================================================================================================
 
 /**
- * Enhanced Logging System
- * Prints detailed logs with timestamps, types, and visual icons.
+ * Logs a message to the console with a timestamp and category icon.
  * 
- * @param {string} type - The category of the log (INFO, ERROR, WARN, SUCCESS, BOT, DB)
- * @param {string} message - The content of the log
+ * @param {string} type - The category of the log (INFO, ERROR, SECURITY, etc.)
+ * @param {string} message - The main log message.
+ * @param {object|string} [details] - Optional extra details or error objects.
  */
-function logSystem(type, message) {
-    const timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
+function logSystem(type, message, details = null) {
+    const timestamp = moment().format('DD-MM-YYYY HH:mm:ss');
     let icon = '';
 
-    switch (type) {
-        case 'INFO': icon = 'ℹ️  [INFO]   '; break;
-        case 'ERROR': icon = '❌  [ERROR]  '; break;
-        case 'WARN': icon = '⚠️  [WARN]   '; break;
-        case 'SUCCESS': icon = '✅  [SUCCESS]'; break;
-        case 'DB': icon = '🗄️  [DATABASE]'; break;
-        case 'BOT': icon = '🤖  [BOT]    '; break;
-        default: icon = '🔹  [SYSTEM] '; break;
+    // Assign Icons based on Log Type
+    if (type === 'INFO') {
+        icon = '🔹 [INFO]   ';
+    } else if (type === 'ERROR') {
+        icon = '❌ [ERROR]  ';
+    } else if (type === 'WARN') {
+        icon = '⚠️ [WARN]   ';
+    } else if (type === 'SUCCESS') {
+        icon = '✅ [SUCCESS]';
+    } else if (type === 'SECURITY') {
+        icon = '🛡️ [SECURITY]';
+    } else if (type === 'DB') {
+        icon = '🗄️ [DATABASE]';
+    } else if (type === 'BOT') {
+        icon = '🤖 [BOT_ENG]';
+    } else {
+        icon = '📝 [LOG]    ';
     }
 
-    console.log(`${icon} | ${timestamp} | ${message}`);
+    // Construct the log string
+    const logOutput = `${icon} | ${timestamp} | ${message}`;
+    
+    // Output to console
+    console.log(logOutput);
+    
+    // If there are details, print them nicely
+    if (details) {
+        if (typeof details === 'object') {
+            console.log(`   └── Details: ${JSON.stringify(details)}`);
+        } else {
+            console.log(`   └── Details: ${details}`);
+        }
+    }
 }
 
 // =================================================================================================
-// SECTION 4: DATABASE MODELS & SCHEMAS definition
+// SECTION 4: DATABASE SCHEMA DEFINITIONS
+// Description: Defining Mongoose Schemas for Users, Bots, EndUsers, and Payments.
 // =================================================================================================
 
-// Connect to MongoDB with Enhanced Options
+// Attempt to Connect to MongoDB
 mongoose.connect(MONGO_URI)
     .then(() => {
-        logSystem('DB', '----------------------------------------');
-        logSystem('DB', 'MongoDB Connection Established Successfully');
-        logSystem('DB', 'Ready to accept Database Operations');
-        logSystem('DB', '----------------------------------------');
+        logSystem('DB', '--------------------------------------------------');
+        logSystem('DB', 'MongoDB Connection Established Successfully.');
+        logSystem('DB', 'Ready to handle read/write operations.');
+        logSystem('DB', '--------------------------------------------------');
     })
-    .catch(err => {
-        logSystem('ERROR', 'CRITICAL: MongoDB Connection Failed');
+    .catch((err) => {
+        logSystem('ERROR', 'CRITICAL FAILURE: Could not connect to MongoDB.');
         logSystem('ERROR', 'Reason: ' + err.message);
-        process.exit(1); 
+        // Exit process on DB failure as the app cannot function without it
+        process.exit(1);
     });
 
 // -------------------------------------------------------------------------------------------------
-// 1. USER SCHEMA
+// 1. USER SCHEMA (Enhanced for Security)
 // -------------------------------------------------------------------------------------------------
 const userSchema = new mongoose.Schema({
+    // Identity Fields
     userId: { 
         type: String, 
         required: true, 
         unique: true, 
         index: true 
     },
-    username: { type: String },
-    firstName: { type: String },
+    username: { 
+        type: String, 
+        default: 'Unknown' 
+    },
+    firstName: { 
+        type: String, 
+        default: 'Unknown' 
+    },
+    
+    // Subscription & Plan
     plan: { 
         type: String, 
         default: 'Free', 
@@ -172,18 +222,42 @@ const userSchema = new mongoose.Schema({
         type: Number, 
         default: 1 
     },
+    planExpiresAt: { 
+        type: Date, 
+        default: null 
+    },
+    
+    // Referral System
     referrals: { 
         type: Number, 
         default: 0 
     },
-    referredBy: { type: String },
+    referredBy: { 
+        type: String, 
+        default: null 
+    },
+    
+    // SECURITY & ANTI-CHEAT FIELDS
+    lastIp: { 
+        type: String, 
+        default: null, 
+        index: true 
+    }, // Tracks the last known IP address
+    
+    isBanned: { 
+        type: Boolean, 
+        default: false 
+    }, // Ban Status
+    
+    banReason: { 
+        type: String, 
+        default: null 
+    }, // Reason for Ban
+    
+    // Metadata
     totalPaid: { 
         type: Number, 
         default: 0 
-    },
-    planExpiresAt: { 
-        type: Date, 
-        default: null 
     },
     joinedAt: { 
         type: Date, 
@@ -213,9 +287,11 @@ const botSchema = new mongoose.Schema({
         required: true, 
         unique: true 
     },
+    
+    // Runtime Status
     status: { 
         type: String, 
-        default: 'STOPPED' 
+        default: 'STOPPED' // RUNNING | STOPPED | ERROR
     }, 
     startedAt: { 
         type: Date, 
@@ -225,14 +301,19 @@ const botSchema = new mongoose.Schema({
         type: Number, 
         default: 0 
     },
+    
+    // The "Brain" of the bot (User's Code Storage)
     commands: { 
         type: Object, 
         default: {} 
-    },
+    }, 
+    
+    // Environment Variables (For API Keys etc.)
     envVars: { 
         type: Object, 
         default: {} 
-    },  
+    },
+    
     isFirstLive: { 
         type: Boolean, 
         default: true 
@@ -244,7 +325,7 @@ const botSchema = new mongoose.Schema({
 });
 
 // -------------------------------------------------------------------------------------------------
-// 3. END USER SCHEMA (For Broadcast Targeting)
+// 3. END USER SCHEMA (For Targeted Broadcasts)
 // -------------------------------------------------------------------------------------------------
 const endUserSchema = new mongoose.Schema({
     tgId: { 
@@ -256,14 +337,18 @@ const endUserSchema = new mongoose.Schema({
         required: true, 
         index: true 
     },
-    username: String,
-    firstName: String,
+    username: { 
+        type: String 
+    },
+    firstName: { 
+        type: String 
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 
     }
 });
-// Compound Index to ensure unique user per bot instance
+// Compound Index to ensure a user is unique per bot instance
 endUserSchema.index({ tgId: 1, botId: 1 }, { unique: true });
 
 // -------------------------------------------------------------------------------------------------
@@ -287,33 +372,53 @@ const paymentSchema = new mongoose.Schema({
     }
 });
 
-// Create Models from Schemas
+// Register Models with Mongoose
 const UserModel = mongoose.model('User', userSchema);
 const BotModel = mongoose.model('Bot', botSchema);
 const EndUserModel = mongoose.model('EndUser', endUserSchema);
 const PaymentModel = mongoose.model('Payment', paymentSchema);
 
 // =================================================================================================
-// SECTION 5: GLOBAL MIDDLEWARE & SERVER SETUP
+// SECTION 5: GLOBAL MIDDLEWARE & SERVER CONFIGURATION
+// Description: Setting up Express middleware and initializing the main admin bot.
 // =================================================================================================
 
-// RAM Storage for Active Bot Instances (Runtime Cache)
+// Global RAM Cache for Running Bot Instances
+// Key: BotDB_ID, Value: Telegraf Instance
 let activeBotInstances = {}; 
 
-// Setup Express Middleware
-app.use(cors()); 
-app.use(bodyParser.json({ limit: '50mb' })); 
+// Enable Cross-Origin Resource Sharing
+app.use(cors());
+
+// Configure Body Parser to handle large JSON payloads (needed for code saving)
+app.use(bodyParser.json({ limit: '50mb' }));
+
+// Configure Body Parser for URL Encoded data
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve Static Frontend Files
-app.use(express.static(path.join(__dirname, 'public'))); 
+// Serve Static Files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Request Logger Middleware
-app.use((req, res, next) => {
-    // Only log API requests to keep console clean
-    if(req.path.startsWith('/api')) {
-        // console.log(`[API REQUEST] ${req.method} ${req.path}`);
+// -------------------------------------------------------------------------------------------------
+// HELPER: IP ADDRESS EXTRACTION
+// -------------------------------------------------------------------------------------------------
+function getClientIp(req) {
+    // Check for x-forwarded-for header (common in proxies/Render)
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        // The first IP in the list is the original client IP
+        return forwarded.split(',')[0].trim();
     }
+    // Fallback to socket address
+    return req.socket.remoteAddress;
+}
+
+// -------------------------------------------------------------------------------------------------
+// LOGGING MIDDLEWARE
+// -------------------------------------------------------------------------------------------------
+app.use((req, res, next) => {
+    // We can enable this if we want to log every single HTTP request
+    // logSystem('INFO', `Incoming Request: ${req.method} ${req.path}`);
     next();
 });
 
@@ -321,270 +426,312 @@ app.use((req, res, next) => {
 const mainBot = new Telegraf(ADMIN_CONFIG.token);
 
 // =================================================================================================
-// SECTION 6: BOT ENGINE CORE (The Logic that runs user bots)
+// SECTION 6: THE BOT HOSTING ENGINE (SANDBOX EXECUTION)
+// Description: This is the core logic that securely runs user-created bots.
 // =================================================================================================
 
 /**
- * Starts a hosted bot instance securely in a sandbox-like environment.
- * Handles webhook clearing, middleware injection, and error catching.
- * 
- * @param {Object} botDoc - The MongoDB document of the bot to start
- * @returns {Promise<Object>} Status object with success boolean and message
+ * Starts a specific User's Bot Instance.
+ * @param {Object} botDoc - The database document of the bot to start.
+ * @returns {Promise<Object>} Status object.
  */
 async function startBotEngine(botDoc) {
     const botId = botDoc._id.toString();
 
-    // 1. Check if the bot is already running in RAM
+    // 1. Check if the bot is already active in RAM
     if (activeBotInstances[botId]) {
-        return { success: true, message: 'Bot is already active and running.' };
+        return { 
+            success: true, 
+            message: 'Bot instance is already running active session.' 
+        };
     }
 
     try {
-        // 2. Initialize New Telegraf Instance
+        // 2. Initialize Telegraf Instance with the User's Token
         const bot = new Telegraf(botDoc.token);
 
-        // 3. CRITICAL: Clear any existing Webhooks to enable Polling
+        // 3. Clear Webhooks (Crucial step for Polling to work)
         try {
             await bot.telegram.deleteWebhook();
-        } catch (webhookErr) {
-            // Ignore error if webhook wasn't set
+        } catch (webhookError) {
+            // Ignore error if webhook was not set previously
         }
 
-        // 4. Validate Token by fetching Bot Info
+        // 4. Fetch Bot Info to verify Token validity
         const botInfo = await bot.telegram.getMe();
         
-        // 5. Attach Global Error Handler for this Instance
+        // 5. Attach Global Error Handler for this specific child bot
         bot.catch((err, ctx) => {
-            logSystem('ERROR', `[Child Bot: ${botDoc.name}] Runtime Error: ${err.message}`);
+            logSystem('ERROR', `Child Bot [${botDoc.name}] Runtime Error: ${err.message}`);
         });
 
-        // ----------------------------------------------------
-        // MIDDLEWARE: Analytics & User Capture (For Broadcasts)
-        // ----------------------------------------------------
+        // -----------------------------------------------------------------------------------------
+        // MIDDLEWARE: ANALYTICS & BROADCAST TRACKING
+        // -----------------------------------------------------------------------------------------
         bot.use(async (ctx, next) => {
-            if(ctx.from) {
-                // Perform DB write asynchronously to prevent blocking the bot response
+            if (ctx.from) {
+                // Execute async database write without blocking the bot response
                 (async () => {
                     try {
-                        const userIdStr = ctx.from.id.toString();
+                        const tgIdStr = ctx.from.id.toString();
                         
-                        // Check if this user is already recorded for this bot
+                        // Check if user already exists for this specific bot
                         const exists = await EndUserModel.exists({ 
-                            tgId: userIdStr, 
+                            tgId: tgIdStr, 
                             botId: botId 
                         });
                         
-                        // If not, create a new record
+                        // If not exists, save the new user
                         if (!exists) {
                             await EndUserModel.create({
-                                tgId: userIdStr,
+                                tgId: tgIdStr,
                                 botId: botId,
-                                username: ctx.from.username || '',
-                                firstName: ctx.from.first_name || 'Unknown'
+                                username: ctx.from.username,
+                                firstName: ctx.from.first_name
                             });
-                            logSystem('INFO', `[${botDoc.name}] New End User Captured: ${ctx.from.first_name}`);
+                            logSystem('INFO', `[${botDoc.name}] New User Captured: ${ctx.from.first_name}`);
                         }
                     } catch(e) {
-                        // Silently handle duplicate key errors
+                        // Ignore duplicate entry errors silently
                     }
                 })();
             }
+            // Proceed to next middleware or command handler
             return next();
         });
 
-        // ----------------------------------------------------
-        // LOGIC: Dynamic Command Execution (The "JS Sandbox")
-        // ----------------------------------------------------
+        // -----------------------------------------------------------------------------------------
+        // LOGIC: DYNAMIC CODE EXECUTION SANDBOX
+        // -----------------------------------------------------------------------------------------
         bot.on('message', async (ctx) => {
-            // Ensure there is text content
+            // Ensure message exists and has text
             if (!ctx.message || !ctx.message.text) return;
             
             const text = ctx.message.text;
             
-            // Check if it looks like a command (starts with /)
+            // Only process commands starting with '/'
             if (text.startsWith('/')) {
-                // Extract command name (e.g., '/start' -> 'start')
-                const cmdName = text.substring(1).split(' ')[0]; 
+                // Extract command name (e.g. '/start' -> 'start')
+                const commandName = text.substring(1).split(' ')[0]; 
                 
-                // Fetch fresh code from DB to allow realtime updates
+                // Fetch latest code from Database (Hot Reloading)
                 const freshBotData = await BotModel.findById(botId);
-                const userCode = freshBotData?.commands?.[cmdName];
+                const userCode = freshBotData?.commands?.[commandName];
                 
                 if (userCode) {
                     try {
-                        // Create a Secure Function Constructor
-                        // We inject useful libraries: ctx, bot, Markup, axios, moment
-                        const runUserCode = new Function('ctx', 'bot', 'Markup', 'axios', 'moment', `
+                        // Create Secure Function (Sandbox)
+                        // Injecting helpful libraries: ctx, bot, Markup, axios, moment
+                        const sandboxFunction = new Function('ctx', 'bot', 'Markup', 'axios', 'moment', `
                             try {
-                                // --- USER INJECTED CODE START ---
+                                // --- USER CODE START ---
                                 ${userCode}
-                                // --- USER INJECTED CODE END ---
+                                // --- USER CODE END ---
                             } catch(runtimeError) {
-                                ctx.reply('⚠️ <b>Execution Error:</b>\\n' + runtimeError.message, { parse_mode: 'HTML' });
+                                ctx.reply('⚠️ <b>Bot Execution Error:</b>\\n' + runtimeError.message, { parse_mode: 'HTML' });
                             }
                         `);
                         
-                        // Execute the Function
-                        runUserCode(ctx, bot, Markup, axios, moment);
+                        // Execute the code
+                        sandboxFunction(ctx, bot, Markup, axios, moment);
                         
                     } catch (syntaxError) {
-                        ctx.reply(`❌ <b>Syntax Error in Code:</b>\n${syntaxError.message}`, { parse_mode: 'HTML' });
+                        ctx.reply(`❌ <b>Syntax Error in Command:</b>\n${syntaxError.message}`, { parse_mode: 'HTML' });
                     }
                 }
             }
         });
 
-        // 6. Launch the Bot via Long Polling
+        // 6. Launch the Bot (Long Polling Mode)
         bot.launch({ dropPendingUpdates: true })
             .then(() => {
-                logSystem('BOT', `Instance Launched: ${botDoc.name} (@${botInfo.username})`);
+                logSystem('BOT', `Instance Started Successfully: ${botDoc.name} (@${botInfo.username})`);
             })
             .catch(err => {
-                logSystem('ERROR', `Instance Crash [${botDoc.name}]: ${err.message}`);
+                logSystem('ERROR', `Instance Crash: ${botDoc.name}`, { error: err.message });
+                // Remove from active instances if crash occurs immediately
                 delete activeBotInstances[botId];
             });
 
-        // 7. Store the running instance in RAM
+        // 7. Store active instance in RAM Cache
         activeBotInstances[botId] = bot;
         
-        // 8. Update First Run Flag in Database
+        // 8. If this is first run, update the 'isFirstLive' flag in DB
         if (botDoc.isFirstLive) {
             botDoc.isFirstLive = false;
             await botDoc.save();
         }
 
-        return { success: true, botInfo };
+        return { success: true, botInfo: botInfo };
 
     } catch (error) {
-        logSystem('ERROR', `Startup Failed [${botDoc.name}]: ${error.message}`);
+        logSystem('ERROR', `Engine Start Failed for [${botDoc.name}]`, { error: error.message });
         
-        // Generate User-Friendly Error Messages
-        let userMsg = 'Internal Server Error during startup.';
-        if (error.message.includes('401')) userMsg = 'Invalid Bot Token! Please verify with @BotFather.';
-        if (error.message.includes('409')) userMsg = 'Conflict! Bot is already running on another server.';
+        let errorMessage = 'Internal Engine Error';
+        if (error.message.includes('401')) errorMessage = 'Invalid Bot Token. Please check BotFather.';
+        if (error.message.includes('409')) errorMessage = 'Conflict: Bot is already running somewhere else.';
 
-        return { success: false, message: userMsg };
+        return { success: false, message: errorMessage };
     }
 }
 
 // =================================================================================================
-// SECTION 7: API ROUTES (COMMUNICATION WITH FRONTEND)
+// SECTION 7: API ROUTES (SECURE ENDPOINTS FOR FRONTEND)
+// Description: Handling Frontend Requests with Strict Validation & Anti-Cheat.
 // =================================================================================================
 
 // -------------------------------------------------------------------------------------------------
-// ROUTE: /api/bots
-// Description: Fetches all bots for a specific user and syncs user info
+// ROUTE: /api/bots (Dashboard Load & Security Check)
 // -------------------------------------------------------------------------------------------------
 app.post('/api/bots', async (req, res) => {
     try {
         const { userId, username, firstName } = req.body;
-        
+        const clientIp = getClientIp(req); // Capture User's IP Address
+
         // Validation
-        if(!userId) {
-            return res.status(400).json({ error: "Missing User ID in Request Body" });
+        if (!userId) {
+            return res.status(400).json({ error: "User ID is strictly required" });
         }
 
-        // Find or Create User Logic
+        // Find Existing User
         let user = await UserModel.findOne({ userId });
-        
+
         if (!user) {
-            // Register New User
+            // --- REGISTER NEW USER ---
             user = await UserModel.create({ 
                 userId, 
                 username, 
-                firstName 
+                firstName,
+                lastIp: clientIp 
             });
-            logSystem('INFO', `New Platform User Registered: ${firstName} (${userId})`);
+            logSystem('INFO', `New User Registration: ${firstName} (${userId})`, { ip: clientIp });
         } else {
-            // Update Existing User Info
-            let isUpdated = false;
-            if(firstName && user.firstName !== firstName) { 
-                user.firstName = firstName; 
-                isUpdated = true; 
+            // --- SECURITY: ANTI-CHEAT / MULTIPLE ACCOUNT CHECK ---
+            // Check if this IP is associated with ANY OTHER User ID
+            const duplicateAccounts = await UserModel.countDocuments({ 
+                lastIp: clientIp, 
+                userId: { $ne: userId } // Exclude current user from check
+            });
+
+            // If duplicates found, trigger Security Protocol
+            if (duplicateAccounts > 0) {
+                logSystem('SECURITY', `Multiple Accounts Detected! IP: ${clientIp}, User: ${userId}`);
+                
+                // Ban the User
+                user.isBanned = true;
+                user.banReason = "Security Violation: Multiple Accounts Detected (IP Match)";
+                await user.save();
+
+                // Notify User via Telegram Bot
+                try {
+                    await mainBot.telegram.sendMessage(userId, 
+                        `🚫 <b>Multiple Accounts Detected!</b>\n\n` +
+                        `⚠️ One Device ➜ One Account Only\n` +
+                        `🔒 <b>Violations will result in instant ban!</b>\n\n` +
+                        `Your access to Laga Host has been restricted due to suspicious activity.`, 
+                        { parse_mode: 'HTML' }
+                    );
+                } catch(e) {
+                    // Ignore if user blocked bot
+                }
+
+                return res.json({ 
+                    success: false, 
+                    banned: true, 
+                    message: "Security Violation: Multiple Accounts Detected." 
+                });
             }
-            if(username && user.username !== username) { 
-                user.username = username; 
-                isUpdated = true; 
-            }
-            // Update Last Active Time
+
+            // If Clean, Update User Info
+            user.lastIp = clientIp;
+            user.username = username;
+            user.firstName = firstName;
             user.lastActive = new Date();
             await user.save();
         }
 
-        // Fetch User's Bots
+        // Check Ban Status
+        if (user.isBanned) {
+            return res.json({ 
+                success: false, 
+                banned: true, 
+                message: "Account Suspended. Contact Support." 
+            });
+        }
+
+        // Fetch User's Hosted Bots
         const bots = await BotModel.find({ ownerId: userId }).sort({ createdAt: -1 });
         
-        // Return Data
-        res.json({ 
-            success: true, 
-            bots: bots, 
-            user: user 
-        });
+        // Return Success Response
+        res.json({ success: true, bots: bots, user: user });
 
     } catch (e) {
-        logSystem('ERROR', `API /bots Error: ${e.message}`);
+        logSystem('ERROR', `API /bots Execution Error: ${e.message}`);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 
 // -------------------------------------------------------------------------------------------------
-// ROUTE: /api/createBot
-// Description: Creates a new bot entry in the database after validation
+// ROUTE: /api/createBot (Bot Provisioning)
 // -------------------------------------------------------------------------------------------------
 app.post('/api/createBot', async (req, res) => {
     try {
         const { token, name, userId } = req.body;
         
-        // 1. Fetch User for Limit Check
+        // Fetch User
         const user = await UserModel.findOne({ userId });
-        const currentCount = await BotModel.countDocuments({ ownerId: userId });
         
-        // 2. Check Plan Limits
+        // Security Check: Is User Banned?
+        if(user.isBanned) {
+            return res.json({ success: false, message: 'Account is Banned. Cannot create bot.' });
+        }
+
+        // Limit Check: Does User have slots?
+        const currentCount = await BotModel.countDocuments({ ownerId: userId });
         if (currentCount >= user.botLimit) {
             return res.json({ 
                 success: false, 
-                message: `Plan Limit Reached (${user.botLimit})! Please Upgrade to Pro/VIP.` 
+                message: `Plan Limit Reached (${user.botLimit} Bots). Please Upgrade Plan.` 
             });
         }
         
-        // 3. Validate Token Format using Regex
-        const tokenRegex = /^\d+:[A-Za-z0-9_-]{35,}$/;
-        if(!tokenRegex.test(token)) {
-            return res.json({ success: false, message: 'Invalid Bot Token Format. Please check @BotFather.' });
+        // Token Format Validation
+        if(!/^\d+:[A-Za-z0-9_-]{35,}$/.test(token)) {
+            return res.json({ success: false, message: 'Invalid Bot Token Format. Copy correctly from BotFather.' });
         }
 
-        // 4. Check for Duplicate Tokens
+        // Duplicate Token Check
         const existing = await BotModel.findOne({ token });
         if (existing) {
-            return res.json({ success: false, message: 'This token is already hosted on our platform!' });
+            return res.json({ success: false, message: 'This token is already hosted on our platform.' });
         }
 
-        // 5. Create Bot Entry
+        // Create the Bot
         const newBot = await BotModel.create({ 
             ownerId: userId, 
             name: name.trim(), 
             token: token.trim() 
         });
         
-        logSystem('INFO', `New Bot Created: ${name} by User ${userId}`);
+        logSystem('INFO', `New Bot Provisioned: ${name} by ${userId}`);
         res.json({ success: true, bot: newBot });
 
     } catch (e) {
-        logSystem('ERROR', `API /createBot Error: ${e.message}`);
-        res.status(500).json({ success: false, message: "Database Write Error" });
+        logSystem('ERROR', `Create Bot Failed: ${e.message}`);
+        res.status(500).json({ success: false, message: "Database Error" });
     }
 });
 
 // -------------------------------------------------------------------------------------------------
-// ROUTE: /api/toggleBot
-// Description: Starts or Stops a specific bot instance
+// ROUTE: /api/toggleBot (Power Control: Start/Stop)
 // -------------------------------------------------------------------------------------------------
 app.post('/api/toggleBot', async (req, res) => {
     try {
         const { botId, action } = req.body;
-        const bot = await BotModel.findById(botId);
         
-        if(!bot) {
+        // Find Bot
+        const bot = await BotModel.findById(botId);
+        if (!bot) {
             return res.json({ success: false, message: 'Bot not found in database.' });
         }
 
@@ -603,13 +750,11 @@ app.post('/api/toggleBot', async (req, res) => {
         } else {
             // Attempt to Stop
             if (activeBotInstances[botId]) {
-                try {
-                    // Send SIGINT signal to the child instance
-                    activeBotInstances[botId].stop('SIGINT');
-                } catch(e) { 
-                    console.error('Graceful stop failed, forcing removal.', e); 
+                try { 
+                    activeBotInstances[botId].stop(); 
+                } catch(e) {
+                    console.error('Graceful stop failed', e);
                 }
-                // Remove from RAM
                 delete activeBotInstances[botId];
             }
             
@@ -619,183 +764,224 @@ app.post('/api/toggleBot', async (req, res) => {
             res.json({ success: true });
         }
     } catch (e) {
+        logSystem('ERROR', `Toggle Bot Error: ${e.message}`);
         res.json({ success: false, message: e.message });
     }
 });
 
 // -------------------------------------------------------------------------------------------------
-// ROUTE: /api/restartBot
-// Description: Restarts a bot cleanly (Stop -> Start)
+// ROUTE: /api/restartBot (Reboot Instance)
 // -------------------------------------------------------------------------------------------------
 app.post('/api/restartBot', async (req, res) => {
     try {
         const { botId } = req.body;
         const bot = await BotModel.findById(botId);
-        
-        if(!bot) return res.json({ success: false, message: 'Bot not found' });
 
-        // 1. Force Stop if Running
+        if (!bot) return res.json({ success: false, message: 'Bot not found.' });
+
+        // Force Stop if Running
         if (activeBotInstances[botId]) {
-            try { activeBotInstances[botId].stop(); } catch(e) {}
+            try { 
+                activeBotInstances[botId].stop(); 
+            } catch(e){}
             delete activeBotInstances[botId];
         }
 
-        // 2. Start Again
+        // Start Again
         const result = await startBotEngine(bot);
+        
         if (result.success) {
             bot.status = 'RUNNING';
             bot.startedAt = new Date();
             bot.restartCount = (bot.restartCount || 0) + 1;
             await bot.save();
-            res.json({ success: true, startedAt: bot.startedAt });
+            res.json({ success: true });
         } else {
             bot.status = 'STOPPED';
             await bot.save();
             res.json({ success: false, message: result.message });
         }
     } catch (e) {
-        res.json({ success: false, message: "Server Error during restart" });
+        res.json({ success: false, message: "Restart Failed due to Server Error" });
     }
 });
 
 // -------------------------------------------------------------------------------------------------
-// ROUTE: /api/deleteBot
-// Description: Permanently deletes bot and clean up its end-users
+// ROUTE: /api/deleteBot (Termination)
 // -------------------------------------------------------------------------------------------------
 app.post('/api/deleteBot', async (req, res) => {
     try {
         const { botId } = req.body;
         
-        // 1. Stop Instance if running
+        // Stop instance from RAM
         if (activeBotInstances[botId]) {
             try { activeBotInstances[botId].stop(); } catch(e){}
             delete activeBotInstances[botId];
         }
         
-        // 2. Delete Bot from DB
+        // Delete from Database
         await BotModel.findByIdAndDelete(botId);
         
-        // 3. Delete Associated End Users (Cleanup)
-        await EndUserModel.deleteMany({ botId: botId }); 
+        // Cleanup Child Users (Free up space)
+        await EndUserModel.deleteMany({ botId: botId });
         
-        logSystem('WARN', `Bot Permanently Deleted: ${botId}`);
+        logSystem('WARN', `Bot Instance Deleted: ${botId}`);
         res.json({ success: true });
     } catch (e) {
         res.json({ success: false, message: e.message });
     }
 });
-// =================================================================================
-// SECTION 8: AI GENERATION API (UPDATED FOR MENU & INLINE BUTTONS)
-// =================================================================================
+
+// =================================================================================================
+// SECTION 8: AI GENERATION API (ADVANCED PROMPT ENGINEERING)
+// Description: Includes specialized training data for SMM, Referrals, and XRocket bots.
+// =================================================================================================
 
 app.post('/api/ai-generate', async (req, res) => {
-    const { prompt, type, model } = req.body;
+    const { prompt, model } = req.body;
 
-    // Input Validation
-    if (!prompt) return res.json({ success: false, message: "Empty Prompt Provided" });
-    if (!OPENROUTER_API_KEY) return res.json({ success: false, message: "Server API Configuration Missing" });
+    // Validation
+    if (!prompt) return res.json({ success: false, message: "Prompt is required" });
+    if (!OPENROUTER_API_KEY) return res.json({ success: false, message: "Server API Key Missing" });
 
-    // 🔥 UPGRADED SYSTEM PROMPT FOR MENU & INLINE KEYBOARDS
+    // 🔥 MASTER SYSTEM PROMPT FOR COMPLEX BOT GENERATION 🔥
     const systemInstruction = `
-        ACT AS: Senior Telegram Bot Developer (Telegraf v4).
-        TASK: Write raw JavaScript execution logic for a Sandbox Environment.
+        ACT AS: Senior Telegram Bot Architect (Telegraf v4.16 Expert).
+        TARGET: Write raw JavaScript execution logic for a Sandbox Environment.
         
-        VARIABLES AVAILABLE: 
-        - ctx (Context)
-        - Markup (Telegraf Markup)
-        - axios, moment
+        VARIABLES AVAILABLE: ctx, Markup, axios, moment
 
-        STRICT UI/UX RULES:
+        STRICT RULES:
+        1. OUTPUT RAW JS CODE ONLY. No markdown blocks (no \`\`\`). No wrapping functions.
+        2. Use 'Markup.inlineKeyboard' for inline buttons (links, callbacks).
+        3. Use 'Markup.keyboard().resize()' for bottom main menu buttons.
+        4. Use Emojis to make it look premium.
 
-        1. **IF USER ASKS FOR "MENU" or "KEYBOARD" (Bottom Buttons):**
-           - Use 'Markup.keyboard([...])'.
-           - ALWAYS chain '.resize()' at the end.
-           - Group buttons in arrays for rows (e.g., 2 buttons per row).
-           - Syntax Example:
-             ctx.reply('Choose an option:', Markup.keyboard([
-                ['🤖 Create Bot', '📂 My Bots'],
-                ['💳 Deposit', '👨‍💻 Support']
-             ]).resize());
+        📚 **FEATURE LIBRARY (USE THESE PATTERNS):**
 
-        2. **IF USER ASKS FOR "INLINE BUTTONS" (Attached to message):**
-           - Use 'Markup.inlineKeyboard([...])'.
-           - Use 'Markup.button.url' for links.
-           - Use 'Markup.button.callback' for actions.
-           - Syntax Example:
-             ctx.reply('Join our channels:', Markup.inlineKeyboard([
-                [Markup.button.url('📢 Channel', 'https://t.me/demo')],
-                [Markup.button.callback('✅ Check Join', 'check_join')]
-             ]));
+        **[A] SMM PANEL / ORDER SYSTEM:**
+        If user asks for "SMM Panel", "Order Views", or "Balance":
+        \`\`\`javascript
+        // Check Balance Logic
+        if(ctx.message.text.includes('Balance')) {
+            return ctx.reply('💰 **Wallet Balance:** 0.00$ \\n💳 Please deposit to order services.', {parse_mode:'HTML'});
+        }
+        // Order Logic
+        if(ctx.message.text.startsWith('/order')) {
+            const args = ctx.message.text.split(' ');
+            if(args.length < 2) return ctx.reply('⚠️ Syntax: /order <link>');
+            
+            ctx.reply('⏳ **Processing Order...**');
+            // Simulate API Call delay
+            setTimeout(() => {
+                const orderId = Math.floor(Math.random() * 90000) + 10000;
+                ctx.reply('✅ **Order Placed Successfully!**\\n🆔 ID: ' + orderId + '\\n📉 Service: Telegram Views\\n🔗 Link: '+args[1], {parse_mode:'HTML'});
+            }, 1500);
+        }
+        \`\`\`
 
-        3. **GENERAL RULES:**
-           - OUTPUT RAW JS ONLY. NO MARKDOWN. NO COMMENTS.
-           - Do NOT use 'bot.command' wrapper. Write immediate logic.
-           - Use Emojis to make it look Premium (like the user screenshots).
+        **[B] REFERRAL BOT SYSTEM:**
+        If user asks for "Referral", "Invite", "Withdraw":
+        \`\`\`javascript
+        // Invite Logic
+        if(ctx.message.text === '🎁 Invite') {
+            const refLink = 'https://t.me/' + ctx.botInfo.username + '?start=' + ctx.from.id;
+            ctx.replyWithHTML(
+                '🎁 **Referral System**\\n\\n' +
+                '🔗 **Your Referral Link:**\\n' + refLink + '\\n\\n' +
+                '💰 **Per Refer:** 5.00 Points\\n' +
+                '🚫 **Fake Refs = Instant Ban**'
+            );
+        }
+        // Withdraw Logic
+        if(ctx.message.text === '💳 Withdraw') {
+            ctx.reply('⚠️ Minimum withdraw amount is 100 Points.');
+        }
+        \`\`\`
+
+        **[C] FORCE JOIN GATE (MEMBERSHIP CHECK):**
+        If user asks "Must Join", "Force Join", "Channel Lock":
+        \`\`\`javascript
+        try {
+           const channelUsername = '@your_channel_here'; // User should change this
+           const chatMember = await ctx.telegram.getChatMember(channelUsername, ctx.from.id);
+           
+           // Check Status
+           if(['left', 'kicked'].includes(chatMember.status)) {
+               return ctx.reply('⚠️ <b>Access Denied!</b>\\nPlease join our channel to use this bot.', {
+                   parse_mode: 'HTML',
+                   ...Markup.inlineKeyboard([
+                       [Markup.button.url('📢 Join Channel', 'https://t.me/your_channel_here')],
+                       [Markup.button.callback('✅ Check Joined', 'check_join')]
+                   ])
+               });
+           }
+           ctx.reply('✅ **Verification Success!** Welcome inside.');
+        } catch(e) { 
+           ctx.reply('Error checking membership: ' + e.message); 
+        }
+        \`\`\`
+
+        **GENERAL INSTRUCTION:**
+        If the user prompt matches any above features, adapt the code. If not, write custom efficient logic using Telegraf v4 syntax.
     `;
 
     try {
-        // Call OpenRouter API
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: model || AI_MODEL,
                 messages: [
                     { role: "system", content: systemInstruction },
-                    { role: "user", content: `Write code for: ${prompt}` }
-                ],
-                temperature: 0.3 // Low temperature for precise code
+                    { role: "user", content: prompt }
+                ]
             },
             {
                 headers: {
                     Authorization: `Bearer ${OPENROUTER_API_KEY}`,
                     "Content-Type": "application/json",
                     "HTTP-Referer": WEB_APP_URL,
-                    "X-Title": "Laga Host Engine"
+                    "X-Title": "Laga Host Enterprise"
                 }
             }
         );
 
-        const msgData = response.data?.choices?.[0]?.message;
-        let finalContent = "";
+        let code = response.data.choices[0].message.content;
+        
+        // Post-Processing Cleanup (Remove MD)
+        code = code.replace(/```javascript/gi, "")
+                   .replace(/```js/gi, "")
+                   .replace(/```/g, "")
+                   .trim();
+        
+        res.json({ success: true, result: code });
 
-        if (msgData?.content) {
-            finalContent = msgData.content;
-        }
-
-        // Cleanup
-        finalContent = finalContent
-            .replace(/```javascript/gi, "")
-            .replace(/```js/gi, "")
-            .replace(/```/g, "")
-            .trim();
-
-        if (!finalContent) throw new Error("Empty AI Response");
-
-        res.json({ success: true, result: finalContent });
-
-    } catch (e) {
-        res.json({ success: false, message: "AI Busy. Try again." });
+    } catch(e) {
+        logSystem('ERROR', 'AI Generation Failed', { reason: e.message });
+        res.json({ success: false, message: "AI Service Busy" });
     }
 });
 
-
 // =================================================================================================
-// SECTION 9: JS EDITOR & PAYMENT API ENDPOINTS
+// SECTION 9: JS EDITOR & PAYMENT PROCESSING
+// Description: Handlers for code management and financial transactions.
 // =================================================================================================
 
 // Fetch Commands for Editor
 app.post('/api/getCommands', async (req, res) => {
     try {
         const bot = await BotModel.findById(req.body.botId);
-        res.json(bot ? bot.commands : {});
-    } catch(e) { res.json({}) }
+        res.json(bot?.commands || {});
+    } catch(e) {
+        res.json({});
+    }
 });
 
 // Save Command Logic
 app.post('/api/saveCommand', async (req, res) => {
     try {
         const { botId, command, code } = req.body;
-        // Sanitize command name (remove slashes, spaces)
+        // Sanitize command name
         const cleanCmd = command.replace('/', '').replace(/\s/g, '_');
         
         await BotModel.findByIdAndUpdate(botId, { 
@@ -803,380 +989,353 @@ app.post('/api/saveCommand', async (req, res) => {
         });
         
         res.json({ success: true });
-    } catch(e) { res.json({ success: false }) }
+    } catch(e) {
+        res.json({ success: false });
+    }
 });
 
 // Delete Command Logic
 app.post('/api/deleteCommand', async (req, res) => {
     try {
         const { botId, command } = req.body;
+        
         await BotModel.findByIdAndUpdate(botId, { 
             $unset: { [`commands.${command}`]: "" } 
         });
+        
         res.json({ success: true });
-    } catch(e) { res.json({ success: false }) }
+    } catch(e) {
+        res.json({ success: false });
+    }
 });
 
 // PAYMENT SUBMISSION HANDLER
 app.post('/api/submit-payment', async (req, res) => {
     const { trxId, plan, amount, userId, user, method } = req.body;
-
+    
     // CASE A: REFERRAL POINT REDEMPTION
     if (method === 'referral') {
-        const dbUser = await UserModel.findOne({ userId });
+        const u = await UserModel.findOne({ userId });
         const requiredPoints = plan === 'Pro' ? 50 : 80;
         
-        if (dbUser.referrals < requiredPoints) {
-            return res.json({ 
-                success: false, 
-                message: `Insufficient Points! Need ${requiredPoints}, You have ${dbUser.referrals}` 
-            });
+        if (u.referrals < requiredPoints) {
+            return res.json({ success: false, message: `Insufficient Points! Need ${requiredPoints}.` });
         }
         
-        // Calculate Expiry (30 Days)
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 30); 
+        // Upgrade Logic
+        u.plan = plan; 
+        u.botLimit = plan === 'Pro' ? 5 : 10; 
         
-        // Apply Upgrade
-        dbUser.plan = plan;
-        dbUser.botLimit = plan === 'Pro' ? 5 : 10;
-        dbUser.planExpiresAt = expiry;
-        dbUser.referrals -= requiredPoints;
-        await dbUser.save();
+        const d = new Date(); 
+        d.setDate(d.getDate() + 30); 
+        u.planExpiresAt = d;
         
-        logSystem('SUCCESS', `User ${user} upgraded to ${plan} via Points`);
-        return res.json({ success: true, message: `Redeemed ${plan} Plan Successfully!` });
+        u.referrals -= requiredPoints; 
+        await u.save();
+        
+        logSystem('SUCCESS', `User ${user} redeemed ${plan} plan via points.`);
+        return res.json({ success: true, message: 'Plan Upgraded Successfully!' });
     }
-
-    // CASE B: MANUAL CASH PAYMENT (REQUIRES ADMIN APPROVAL)
+    
+    // CASE B: MANUAL PAYMENT
     try {
-        // Create Transaction Record
-        const payment = await PaymentModel.create({
-            userId, username: user, plan, amount, trxId, method
-        });
-
-        // Send Notification to Admin Bot
+        const p = await PaymentModel.create(req.body);
+        
+        // Notify Admin Bot
         await mainBot.telegram.sendMessage(ADMIN_CONFIG.adminId, 
-            `💰 <b>NEW PAYMENT RECEIVED</b>\n\n` +
-            `👤 User: @${user} (<code>${userId}</code>)\n` +
-            `💎 Plan: <b>${plan}</b>\n` +
-            `💵 Amount: ${amount}৳\n` +
-            `🧾 TrxID: <code>${trxId}</code>\n` +
-            `📅 Date: ${moment().format('DD MMM YYYY, h:mm A')}`,
+            `💰 <b>NEW PAYMENT REQUEST</b>\n\n` +
+            `User: @${user} (<code>${userId}</code>)\n` +
+            `Plan: <b>${plan}</b>\n` +
+            `Amount: <b>${amount}৳</b>\n` +
+            `TrxID: <code>${trxId}</code>`,
             { 
-                parse_mode: 'HTML',
-                reply_markup: {
+                parse_mode: 'HTML', 
+                reply_markup: { 
                     inline_keyboard: [[
-                        { text: '✅ Approve', callback_data: `approve:${userId}:${plan}:${payment._id}` }, 
-                        { text: '❌ Decline', callback_data: `decline:${userId}:${payment._id}` }
+                        { text: '✅ Approve', callback_data: `ok:${userId}:${plan}:${p._id}` },
+                        { text: '❌ Reject', callback_data: `no:${userId}:${p._id}` }
                     ]]
                 }
             }
         );
-
-        res.json({ success: true, message: 'Payment submitted for review! Check back soon.' });
-    } catch(e) { 
-        logSystem('ERROR', `Payment Submit Error: ${e.message}`);
-        res.json({ success: false, message: 'Could not contact Admin. Try again.' }); 
+        res.json({ success: true, message: 'Payment submitted for review.' });
+    } catch(e) {
+        res.json({ success: false, message: 'Payment Error' });
     }
 });
 
 // =================================================================================================
-// SECTION 10: AUTOMATION & CRON JOBS
+// SECTION 10: AUTOMATED TASKS (CRON JOBS)
+// Description: Runs daily cleanup and subscription checks automatically.
 // =================================================================================================
 
-// -------------------------------------------------------------------------------------------------
-// JOB: DAILY PLAN EXPIRY CHECKER
-// Schedule: Every day at midnight (00:00)
-// -------------------------------------------------------------------------------------------------
 cron.schedule('0 0 * * *', async () => {
-    logSystem('SYSTEM', 'Running Daily Plan Expiry Routine...');
+    logSystem('SYSTEM', 'Running Daily Subscription & Expiry Check...');
     const now = new Date();
     
-    try {
-        // Find users with expired plans
-        const expiredUsers = await UserModel.find({ 
-            plan: { $ne: 'Free' }, 
-            planExpiresAt: { $lt: now } 
-        });
+    // Find Expired Premium Users
+    const expiredUsers = await UserModel.find({ 
+        plan: { $ne: 'Free' }, 
+        planExpiresAt: { $lt: now } 
+    });
+
+    for (const u of expiredUsers) {
+        logSystem('WARN', `Downgrading User: ${u.userId} (Plan Expired)`);
         
-        for (const user of expiredUsers) {
-            // Downgrade User
-            user.plan = 'Free';
-            user.botLimit = 1;
-            user.planExpiresAt = null;
-            await user.save();
-            
-            // Handle Excessive Bots
-            const bots = await BotModel.find({ ownerId: user.userId });
-            if(bots.length > 1) {
-                // Stop and disable bots beyond the free limit of 1
-                for(let i = 1; i < bots.length; i++) {
-                    const bId = bots[i]._id.toString();
-                    if(activeBotInstances[bId]) {
-                        try { activeBotInstances[bId].stop(); } catch(e){}
-                        delete activeBotInstances[bId];
-                    }
-                    bots[i].status = 'STOPPED';
-                    await bots[i].save();
+        // Downgrade User
+        u.plan = 'Free'; 
+        u.botLimit = 1; 
+        u.planExpiresAt = null;
+        await u.save();
+
+        // Check for excess bots and stop them
+        const bots = await BotModel.find({ ownerId: u.userId });
+        if (bots.length > 1) {
+            for(let i = 1; i < bots.length; i++) {
+                const b = bots[i];
+                // Stop Instance
+                if(activeBotInstances[b._id]) { 
+                    activeBotInstances[b._id].stop(); 
+                    delete activeBotInstances[b._id]; 
                 }
-            }
-
-            // Notify User
-            try {
-                await mainBot.telegram.sendMessage(user.userId, 
-                    '⚠️ <b>Subscription Expired</b>\n\n' +
-                    'Your Premium subscription has ended. You have been downgraded to the <b>Free</b> plan.\n' +
-                    'Any bots exceeding the Free limit have been stopped.', 
-                    { parse_mode: 'HTML' }
-                );
-            } catch(e){}
-        }
-    } catch(err) {
-        logSystem('ERROR', 'Cron Job Failed: ' + err.message);
-    }
-});
-
-// =================================================================================================
-// SECTION 11: MAIN ADMIN BOT LOGIC (HANDLING COMMANDS)
-// =================================================================================================
-
-// START COMMAND
-mainBot.command('start', async (ctx) => {
-    try {
-        const args = ctx.message.text.split(' ');
-        const referrerId = args[1]; // Get referral ID if present
-
-        let user = await UserModel.findOne({ userId: ctx.from.id.toString() });
-        
-        if (!user) {
-            // Register New User via Bot
-            user = await UserModel.create({
-                userId: ctx.from.id.toString(),
-                username: ctx.from.username,
-                firstName: ctx.from.first_name,
-                referredBy: referrerId && referrerId !== ctx.from.id.toString() ? referrerId : null
-            });
-
-            logSystem('INFO', `New Bot User Joined: ${ctx.from.first_name}`);
-
-            // Handle Referral Bonus
-            if (user.referredBy) {
-                await UserModel.findOneAndUpdate({ userId: user.referredBy }, { $inc: { referrals: 1 } });
-                try { 
-                    await ctx.telegram.sendMessage(user.referredBy, 
-                        `🎉 <b>New Referral!</b>\n${ctx.from.first_name} joined using your link.\nYou earned <b>+1 Point</b>.`, 
-                        { parse_mode: 'HTML' }
-                    ); 
-                } catch(e){}
+                b.status = 'STOPPED'; 
+                await b.save();
             }
         }
-
-        // Build Welcome Interface
-        const buttons = [];
-        ADMIN_CONFIG.channels.forEach(ch => {
-            buttons.push([Markup.button.url(`📢 Join ${ch.name}`, ch.url)]);
-        });
-        buttons.push([Markup.button.webApp('🚀 LAUNCH CONTROL PANEL', WEB_APP_URL)]);
-
-        const welcomeText = 
-            `👋 <b>Welcome to Laga Host Cyber Core!</b>\n\n` +
-            `The most advanced Telegram Bot Hosting Platform powered by <b>Gemini AI</b>.\n\n` +
-            `✨ <b>System Capabilities:</b>\n` +
-            `• 24/7 Server Uptime\n` +
-            `• AI-Powered Code Generation\n` +
-            `• Targeted Child-Bot Broadcasting\n` +
-            `• No Coding Knowledge Required\n\n` +
-            `👇 <b>Access the Mainframe:</b>`;
-
-        await ctx.replyWithHTML(welcomeText, Markup.inlineKeyboard(buttons));
-
-    } catch (e) {
-        console.error('Start Command Error:', e);
-    }
-});
-
-// ADMIN ACTION: APPROVE PAYMENT
-mainBot.action(/^approve:(\d+):(\w+):(.+)$/, async (ctx) => {
-    try {
-        const userId = ctx.match[1];
-        const plan = ctx.match[2];
-        const payId = ctx.match[3];
-        const limits = { 'Pro': 5, 'VIP': 10 };
         
-        // Expiry Calculation
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 30);
-
-        // Update User Profile
-        await UserModel.findOneAndUpdate(
-            { userId }, 
-            { plan, botLimit: limits[plan], planExpiresAt: expiry }
-        );
-        
-        // Update Transaction Status
-        await PaymentModel.findByIdAndUpdate(payId, { status: 'APPROVED', adminResponseDate: new Date() });
-
-        // Update Admin UI
-        await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\n✅ <b>APPROVED</b> by ${ctx.from.first_name}`, 
-            { parse_mode: 'HTML' }
-        );
-
         // Notify User
-        await mainBot.telegram.sendMessage(userId, 
-            `✅ <b>Payment Approved!</b>\n\n` +
-            `You have been upgraded to <b>${plan}</b> tier.\n` +
-            `New Bot Limit: ${limits[plan]}\n` +
-            `Valid until: ${moment(expiry).format('DD MMM YYYY')}`, 
-            { parse_mode: 'HTML' }
-        );
-
-    } catch(e) { console.error(e); }
+        try {
+            await mainBot.telegram.sendMessage(u.userId, 
+                '⚠️ <b>Subscription Expired</b>\n\n' +
+                'Your premium plan has ended. You have been downgraded to Free Tier.\n' +
+                'Extra bots have been stopped.', 
+                {parse_mode:'HTML'}
+            );
+        } catch(e){}
+    }
 });
 
-// ADMIN ACTION: DECLINE PAYMENT
-mainBot.action(/^decline:(\d+):(.+)$/, async (ctx) => {
-    try {
-        const userId = ctx.match[1];
-        const payId = ctx.match[2];
+// =================================================================================================
+// SECTION 11: MAIN ADMIN BOT UI (CUSTOM LAYOUT)
+// Description: Handling /start, buttons, auto-delete status, and broadcasts.
+// =================================================================================================
+
+// --- START COMMAND HANDLER ---
+mainBot.command('start', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const args = ctx.message.text.split(' ');
+    
+    // User Registration / Login
+    let user = await UserModel.findOne({ userId });
+    if (!user) {
+        // Handle Referral Logic
+        const ref = args[1] && args[1] !== userId ? args[1] : null;
+        user = await UserModel.create({
+            userId, 
+            username: ctx.from.username, 
+            firstName: ctx.from.first_name, 
+            referredBy: ref
+        });
         
-        await PaymentModel.findByIdAndUpdate(payId, { status: 'DECLINED', adminResponseDate: new Date() });
+        // Bonus for Referrer
+        if(ref) {
+            await UserModel.findOneAndUpdate({ userId: ref }, { $inc: { referrals: 1 } });
+        }
+    }
 
-        await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\n❌ <b>DECLINED</b> by ${ctx.from.first_name}`, 
-            { parse_mode: 'HTML' }
-        );
+    // Check Ban Status
+    if(user.isBanned) {
+        return ctx.reply('⛔ <b>Account Banned!</b>\nReason: Suspicious Activity Detected.', {parse_mode:'HTML'});
+    }
 
-        await mainBot.telegram.sendMessage(userId, 
-            `❌ <b>Payment Declined</b>\n\n` +
-            `Your transaction could not be verified. Please contact support if this is an error.`, 
-            { parse_mode: 'HTML' }
-        );
-    } catch(e) { console.error(e); }
+    // Welcome Message
+    const msg = 
+        `👋 <b>Hey ${ctx.from.first_name} Welcome to Laga Host AI!</b>\n\n` +
+        `🚀 <b>Your Smart Telegram Bot Hosting Companion</b>\n\n` +
+        `Laga Host AI helps you:\n` +
+        `• Deploy bots instantly\n` +
+        `• Run them 24/7\n` +
+        `• Write commands with AI\n` +
+        `• Manage everything from one dashboard\n` +
+        `• Use tools without coding\n\n` +
+        `Whether you are a beginner or a pro — this bot is built for you.\n\n` +
+        `👇 <b>Choose an option below to get started:</b>`;
+
+    // 🎨 EXACT BUTTON LAYOUT REQUESTED (2 Big, 4 Small)
+    const buttons = Markup.keyboard([
+        ['📺 Watch Tutorial'], // Big Button (Row 1)
+        ['📹 Youtube', '📢 Telegram'], // (Row 2)
+        ['👨‍💻 Support', '📊 Status'], // (Row 3)
+        [Markup.button.webApp('🚀 Open Dashboard', WEB_APP_URL)] // Big Button (Row 4)
+    ]).resize();
+
+    await ctx.replyWithHTML(msg, buttons);
 });
 
-// -------------------------------------------------------------------------------------------------
-// COMMAND: /broadcast
-// FEATURE: Child-Only Broadcasting (Sends message ONLY to end-users of hosted bots)
-// -------------------------------------------------------------------------------------------------
+// --- BUTTON EVENT HANDLERS ---
+
+mainBot.hears('📺 Watch Tutorial', ctx => {
+    ctx.reply(`📹 <b>Tutorial Video:</b>\n${ADMIN_CONFIG.support.tutorial_video}`, {parse_mode:'HTML'});
+});
+
+mainBot.hears('📹 Youtube', ctx => {
+    ctx.reply(`👉 Subscribe: ${ADMIN_CONFIG.support.youtube}`);
+});
+
+mainBot.hears('📢 Telegram', ctx => {
+    ctx.reply(`👉 Join: ${ADMIN_CONFIG.channels[0].url}`);
+});
+
+mainBot.hears('👨‍💻 Support', ctx => {
+    ctx.reply(`💬 Contact: ${ADMIN_CONFIG.support.telegram}`);
+});
+
+// --- STATUS FEATURE (10 SECOND AUTO DELETE) ---
+mainBot.hears('📊 Status', async (ctx) => {
+    const user = await UserModel.findOne({ userId: ctx.from.id.toString() });
+    if(!user) return;
+
+    const statusMsg = 
+        `👤 <b>USER PROFILE</b>\n` +
+        `├ Name: ${user.firstName}\n` +
+        `├ ID: <code>${user.userId}</code>\n` +
+        `├ Plan: <b>${user.plan}</b>\n` +
+        `└ Points: ${user.referrals}\n\n` +
+        `📊 <b>SYSTEM STATS</b>\n` +
+        `└ Bot Limit: ${user.botLimit}\n\n` +
+        `⏳ <i>This message will disappear in 10s...</i>`;
+
+    const sent = await ctx.replyWithHTML(statusMsg);
+
+    // Auto Delete Timer Logic
+    setTimeout(async () => {
+        try {
+            await ctx.deleteMessage(sent.message_id);
+            // Optional: Send main menu again if needed
+        } catch(e) {
+            // Ignore error if user deleted chat
+        }
+    }, 10000); // 10 Seconds
+});
+
+// --- ADVANCED BROADCAST (CHILD-BOT TARGETING & DUPLICATE FILTER) ---
 mainBot.command('broadcast', async (ctx) => {
-    // 1. Security Check: Only Admin can run this
-    if (ctx.from.id.toString() !== ADMIN_CONFIG.adminId) {
-        return ctx.reply("⛔ Access Denied: Unauthorized Personnel.");
-    }
+    // 1. Authorization Check
+    if(ctx.from.id.toString() !== ADMIN_CONFIG.adminId) return;
+    
+    // 2. Parse Message
+    const txt = ctx.message.text.replace('/broadcast', '').trim();
+    if(!txt) return ctx.reply('⚠️ Empty Message. Usage: /broadcast <msg>');
 
-    // 2. Input Validation
-    const message = ctx.message.text.replace('/broadcast', '').trim();
-    if (!message) {
-        return ctx.reply("⚠️ Syntax Error: <code>/broadcast Your HTML Message Here</code>", { parse_mode: 'HTML' });
-    }
+    const status = await ctx.reply('📡 <b>Broadcasting to Child Bot Users...</b>', {parse_mode:'HTML'});
+    
+    // 3. Fetch Running Bots
+    const bots = await BotModel.find({ status: 'RUNNING' });
+    
+    // 4. Initialize Duplicate Filter
+    const sentUserIds = new Set();
+    let count = 0;
 
-    const statusMsg = await ctx.reply("⏳ <b>Broadcast Sequence Initiated...</b>\nTarget: Hosted Child-Bot Users Only", { parse_mode: 'HTML' });
-    let totalSent = 0;
-    let errors = 0;
+    for(const bot of bots) {
+        // Fetch users who chatted with THIS bot
+        const users = await EndUserModel.find({ botId: bot._id.toString() });
+        
+        if(!users.length) continue;
 
-    logSystem('INFO', `Admin Broadcast Started by ${ctx.from.first_name}`);
-
-    try {
-        // 3. Find all Running Bots
-        const runningBots = await BotModel.find({ status: 'RUNNING' });
-
-        for (const bot of runningBots) {
-            // Find users associated with this specific bot
-            const endUsers = await EndUserModel.find({ botId: bot._id.toString() });
+        // Get or Create Bot Instance
+        let instance = activeBotInstances[bot._id.toString()];
+        if (!instance) {
+            try { instance = new Telegraf(bot.token); } catch(e) { continue; }
+        }
+        
+        for(const u of users) {
+            // FILTER: If already sent to this specific Telegram ID, skip
+            if(sentUserIds.has(u.tgId)) continue; 
             
-            if(endUsers.length === 0) continue;
-
-            // Get active instance from RAM or create a temporary one
-            let senderBot = activeBotInstances[bot._id.toString()];
-            if (!senderBot) {
-                try { 
-                    senderBot = new Telegraf(bot.token); 
-                } catch(e) { 
-                    continue; 
-                }
-            }
-
-            // 4. Send Message Loop
-            for (const eu of endUsers) {
-                try {
-                    await senderBot.telegram.sendMessage(eu.tgId, message, { parse_mode: 'HTML' });
-                    totalSent++;
-                    // Rate Limiting (50ms) to prevent Telegram flood limits
-                    await new Promise(r => setTimeout(r, 50)); 
-                } catch(e) {
-                    errors++;
-                    // If blocked, remove user to clean DB
-                    if(e.code === 403 || e.code === 400) {
-                        await EndUserModel.findByIdAndDelete(eu._id);
-                    }
+            try {
+                await instance.telegram.sendMessage(u.tgId, txt, {parse_mode:'HTML'});
+                sentUserIds.add(u.tgId); // Mark as Sent
+                count++;
+                
+                // Rate Limiting (Prevent Flood Wait)
+                await new Promise(r => setTimeout(r, 50)); 
+            } catch(e){
+                // If bot blocked by user, remove from DB to clean up
+                if(e.code === 403) {
+                    await EndUserModel.findByIdAndDelete(u._id);
                 }
             }
         }
-    } catch(e) { 
-        console.error('Child Broadcast Error', e); 
     }
 
     // 5. Final Report
-    logSystem('SUCCESS', `Broadcast Completed. Sent: ${totalSent}`);
-    
-    try {
-        await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id);
-    } catch(e){}
-
+    await ctx.telegram.deleteMessage(ctx.chat.id, status.message_id);
     await ctx.reply(
-        `✅ <b>Broadcast Complete</b>\n\n` +
-        `🎯 Target: <b>Hosted Bot Users</b>\n` +
-        `📨 Successfully Sent: <b>${totalSent}</b>\n` +
-        `❌ Failed/Blocked: <b>${errors}</b>`,
-        { parse_mode: 'HTML' }
+        `✅ <b>Broadcast Complete.</b>\n` +
+        `📨 Sent to: <b>${count}</b> unique users across all hosted bots.`, 
+        {parse_mode:'HTML'}
     );
 });
 
-// =================================================================================================
-// SECTION 12: SYSTEM STARTUP & INITIALIZATION
-// =================================================================================================
-
-// 1. Launch Main Admin Bot
-mainBot.telegram.deleteWebhook().then(() => {
-    mainBot.launch({ dropPendingUpdates: true })
-        .then(() => logSystem('SUCCESS', 'Main Admin Bot is Online'))
-        .catch(err => logSystem('ERROR', 'Main Bot Init Failed: ' + err.message));
+// Payment Action Callbacks
+mainBot.action(/^ok:(\d+):(\w+):(.+)$/, async (ctx) => {
+    const [_, uid, plan, pid] = ctx.match;
+    
+    const d = new Date(); 
+    d.setDate(d.getDate() + 30);
+    
+    await UserModel.findOneAndUpdate(
+        { userId: uid }, 
+        { plan, botLimit: plan === 'Pro' ? 5 : 10, planExpiresAt: d }
+    );
+    
+    await PaymentModel.findByIdAndUpdate(pid, { status: 'APPROVED' });
+    
+    ctx.editMessageText('✅ Approved'); 
+    mainBot.telegram.sendMessage(uid, `✅ <b>Payment Approved!</b> You are now on <b>${plan}</b> plan.`, {parse_mode:'HTML'});
 });
 
-// 2. Restore Sessions (Auto-Start Bots after Server Reboot)
+mainBot.action(/^no:(\d+):(.+)$/, async (ctx) => {
+    await PaymentModel.findByIdAndUpdate(ctx.match[2], { status: 'DECLINED' });
+    ctx.editMessageText('❌ Declined'); 
+    mainBot.telegram.sendMessage(ctx.match[1], `❌ <b>Payment Rejected.</b> Please contact support.`, {parse_mode:'HTML'});
+});
+
+// =================================================================================================
+// SECTION 12: SYSTEM STARTUP SEQUENCE
+// Description: Launching services in order (Bot -> DB -> Express).
+// =================================================================================================
+
+// 1. Start Main Admin Bot
+mainBot.telegram.deleteWebhook().then(() => {
+    mainBot.launch({ dropPendingUpdates: true });
+    logSystem('SUCCESS', 'Main Admin Bot Launched Successfully.');
+});
+
+// 2. Restore Active Sessions (After DB Connect)
 mongoose.connection.once('open', async () => {
-    const runningBots = await BotModel.find({ status: 'RUNNING' });
-    
-    if(runningBots.length > 0) {
-        logSystem('SYSTEM', `Restoring ${runningBots.length} active bot sessions from database...`);
+    const bots = await BotModel.find({ status: 'RUNNING' });
+    if(bots.length > 0) {
+        logSystem('SYSTEM', `Restoring ${bots.length} active sessions from database...`);
         
-        let restored = 0;
-        for (const bot of runningBots) {
-            // Add slight delay to prevent CPU spike
-            await new Promise(r => setTimeout(r, 500));
-            
-            const res = await startBotEngine(bot);
-            if(res.success) restored++;
+        for(const b of bots) { 
+            // Stagger start to prevent CPU spike
+            await new Promise(r => setTimeout(r, 500)); 
+            await startBotEngine(b); 
         }
         
-        logSystem('SUCCESS', `Restoration Complete. ${restored}/${runningBots.length} bots active.`);
+        logSystem('SUCCESS', `Session Restoration Complete.`);
     }
 });
 
-// 3. Serve Frontend SPA for any unknown routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// 4. Graceful Shutdown Handling
+// 3. Graceful Shutdown Handlers
 process.once('SIGINT', () => {
     logSystem('WARN', 'SIGINT received. Shutting down system...');
     mainBot.stop('SIGINT');
     Object.values(activeBotInstances).forEach(b => b.stop('SIGINT'));
     process.exit(0);
 });
+
 process.once('SIGTERM', () => {
     logSystem('WARN', 'SIGTERM received. Shutting down system...');
     mainBot.stop('SIGTERM');
@@ -1184,8 +1343,8 @@ process.once('SIGTERM', () => {
     process.exit(0);
 });
 
-// 5. Start HTTP Server
+// 4. Start Express Server
 app.listen(PORT, () => {
-    logSystem('SUCCESS', `Laga Host Cyber Core is Running on Port ${PORT}`);
-    logSystem('INFO', `Dashboard Access: ${WEB_APP_URL}`);
+    logSystem('SUCCESS', `Laga Host Enterprise Core Online on Port ${PORT}`);
+    logSystem('INFO', `Dashboard URL: ${WEB_APP_URL}`);
 });
