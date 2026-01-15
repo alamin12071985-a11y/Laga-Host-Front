@@ -29,7 +29,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ⚠️ FRONTEND URL (Must match your Render/Vercel Frontend URL for CORS)
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://laga-host-front.onrender.com"; 
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://lagahost.onrender.com"; 
 
 // 🤖 AI CONFIGURATION (OpenRouter API)
 const OPENROUTER_API_KEY = "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";
@@ -38,7 +38,7 @@ const AI_MODEL = "google/gemini-2.0-flash-exp:free"; // Primary Model
 // 🛠️ ADMIN & CHANNEL CONFIGURATION
 const ADMIN_CONFIG = {
     // Main Bot Token (The host bot)
-    token: process.env.BOT_TOKEN || "8353228427:AAHcfw6T-ZArT4J8HUW1TbSa9Utor2RxlLY",
+    token: process.env.BOT_TOKEN || "8264143788:AAH0fRkMqBw4rONo0WVEi-OyAVkPs9bRt84",
     // Your Personal Telegram ID for Admin Actions
     adminId: process.env.ADMIN_ID || "7605281774",
     // Channels for joining requirement
