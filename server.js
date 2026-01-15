@@ -1,5 +1,3 @@
---- START OF FILE Paste January 15, 2026 - 7:31PM ---
-
 /**
  * =================================================================================================
  *  PROJECT NAME:       LAGA HOST ULTIMATE SERVER (SECURE ENTERPRISE EDITION)
