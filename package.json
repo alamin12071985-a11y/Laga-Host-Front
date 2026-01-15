@@ -1,7 +1,7 @@
 {
   "name": "laga-host-ultimate-server-max",
-  "version": "6.0.0",
-  "description": "Enterprise Grade Telegram Bot Hosting Platform - Cyberpunk Edition",
+  "version": "7.0.0",
+  "description": "Enterprise Grade Telegram Bot Hosting Platform - Modern Glassmorphism Edition",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,9 +13,9 @@
     "bot",
     "hosting",
     "ai",
-    "gemini",
+    "frontend-ai",
     "nodejs",
-    "cyber-ui",
+    "glassmorphism",
     "enterprise"
   ],
   "dependencies": {
