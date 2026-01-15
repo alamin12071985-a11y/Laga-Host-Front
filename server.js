@@ -684,10 +684,9 @@ app.post('/api/deleteBot', async (req, res) => {
         res.json({ success: false, message: e.message });
     }
 });
-
-// =================================================================================================
-// SECTION 8: AI GENERATION API (GEMINI INTEGRATION)
-// =================================================================================================
+// =================================================================================
+// SECTION 8: AI GENERATION API (UPDATED FOR MENU & INLINE BUTTONS)
+// =================================================================================
 
 app.post('/api/ai-generate', async (req, res) => {
     const { prompt, type, model } = req.body;
@@ -696,19 +695,43 @@ app.post('/api/ai-generate', async (req, res) => {
     if (!prompt) return res.json({ success: false, message: "Empty Prompt Provided" });
     if (!OPENROUTER_API_KEY) return res.json({ success: false, message: "Server API Configuration Missing" });
 
-    // Define Specialized System Persona
-    let systemInstruction = "";
-    if (type === 'code') {
-        systemInstruction =
-            "You are an Expert Telegram Bot Developer using Telegraf.js (v4 library). " +
-            "Your task is to write ONLY the raw JavaScript code block that goes inside a bot.on() or bot.command() callback. " +
-            "Do NOT include the wrapping function syntax or imports. " +
-            "Do NOT use markdown backticks (```). " +
-            "Variables available in context: ctx, bot, Markup, axios. " +
-            "Example output: ctx.reply('Hello World');";
-    } else {
-        systemInstruction = "You are a helpful assistant.";
-    }
+    // 🔥 UPGRADED SYSTEM PROMPT FOR MENU & INLINE KEYBOARDS
+    const systemInstruction = `
+        ACT AS: Senior Telegram Bot Developer (Telegraf v4).
+        TASK: Write raw JavaScript execution logic for a Sandbox Environment.
+        
+        VARIABLES AVAILABLE: 
+        - ctx (Context)
+        - Markup (Telegraf Markup)
+        - axios, moment
+
+        STRICT UI/UX RULES:
+
+        1. **IF USER ASKS FOR "MENU" or "KEYBOARD" (Bottom Buttons):**
+           - Use 'Markup.keyboard([...])'.
+           - ALWAYS chain '.resize()' at the end.
+           - Group buttons in arrays for rows (e.g., 2 buttons per row).
+           - Syntax Example:
+             ctx.reply('Choose an option:', Markup.keyboard([
+                ['🤖 Create Bot', '📂 My Bots'],
+                ['💳 Deposit', '👨‍💻 Support']
+             ]).resize());
+
+        2. **IF USER ASKS FOR "INLINE BUTTONS" (Attached to message):**
+           - Use 'Markup.inlineKeyboard([...])'.
+           - Use 'Markup.button.url' for links.
+           - Use 'Markup.button.callback' for actions.
+           - Syntax Example:
+             ctx.reply('Join our channels:', Markup.inlineKeyboard([
+                [Markup.button.url('📢 Channel', 'https://t.me/demo')],
+                [Markup.button.callback('✅ Check Join', 'check_join')]
+             ]));
+
+        3. **GENERAL RULES:**
+           - OUTPUT RAW JS ONLY. NO MARKDOWN. NO COMMENTS.
+           - Do NOT use 'bot.command' wrapper. Write immediate logic.
+           - Use Emojis to make it look Premium (like the user screenshots).
+    `;
 
     try {
         // Call OpenRouter API
@@ -718,8 +741,9 @@ app.post('/api/ai-generate', async (req, res) => {
                 model: model || AI_MODEL,
                 messages: [
                     { role: "system", content: systemInstruction },
-                    { role: "user", content: prompt }
-                ]
+                    { role: "user", content: `Write code for: ${prompt}` }
+                ],
+                temperature: 0.3 // Low temperature for precise code
             },
             {
                 headers: {
@@ -738,28 +762,22 @@ app.post('/api/ai-generate', async (req, res) => {
             finalContent = msgData.content;
         }
 
-        // Post-Processing: Remove Markdown if AI included it
+        // Cleanup
         finalContent = finalContent
             .replace(/```javascript/gi, "")
             .replace(/```js/gi, "")
-            .replace(/```html/gi, "")
             .replace(/```/g, "")
             .trim();
 
-        if (!finalContent) {
-            throw new Error("Received Empty Response from AI Provider");
-        }
+        if (!finalContent) throw new Error("Empty AI Response");
 
         res.json({ success: true, result: finalContent });
 
     } catch (e) {
-        logSystem('ERROR', `AI Gen Failed: ${e.response?.data?.error?.message || e.message}`);
-        res.json({ 
-            success: false, 
-            message: "AI Service is currently busy. Please try again later." 
-        });
+        res.json({ success: false, message: "AI Busy. Try again." });
     }
 });
+
 
 // =================================================================================================
 // SECTION 9: JS EDITOR & PAYMENT API ENDPOINTS
