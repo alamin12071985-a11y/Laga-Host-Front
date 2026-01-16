@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="format-detection" content="telephone=no">
-    <title>Laga Host: Modern Console</title>
+    <title>Laga Host: AI Powered Console</title>
     
     <!-- EXTERNAL LIBRARIES -->
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Tailwind CSS (Utility First) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons (Modern SVG Icons) -->
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PrismJS (Syntax Highlighting for Editor) -->
+    <!-- PrismJS (Code Highlight) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     
-    <!-- FONTS: Inter (Clean, Modern, Minimalist) -->
+    <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
     <!-- TAILWIND CONFIGURATION -->
     <script>
@@ -33,42 +33,41 @@
                         mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
-                        // Modern Palette
-                        background: '#0f172a', // Slate 900
-                        surface: '#1e293b',    // Slate 800
-                        primary: '#6366f1',    // Indigo 500
-                        primaryHover: '#4f46e5',
-                        accent: '#8b5cf6',     // Violet 500
-                        success: '#10b981',    // Emerald 500
-                        danger: '#ef4444',     // Red 500
-                        glass: 'rgba(255, 255, 255, 0.08)',
-                        glassBorder: 'rgba(255, 255, 255, 0.1)',
+                        background: '#020617', // Slate 950
+                        surface: '#0f172a',    // Slate 900
+                        primary: '#7c3aed',    // Violet 600
+                        primaryHover: '#6d28d9',
+                        accent: '#db2777',     // Pink 600
+                        success: '#059669',    // Emerald 600
+                        danger: '#dc2626',     // Red 600
+                        glass: 'rgba(15, 23, 42, 0.7)',
+                        glassBorder: 'rgba(255, 255, 255, 0.08)',
                         textMain: '#f8fafc',
                         textMuted: '#94a3b8'
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'slide-up': 'slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'scale-in': 'scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'float': 'float 6s ease-in-out infinite',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.6s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                        'magic-float': 'magicFloat 3s ease-in-out infinite',
+                        'sparkle-1': 'sparkle 2s infinite',
+                        'sparkle-2': 'sparkle 2.5s infinite 0.5s',
+                        'pulse-glow': 'pulseGlow 2s infinite',
                     },
                     keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' }
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(30px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        magicFloat: { 
+                            '0%, 100%': { transform: 'translateY(0) rotate(-5deg)' }, 
+                            '50%': { transform: 'translateY(-15px) rotate(5deg)' } 
                         },
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        sparkle: {
+                            '0%': { transform: 'scale(0)', opacity: '0' },
+                            '50%': { transform: 'scale(1)', opacity: '1' },
+                            '100%': { transform: 'scale(0)', opacity: '0' }
                         },
-                        scaleIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.95)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 10px rgba(124, 58, 237, 0.2)' },
+                            '50%': { boxShadow: '0 0 25px rgba(124, 58, 237, 0.5)' }
                         }
                     }
                 }
@@ -76,24 +75,23 @@
         }
     </script>
 
-    <!-- CUSTOM CSS (MODERN GLASSMORPHISM) -->
+    <!-- CUSTOM CSS (PREMIUM GLASS UI) -->
     <style>
-        /* ---------------------------------------------------- */
-        /* GLOBAL RESET & BASE STYLES */
-        /* ---------------------------------------------------- */
+        /* BASE SETTINGS */
         :root {
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            --backdrop-blur: 16px;
+            --glass-bg: rgba(15, 23, 42, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            --backdrop-blur: 24px;
         }
 
         body {
-            background-color: #020617; /* Very Dark Slate */
+            background-color: #020617;
+            /* Complex Gradient Background */
             background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+                radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(219, 39, 119, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(5, 150, 105, 0.05) 0%, transparent 60%);
             background-attachment: fixed;
             color: #f1f5f9;
             -webkit-font-smoothing: antialiased;
@@ -101,33 +99,37 @@
             min-height: 100vh;
         }
 
-        /* ---------------------------------------------------- */
-        /* GLASSMORPHISM CARD COMPONENT */
-        /* ---------------------------------------------------- */
+        /* GLASS CARD COMPONENT */
         .glass-panel {
-            background: var(--glass-bg);
+            background: linear-gradient(160deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
             backdrop-filter: blur(var(--backdrop-blur));
             -webkit-backdrop-filter: blur(var(--backdrop-blur));
             border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.1); /* Top Highlight */
             box-shadow: var(--glass-shadow);
-            border-radius: 16px;
+            border-radius: 20px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
         }
 
         .glass-panel:hover {
             border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px -8px rgba(99, 102, 241, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px -5px rgba(0, 0, 0, 0.5);
         }
 
-        /* ---------------------------------------------------- */
         /* MODERN INPUT FIELDS */
-        /* ---------------------------------------------------- */
         .modern-input {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
             color: white;
             font-family: 'Inter', sans-serif;
             transition: all 0.3s ease;
@@ -135,230 +137,195 @@
         }
 
         .modern-input:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
             outline: none;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(2, 6, 23, 0.9);
         }
 
-        .modern-input::placeholder {
-            color: #64748b;
-        }
-
-        /* ---------------------------------------------------- */
-        /* MODERN BUTTONS */
-        /* ---------------------------------------------------- */
+        /* BUTTONS */
         .btn-primary {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             color: white;
             font-weight: 600;
-            border-radius: 12px;
+            border-radius: 14px;
             border: none;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
             position: relative;
             overflow: hidden;
         }
-
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(255,255,255,0.1), transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-        }
         
-        .btn-primary:hover::after { opacity: 1; }
-        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:active { transform: scale(0.97); }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
             font-weight: 500;
-            border-radius: 12px;
+            border-radius: 14px;
             transition: all 0.2s;
         }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); color: white; }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-
-        /* ---------------------------------------------------- */
-        /* SCROLLBAR & UTILS */
-        /* ---------------------------------------------------- */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* ---------------------------------------------------- */
-        /* ANIMATED LOADER (Minimalist Spinner) */
-        /* ---------------------------------------------------- */
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(99, 102, 241, 0.3);
-            border-radius: 50%;
-            border-top-color: #6366f1;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ---------------------------------------------------- */
-        /* TOAST NOTIFICATIONS */
-        /* ---------------------------------------------------- */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10000;
+        /* MAGIC LOADER OVERLAY */
+        .magic-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 50;
             display: flex;
-            flex-col-gap: 10px;
-            pointer-events: none;
-            width: 90%;
-            max-width: 400px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* TOAST NOTIFICATIONS */
+        .toast-container {
+            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            z-index: 10000; width: 90%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
         }
         
         .toast {
             pointer-events: auto;
             background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px;
             padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.6);
             animation: slideDown 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        @keyframes slideDown {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* ---------------------------------------------------- */
-        /* SYNTAX HIGHLIGHTING OVERRIDES */
-        /* ---------------------------------------------------- */
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* CODE EDITOR HIGHLIGHTS */
         code[class*="language-"], pre[class*="language-"] {
             font-family: 'JetBrains Mono', monospace !important;
             font-size: 13px !important;
             text-shadow: none !important;
-            border-radius: 8px;
         }
     </style>
 </head>
 <body class="selection:bg-primary selection:text-white">
 
-    <!-- BACKGROUND GRADIENT BLUR SPOTS -->
-    <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
-    <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
-
     <!-- TOAST CONTAINER -->
-    <div id="toast-container" class="toast-container flex flex-col items-center gap-2"></div>
+    <div id="toast-container" class="toast-container"></div>
 
-    <!-- =========================================================================================== -->
-    <!-- 1. SYSTEM BOOT LOADER (MODERN MINIMALIST) -->
-    <!-- =========================================================================================== -->
+    <!-- 1. SYSTEM BOOT LOADER -->
     <div id="loader" class="fixed inset-0 z-[5000] bg-[#020617] flex flex-col items-center justify-center transition-opacity duration-700">
         <div class="relative">
-            <div class="spinner"></div>
+            <!-- Outer Ring -->
+            <div class="w-16 h-16 border-4 border-primary/20 rounded-full"></div>
+            <!-- Spinning Ring -->
+            <div class="absolute top-0 left-0 w-16 h-16 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+            <!-- Inner Logo -->
             <div class="absolute inset-0 flex items-center justify-center">
-                <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <i data-lucide="cpu" class="w-6 h-6 text-primary animate-pulse"></i>
             </div>
         </div>
-        <div class="mt-6 text-textMuted font-medium tracking-widest text-sm">INITIALIZING...</div>
+        <div class="mt-6 text-textMuted font-mono text-xs tracking-[0.3em] uppercase">Initializing Core</div>
     </div>
 
-    <!-- =========================================================================================== -->
     <!-- 2. MAIN DASHBOARD INTERFACE -->
-    <!-- =========================================================================================== -->
-    <main id="app" class="hidden opacity-0 px-4 py-8 max-w-lg mx-auto relative z-10 transition-opacity duration-700">
+    <main id="app" class="hidden opacity-0 px-4 py-6 max-w-lg mx-auto relative z-10 transition-opacity duration-700">
         
         <!-- HEADER SECTION -->
         <header class="flex justify-between items-center mb-8 animate-slide-up" style="animation-delay: 0.1s;">
             <div class="flex items-center gap-4">
-                <!-- User Avatar -->
                 <div class="relative group cursor-pointer">
-                    <img id="userAvatar" src="" class="w-12 h-12 rounded-full border-2 border-glassBorder object-cover shadow-lg group-hover:scale-105 transition duration-300">
-                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-[#020617]"></div>
+                    <img id="userAvatar" src="" class="w-14 h-14 rounded-full border-2 border-glassBorder object-cover shadow-2xl group-hover:scale-105 transition duration-300">
+                    <div class="absolute bottom-1 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-[#020617] animate-pulse"></div>
                 </div>
-                
-                <!-- User Details -->
                 <div>
-                    <h1 class="text-white font-bold text-lg leading-tight">Dashboard</h1>
-                    <div class="text-textMuted text-xs font-medium mt-0.5">
+                    <h1 class="text-white font-bold text-lg leading-tight tracking-tight">Laga Console</h1>
+                    <div class="text-textMuted text-xs font-medium mt-1 font-mono">
                         <span id="userName">User</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Plan Badge -->
-            <div id="planBadge" class="px-3 py-1.5 rounded-full bg-glass border border-glassBorder text-xs font-semibold text-primary backdrop-blur-md">
-                FREE
+            <!-- PLAN & EXPIRY BADGE -->
+            <div class="flex flex-col items-end gap-1">
+                <div id="planBadge" class="px-3 py-1 rounded-full bg-glassBorder border border-white/5 text-[10px] font-bold text-gray-400 tracking-wider backdrop-blur-md">
+                    FREE
+                </div>
+                <!-- Expiry Date (Initially Hidden) -->
+                <div id="expiryContainer" class="hidden flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                    <i data-lucide="clock" class="w-3 h-3 text-accent"></i>
+                    <span id="daysLeft" class="text-[10px] font-bold text-white font-mono">0d Left</span>
+                </div>
             </div>
         </header>
 
         <!-- DASHBOARD STATS GRID -->
         <div class="grid grid-cols-2 gap-4 mb-8 animate-slide-up" style="animation-delay: 0.2s;">
             <!-- Points Card -->
-            <div class="glass-panel p-5 relative group">
-                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition">
-                    <i data-lucide="zap" class="w-12 h-12 text-white"></i>
+            <div class="glass-panel p-5 relative group overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition duration-500"></div>
+                
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-textMuted text-[10px] font-bold uppercase tracking-wider">Credits</div>
+                    <i data-lucide="wallet" class="w-4 h-4 text-primary opacity-60"></i>
                 </div>
-                <div class="text-textMuted text-xs font-medium mb-1">Total Credits</div>
-                <div id="refCount" class="text-3xl font-bold text-white mb-3">0</div>
-                <button onclick="copyLink()" class="flex items-center gap-2 text-xs font-semibold text-primary hover:text-primaryHover transition">
-                    <i data-lucide="share-2" class="w-3 h-3"></i> Invite Friend
+                
+                <div class="flex items-baseline gap-1 mb-4">
+                    <div id="refCount" class="text-3xl font-bold text-white">0</div>
+                    <span class="text-xs text-textMuted">pts</span>
+                </div>
+                
+                <button onclick="copyLink()" class="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-semibold text-primary flex items-center justify-center gap-2 transition">
+                    <i data-lucide="share-2" class="w-3 h-3"></i> Invite
                 </button>
             </div>
             
             <!-- Server Load Card -->
-            <div class="glass-panel p-5 relative">
-                <div class="text-textMuted text-xs font-medium mb-1">Server Slots</div>
-                <div class="flex items-end gap-2 mb-3">
+            <div class="glass-panel p-5 relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-accent/10 rounded-full blur-2xl"></div>
+                
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-textMuted text-[10px] font-bold uppercase tracking-wider">Capacity</div>
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-accent opacity-60"></i>
+                </div>
+
+                <div class="flex items-end gap-2 mb-4">
                     <span id="limitBadge" class="text-3xl font-bold text-white">0/1</span>
                     <span class="text-xs text-textMuted mb-1.5">Active</span>
                 </div>
                 
                 <!-- Animated Progress Bar -->
                 <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-primary to-accent w-1/2 animate-pulse rounded-full"></div>
+                    <div id="usageBar" class="h-full bg-gradient-to-r from-primary to-accent w-0 transition-all duration-1000"></div>
                 </div>
             </div>
         </div>
 
         <!-- MAIN ACTION BUTTON -->
-        <button onclick="openModal('createModal')" class="w-full btn-primary py-4 mb-8 flex items-center justify-center gap-3 animate-slide-up" style="animation-delay: 0.3s;">
-            <i data-lucide="plus-circle" class="w-5 h-5"></i> 
-            <span class="text-sm tracking-wide">DEPLOY NEW BOT</span>
+        <button onclick="openModal('createModal')" class="w-full btn-primary py-4 mb-8 flex items-center justify-center gap-3 animate-slide-up shadow-lg shadow-primary/20 group" style="animation-delay: 0.3s;">
+            <div class="p-1 bg-white/20 rounded-full group-hover:rotate-90 transition duration-300">
+                <i data-lucide="plus" class="w-4 h-4 text-white"></i>
+            </div>
+            <span class="text-sm font-bold tracking-wide">DEPLOY NEW INSTANCE</span>
         </button>
 
         <!-- SERVER LIST CONTAINER -->
         <div class="mb-10 animate-slide-up" style="animation-delay: 0.4s;">
             <div class="flex items-center justify-between mb-4 px-1">
-                <h3 class="text-sm font-semibold text-textMuted uppercase tracking-wider">Active Instances</h3>
-                <i data-lucide="server" class="w-4 h-4 text-textMuted"></i>
+                <h3 class="text-xs font-bold text-textMuted uppercase tracking-widest">Active Instances</h3>
+                <div class="flex items-center gap-1">
+                    <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+                    <span class="text-[10px] text-success font-bold">ONLINE</span>
+                </div>
             </div>
             
             <div id="botsContainer" class="space-y-4 min-h-[100px]">
@@ -366,179 +333,231 @@
             </div>
 
             <!-- Empty State -->
-            <div id="emptyState" class="hidden glass-panel p-8 text-center border-dashed border-gray-700 opacity-70">
-                <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div id="emptyState" class="hidden glass-panel p-10 text-center border-dashed border-gray-700 opacity-70">
+                <div class="w-14 h-14 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
                     <i data-lucide="box" class="w-6 h-6 text-gray-500"></i>
                 </div>
-                <p class="text-sm text-textMuted">No bots deployed yet.</p>
+                <p class="text-sm text-textMuted font-medium">No bots deployed yet.</p>
+                <p class="text-xs text-gray-600 mt-1">Click the button above to start.</p>
             </div>
         </div>
 
         <!-- UPGRADE PLANS SECTION -->
-        <div class="pt-2 pb-6 animate-slide-up" style="animation-delay: 0.5s;">
+        <div class="pb-6 animate-slide-up" style="animation-delay: 0.5s;">
             <div class="flex items-center gap-2 mb-4 px-1">
-                <i data-lucide="trending-up" class="w-4 h-4 text-primary"></i>
-                <h3 class="text-sm font-semibold text-textMuted uppercase tracking-wider">Upgrade Power</h3>
+                <i data-lucide="rocket" class="w-4 h-4 text-accent"></i>
+                <h3 class="text-xs font-bold text-textMuted uppercase tracking-widest">Power Upgrades (30 Days)</h3>
             </div>
             
             <div class="grid grid-cols-2 gap-4">
                 <!-- Pro Plan -->
                 <div onclick="openPay('Pro', 50)" class="glass-panel p-4 cursor-pointer hover:border-primary/50 group relative">
-                    <div class="absolute top-3 right-3"><i data-lucide="cpu" class="w-4 h-4 text-primary group-hover:scale-110 transition"></i></div>
+                    <div class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition">
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-primary"></i>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 text-primary">
+                        <i data-lucide="cpu" class="w-5 h-5"></i>
+                    </div>
                     <div class="text-white font-bold text-lg mb-1">Pro Core</div>
-                    <div class="text-[10px] text-textMuted mb-2">5 Slots • Priority CPU</div>
-                    <div class="text-xl font-bold text-primary">50৳</div>
+                    <div class="text-[10px] text-textMuted mb-3 leading-relaxed">
+                        • 5 Bot Slots<br>• Priority CPU
+                    </div>
+                    <div class="flex items-center justify-between mt-auto">
+                        <div class="text-lg font-bold text-primary">50৳</div>
+                        <span class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded">Mo</span>
+                    </div>
                 </div>
                 <!-- VIP Plan -->
                 <div onclick="openPay('VIP', 80)" class="glass-panel p-4 cursor-pointer hover:border-accent/50 group relative">
-                    <div class="absolute top-3 right-3"><i data-lucide="crown" class="w-4 h-4 text-accent group-hover:scale-110 transition"></i></div>
+                    <div class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition">
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-accent"></i>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-3 text-accent">
+                        <i data-lucide="crown" class="w-5 h-5"></i>
+                    </div>
                     <div class="text-white font-bold text-lg mb-1">VIP Core</div>
-                    <div class="text-[10px] text-textMuted mb-2">10 Slots • Max Power</div>
-                    <div class="text-xl font-bold text-accent">80৳</div>
+                    <div class="text-[10px] text-textMuted mb-3 leading-relaxed">
+                        • 10 Bot Slots<br>• Max Speed
+                    </div>
+                    <div class="flex items-center justify-between mt-auto">
+                        <div class="text-lg font-bold text-accent">80৳</div>
+                        <span class="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded">Mo</span>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
     <!-- =========================================================================================== -->
-    <!-- 3. INTERACTIVE MODALS (GLASS & BLUR STYLE) -->
+    <!-- 3. INTERACTIVE MODALS -->
     <!-- =========================================================================================== -->
 
     <!-- [A] CREATE BOT MODAL -->
     <div id="createModal" class="fixed inset-0 z-[2000] hidden">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
-        <!-- Modal Content -->
-        <div class="absolute bottom-0 left-0 right-0 md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full max-w-md bg-[#0f172a] md:rounded-2xl rounded-t-2xl border-t md:border border-glassBorder p-6 shadow-2xl transform transition-transform duration-300 translate-y-full animate-slide-up">
-            <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6 md:hidden"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeModal('createModal')"></div>
+        <div class="absolute bottom-0 w-full md:w-[480px] md:left-1/2 md:-translate-x-1/2 bg-[#0f172a] rounded-t-3xl border-t border-glassBorder p-6 shadow-2xl transform transition-transform duration-300 translate-y-full animate-slide-up">
+            
+            <div class="w-12 h-1.5 bg-gray-800 rounded-full mx-auto mb-6"></div>
             
             <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <i data-lucide="terminal-square" class="w-5 h-5 text-primary"></i>
+                <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <i data-lucide="terminal-square" class="w-6 h-6 text-primary"></i>
                 </div>
-                Deploy New Instance
+                Deploy Instance
             </h2>
             
             <div class="space-y-5">
                 <div>
-                    <label class="text-xs text-textMuted font-semibold mb-2 block ml-1">BOT NAME</label>
-                    <input id="botName" class="modern-input p-3.5 text-sm" placeholder="e.g. My Awesome Bot">
+                    <label class="text-[10px] text-textMuted font-bold uppercase tracking-wider mb-2 block ml-1">Bot Name</label>
+                    <input id="botName" class="modern-input p-4 text-sm" placeholder="e.g. My Assistant Bot">
                 </div>
                 <div>
-                    <label class="text-xs text-textMuted font-semibold mb-2 block ml-1">BOT TOKEN (From BotFather)</label>
-                    <input id="botToken" class="modern-input p-3.5 text-sm font-mono" placeholder="123456:ABC-DEF...">
+                    <label class="text-[10px] text-textMuted font-bold uppercase tracking-wider mb-2 block ml-1">Bot Token (BotFather)</label>
+                    <input id="botToken" class="modern-input p-4 text-sm font-mono" placeholder="123456:ABC-DEF...">
                 </div>
             </div>
 
             <div class="flex gap-3 mt-8">
-                <button onclick="closeModal('createModal')" class="flex-1 btn-secondary py-3.5 text-sm">Cancel</button>
-                <button onclick="createBot()" class="flex-1 btn-primary py-3.5 text-sm">Deploy Now</button>
+                <button onclick="closeModal('createModal')" class="flex-1 btn-secondary py-3.5 text-sm font-semibold">Cancel</button>
+                <button onclick="createBot()" class="flex-1 btn-primary py-3.5 text-sm font-bold">Deploy Now</button>
             </div>
         </div>
     </div>
 
     <!-- [B] PAYMENT MODAL -->
     <div id="payModal" class="fixed inset-0 z-[2000] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal('payModal')"></div>
-        <div class="absolute bottom-0 left-0 right-0 md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full max-w-md bg-[#0f172a] md:rounded-2xl rounded-t-2xl border-t md:border border-glassBorder p-6 shadow-2xl animate-slide-up">
-            <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6 md:hidden"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeModal('payModal')"></div>
+        <div class="absolute bottom-0 w-full md:w-[480px] md:left-1/2 md:-translate-x-1/2 bg-[#0f172a] rounded-t-3xl border-t border-glassBorder p-6 shadow-2xl animate-slide-up">
+            
+            <div class="w-12 h-1.5 bg-gray-800 rounded-full mx-auto mb-6"></div>
             
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-lg font-bold text-white">Purchase <span id="payPlan" class="text-primary">Pro</span></h2>
-                <button onclick="closeModal('payModal')" class="p-2 bg-gray-800 rounded-full hover:bg-gray-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Upgrade to <span id="payPlan" class="text-primary">Pro</span></h2>
+                    <p class="text-xs text-gray-400 mt-1">Get advanced features for 30 days.</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center cursor-pointer hover:bg-gray-700" onclick="closeModal('payModal')">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+                </div>
             </div>
             
-            <div class="flex p-1 bg-gray-900 rounded-xl mb-6">
-                <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-gray-700 text-white shadow transition-all">Mobile Pay</button>
-                <button onclick="setPayMode('ref')" id="tabRef" class="flex-1 py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all">Points</button>
+            <!-- Payment Tabs -->
+            <div class="flex p-1.5 bg-gray-900 rounded-xl mb-6 border border-gray-800">
+                <button onclick="setPayMode('cash')" id="tabCash" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-gray-700 text-white shadow transition-all">
+                    Mobile Pay
+                </button>
+                <button onclick="setPayMode('ref')" id="tabRef" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all">
+                    Redeem Points
+                </button>
             </div>
 
             <!-- Cash Payment Section -->
             <div id="cashSec" class="animate-fade-in">
-                <div class="glass-panel p-4 mb-5 flex items-center justify-between border-dashed border-gray-600">
+                <div class="glass-panel p-4 mb-5 flex items-center justify-between border-dashed border-primary/30 bg-primary/5">
                     <div>
                         <div class="text-[10px] text-textMuted font-bold uppercase tracking-wider mb-1">Send Money To (Nagad)</div>
                         <div class="text-lg font-mono font-bold text-white tracking-wide">01761494948</div>
                     </div>
-                    <button onclick="copyToClipboard('01761494948')" class="p-2 bg-primary/10 rounded-lg text-primary hover:bg-primary/20"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                    <button onclick="copyToClipboard('01761494948')" class="p-2.5 bg-gray-800 rounded-lg hover:bg-primary hover:text-white transition text-gray-400">
+                        <i data-lucide="copy" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <input id="trxId" class="modern-input p-3.5 text-sm text-center uppercase tracking-widest mb-6" placeholder="Enter TrxID">
-                <button onclick="submitPay()" class="w-full btn-primary py-3.5 text-sm">Verify Payment</button>
+                
+                <div class="relative">
+                    <i data-lucide="hash" class="absolute left-4 top-4 w-5 h-5 text-gray-500"></i>
+                    <input id="trxId" class="modern-input p-3.5 pl-11 text-sm text-center uppercase tracking-widest mb-6 font-bold" placeholder="ENTER TRX ID">
+                </div>
+                <button onclick="submitPay()" class="w-full btn-primary py-4 text-sm font-bold shadow-lg shadow-primary/25">Verify & Activate</button>
             </div>
             
             <!-- Points Redemption Section -->
-            <div id="refSec" class="hidden text-center py-4 animate-fade-in">
-                <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
-                    <i data-lucide="gift" class="w-8 h-8 text-white"></i>
+            <div id="refSec" class="hidden text-center py-6 animate-fade-in">
+                <div class="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-primary/40 rotate-3">
+                    <i data-lucide="gift" class="w-10 h-10 text-white"></i>
                 </div>
-                <p class="text-sm text-gray-400 mb-6 px-4">Use your accumulated referral points to unlock this premium tier instantly.</p>
-                <button onclick="submitPay()" class="w-full btn-secondary py-3.5 text-sm hover:bg-primary hover:border-primary">Redeem with Points</button>
+                <h3 class="text-white font-bold text-lg mb-2">Use Balance</h3>
+                <p class="text-sm text-gray-400 mb-8 px-8">Redeem your accumulated referral points to unlock this premium tier instantly.</p>
+                <button onclick="submitPay()" class="w-full btn-secondary py-4 text-sm font-bold hover:bg-white hover:text-black hover:border-white">Redeem with Points</button>
             </div>
         </div>
     </div>
 
-    <!-- [C] FULLSCREEN CODE EDITOR (MODERN DARK THEME) -->
-    <div id="editorModal" class="fixed inset-0 z-[3000] hidden bg-[#0f172a] flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
+    <!-- [C] FULLSCREEN CODE EDITOR (WITH MAGIC OVERLAY) -->
+    <div id="editorModal" class="fixed inset-0 z-[3000] hidden bg-[#020617] flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
         <!-- Editor Header -->
-        <div class="bg-[#1e293b] border-b border-gray-800 px-4 py-3 flex justify-between items-center shadow-md z-10">
+        <div class="bg-[#0f172a] border-b border-gray-800 px-4 py-3 flex justify-between items-center shadow-lg z-20">
             <button onclick="closeModal('editorModal')" class="flex items-center gap-2 text-gray-400 hover:text-white transition">
                 <i data-lucide="chevron-left" class="w-5 h-5"></i>
                 <span class="text-sm font-medium">Back</span>
             </button>
-            <div class="flex items-center gap-2">
-                <!-- AI Button -->
-                <button onclick="openAI()" class="px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition transform hover:-translate-y-0.5">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI Generate
+            <div class="flex items-center gap-3">
+                <!-- AI Magic Button -->
+                <button onclick="openAI()" class="px-3 py-1.5 bg-gradient-to-r from-accent to-pink-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 transition transform hover:-translate-y-0.5 border border-white/10">
+                    <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> AI Magic
                 </button>
                 <!-- Save Button -->
-                <button onclick="saveCmd()" class="px-4 py-1.5 bg-gray-700 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition flex items-center gap-2">
+                <button onclick="saveCmd()" class="px-4 py-1.5 bg-green-600/10 text-green-500 border border-green-600/30 rounded-lg text-xs font-bold hover:bg-green-600 hover:text-white transition flex items-center gap-2">
                     <i data-lucide="save" class="w-3.5 h-3.5"></i> Save
                 </button>
             </div>
         </div>
         
-        <!-- Editor Toolbar & Tabs -->
-        <div class="bg-[#0f172a] p-2 border-b border-gray-800 overflow-x-auto">
-            <div id="cmdList" class="flex gap-2 min-w-max px-2">
-                <!-- Tabs injected here -->
-            </div>
+        <!-- Editor Toolbar -->
+        <div class="bg-[#020617] p-2 border-b border-gray-800 overflow-x-auto no-scrollbar z-10">
+            <div id="cmdList" class="flex gap-2 min-w-max px-2"></div>
         </div>
 
         <!-- Editor Command Input -->
-        <div class="p-4 bg-[#0f172a]">
+        <div class="p-4 bg-[#020617] z-10">
             <div class="relative group">
-                <span class="absolute left-4 top-3.5 text-gray-500 font-mono font-bold">/</span>
+                <span class="absolute left-4 top-3.5 text-primary font-mono font-bold">/</span>
                 <input id="cmdNameInput" class="modern-input py-3 pl-8 text-sm font-mono font-bold text-white bg-gray-900 border-gray-700 focus:border-primary" placeholder="command_name">
                 <button onclick="deleteCmd()" class="absolute right-3 top-2.5 text-gray-500 hover:text-red-500 transition p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
             </div>
         </div>
         
-        <!-- Code Area (Monaco/Prism Style) -->
+        <!-- Code Area & Magic Overlay Container -->
         <div class="flex-1 relative bg-[#0d1117] overflow-hidden">
-            <textarea id="cmdCodeInput" class="w-full h-full bg-transparent text-gray-300 font-mono text-sm p-4 resize-none focus:outline-none leading-6 z-10 relative" spellcheck="false" placeholder="// Write your logic here...&#10;// Example: ctx.reply('Hello!');"></textarea>
-            <!-- Syntax Highlight Overlay (Simplified for this version) -->
+            
+            <!-- MAGIC WAND ANIMATION OVERLAY -->
+            <div id="magicOverlay" class="magic-overlay hidden">
+                <div class="relative">
+                    <!-- The Wand -->
+                    <i data-lucide="wand-2" class="w-16 h-16 text-accent animate-magic-float drop-shadow-[0_0_15px_rgba(219,39,119,0.5)]"></i>
+                    
+                    <!-- Sparkles -->
+                    <div class="absolute top-0 right-0 w-3 h-3 bg-white rounded-full blur-[2px] animate-sparkle-1"></div>
+                    <div class="absolute bottom-2 left-2 w-2 h-2 bg-primary rounded-full blur-[1px] animate-sparkle-2"></div>
+                </div>
+                <div class="mt-6 text-transparent bg-clip-text bg-gradient-to-r from-accent to-primary font-bold text-xl animate-pulse tracking-widest uppercase">
+                    Summoning Code...
+                </div>
+            </div>
+
+            <!-- Text Area -->
+            <textarea id="cmdCodeInput" class="w-full h-full bg-transparent text-gray-300 font-mono text-sm p-4 resize-none focus:outline-none leading-relaxed z-0 relative" spellcheck="false" placeholder="// Select 'AI Magic' to generate code...&#10;// Example:&#10;ctx.replyWithHTML('Hello!');"></textarea>
         </div>
     </div>
 
-    <!-- [D] AI PROMPT MODAL (FRONTEND GENERATION) -->
+    <!-- [D] AI PROMPT MODAL -->
     <div id="aiModal" class="fixed inset-0 z-[4000] hidden">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" onclick="closeModal('aiModal')"></div>
-        <div class="absolute bottom-0 left-0 right-0 md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full max-w-md bg-[#0f172a] md:rounded-2xl rounded-t-2xl border border-glassBorder p-6 shadow-2xl animate-scale-in">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                    <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onclick="closeModal('aiModal')"></div>
+        <div class="absolute bottom-0 w-full md:w-[480px] md:left-1/2 md:-translate-x-1/2 bg-[#0f172a] rounded-t-3xl border-t border-glassBorder p-6 shadow-2xl animate-scale-in">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center shadow-lg shadow-accent/20">
+                    <i data-lucide="bot" class="w-7 h-7 text-white"></i>
                 </div>
                 <div>
                     <h3 class="text-white font-bold text-lg">AI Architect</h3>
-                    <p class="text-xs text-gray-400">Describe what you want, get code instantly.</p>
+                    <p class="text-xs text-gray-400">Describe the feature, get the code.</p>
                 </div>
             </div>
             
-            <textarea id="aiPrompt" class="modern-input h-32 p-4 text-sm resize-none mb-4 bg-gray-900 border-gray-700 focus:border-violet-500" placeholder="e.g. Create a menu with 3 buttons: Bank, PayPal, and Crypto..."></textarea>
+            <textarea id="aiPrompt" class="modern-input h-36 p-4 text-sm resize-none mb-5 bg-gray-900 border-gray-700 focus:border-accent" placeholder="e.g. Create a menu with 3 buttons: Bank, PayPal, and Crypto..."></textarea>
             
             <div class="flex gap-3">
-                <button onclick="closeModal('aiModal')" class="flex-1 btn-secondary py-3 text-sm">Close</button>
-                <button onclick="generateAI()" class="flex-1 btn-primary py-3 text-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 border-none">
+                <button onclick="closeModal('aiModal')" class="flex-1 btn-secondary py-3.5 text-sm">Close</button>
+                <button onclick="generateAI()" class="flex-1 btn-primary py-3.5 text-sm bg-gradient-to-r from-accent to-pink-600 border-none">
                     <i data-lucide="sparkles" class="w-4 h-4 inline mr-1"></i> Generate
                 </button>
             </div>
@@ -558,7 +577,7 @@
         const tg = window.Telegram.WebApp;
         
         // User Data State (Fallback for Development)
-        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Admin', username: 'admin' };
+        const user = tg.initDataUnsafe?.user || { id: '7605281774', first_name: 'Guest', username: 'guest' };
         
         // App State Variables
         let currentBotId = null;
@@ -566,14 +585,9 @@
         let payMode = 'cash';
         let activeTimers = {};
 
-        // Security Warning
-        if (!tg.initData && !tg.initDataUnsafe?.user) {
-           console.log("ℹ️ Running in Dev Mode / Browser");
-        }
-        
         // Setup Telegram UI
         tg.expand();
-        tg.setHeaderColor('#0f172a');
+        tg.setHeaderColor('#020617'); // Matches body bg
         tg.setBackgroundColor('#020617');
         tg.enableClosingConfirmation();
 
@@ -592,20 +606,19 @@
             el.className = 'toast';
             el.innerHTML = `
                 <i data-lucide="${iconName}" class="w-5 h-5 ${colorClass}"></i>
-                <span class="text-sm font-medium text-white">${msg}</span>
+                <span class="text-sm font-semibold text-white tracking-wide">${msg}</span>
             `;
             
             container.appendChild(el);
             lucide.createIcons();
             
             // Haptic Feedback
-            if(type === 'success') tg.HapticFeedback.notificationOccurred('success');
-            else if(type === 'error') tg.HapticFeedback.notificationOccurred('error');
+            if(type !== 'info') tg.HapticFeedback.notificationOccurred(type);
             
             // Auto Remove
             setTimeout(() => {
                 el.style.opacity = '0';
-                el.style.transform = 'translateY(-10px)';
+                el.style.transform = 'translateY(-20px)';
                 setTimeout(() => el.remove(), 300);
             }, 3000);
         }
@@ -613,12 +626,12 @@
         // --- 3. APPLICATION STARTUP LOGIC ---
 
         async function init() {
-            // Update Header
+            // Update Header Info
             document.getElementById('userName').innerText = user.first_name;
-            document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=6366f1&color=fff&bold=true`;
+            document.getElementById('userAvatar').src = user.photo_url || `https://ui-avatars.com/api/?name=${user.first_name}&background=7c3aed&color=fff&bold=true`;
 
             try {
-                // Fetch All Data
+                // Fetch All Data from Real API
                 const response = await fetch('/api/bots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -634,16 +647,7 @@
                 if(!data.success) throw new Error("API Failure");
 
                 // Update UI Stats
-                const u = data.user;
-                const planEl = document.getElementById('planBadge');
-                planEl.innerText = `${u.plan.toUpperCase()}`;
-                
-                if(u.plan !== 'Free') {
-                    planEl.className = "px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-bold text-primary shadow-lg shadow-primary/20";
-                }
-
-                document.getElementById('refCount').innerText = u.referrals;
-                document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
+                updateDashboardUI(data);
 
                 // Render the List
                 renderBots(data.bots);
@@ -656,9 +660,46 @@
 
             } catch (error) {
                 console.error(error);
-                showToast("Connection Error", 'error');
-                document.getElementById('loader').innerHTML = `<div class="text-danger font-bold">Failed to load system.</div>`;
+                showToast("Connection Failed", 'error');
+                // Optional: For testing without backend, uncomment below
+                // mockInit();
             }
+        }
+
+        function updateDashboardUI(data) {
+            const u = data.user;
+            
+            // 1. Plan Badge
+            const planEl = document.getElementById('planBadge');
+            planEl.innerText = u.plan.toUpperCase();
+            
+            if(u.plan !== 'Free') {
+                planEl.className = "px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-[10px] font-bold text-white shadow-lg shadow-primary/30 tracking-wider";
+                
+                // 2. Expiry Date Logic
+                if (u.expireDate) {
+                    const now = new Date();
+                    const expire = new Date(u.expireDate);
+                    const diffTime = Math.abs(expire - now);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    const expiryEl = document.getElementById('expiryContainer');
+                    const daysLeftEl = document.getElementById('daysLeft');
+                    
+                    if (diffDays > 0) {
+                        expiryEl.classList.remove('hidden');
+                        daysLeftEl.innerText = `${diffDays} Days Left`;
+                    }
+                }
+            }
+
+            // 3. Stats
+            document.getElementById('refCount').innerText = u.referrals;
+            document.getElementById('limitBadge').innerText = `${data.bots.length}/${u.botLimit}`;
+            
+            // 4. Progress Bar Animation
+            const percentage = (data.bots.length / u.botLimit) * 100;
+            document.getElementById('usageBar').style.width = `${percentage}%`;
         }
 
         // --- 4. RENDER LOGIC (GLASS CARDS) ---
@@ -667,6 +708,7 @@
             const container = document.getElementById('botsContainer');
             container.innerHTML = '';
             
+            // Clear old timers
             Object.values(activeTimers).forEach(clearInterval);
             activeTimers = {};
 
@@ -679,41 +721,42 @@
             bots.forEach(bot => {
                 const isRun = bot.status === 'RUNNING';
                 const card = document.createElement('div');
-                card.className = `glass-panel p-4 flex flex-col gap-4 border-l-4 ${isRun ? 'border-l-success' : 'border-l-gray-600'}`;
+                card.className = `glass-panel p-4 flex flex-col gap-3 border-l-4 ${isRun ? 'border-l-success' : 'border-l-gray-600'}`;
                 
+                // Timer Logic
                 let uptimeHtml = '';
                 if(isRun && bot.startedAt) {
-                    uptimeHtml = `<span id="timer-${bot._id}" class="text-primary text-[10px] font-mono ml-auto bg-primary/10 px-2 py-1 rounded">00:00:00</span>`;
+                    uptimeHtml = `<span id="timer-${bot._id}" class="text-primary text-[10px] font-mono ml-auto bg-primary/10 px-2 py-1 rounded border border-primary/20">00:00:00</span>`;
                     startUptimeTimer(bot._id, bot.startedAt);
                 }
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg ${isRun ? 'bg-success/20 text-success' : 'bg-gray-800 text-gray-500'} flex items-center justify-center">
+                            <div class="w-10 h-10 rounded-xl ${isRun ? 'bg-success/20 text-success shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-gray-800 text-gray-500'} flex items-center justify-center">
                                 <i data-lucide="server" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <h4 class="text-white font-bold text-sm">${bot.name}</h4>
+                                <h4 class="text-white font-bold text-sm tracking-wide">${bot.name}</h4>
                                 <div class="flex items-center gap-2 mt-0.5">
-                                    <div class="w-2 h-2 rounded-full ${isRun ? 'bg-success animate-pulse' : 'bg-gray-500'}"></div>
-                                    <span class="text-xs text-gray-400 font-medium">${bot.status}</span>
+                                    <div class="w-1.5 h-1.5 rounded-full ${isRun ? 'bg-success animate-pulse' : 'bg-gray-500'}"></div>
+                                    <span class="text-[10px] text-gray-400 font-bold uppercase">${bot.status}</span>
                                 </div>
                             </div>
                         </div>
                         ${uptimeHtml}
                     </div>
                     
-                    <div class="grid grid-cols-${isRun ? '3' : '2'} gap-2 pt-2 border-t border-gray-700/50">
+                    <div class="grid grid-cols-${isRun ? '3' : '2'} gap-2 pt-2 mt-1 border-t border-white/5">
                         ${isRun ? `
-                            <button onclick="restartBot('${bot._id}')" class="py-2 bg-gray-800 rounded-lg text-xs font-semibold text-white hover:bg-gray-700 transition">Reboot</button>
-                            <button onclick="toggleBot(this, '${bot._id}', 'stop')" class="py-2 bg-danger/10 rounded-lg text-xs font-semibold text-danger hover:bg-danger/20 transition">Stop</button>
-                            <button onclick="openEditor('${bot._id}')" class="py-2 bg-primary/10 rounded-lg text-xs font-semibold text-primary hover:bg-primary/20 transition">Console</button>
+                            <button onclick="restartBot('${bot._id}')" class="py-2.5 bg-gray-800 rounded-lg text-[10px] font-bold text-white hover:bg-gray-700 transition">REBOOT</button>
+                            <button onclick="toggleBot(this, '${bot._id}', 'stop')" class="py-2.5 bg-danger/10 rounded-lg text-[10px] font-bold text-danger hover:bg-danger/20 transition">STOP</button>
+                            <button onclick="openEditor('${bot._id}')" class="py-2.5 bg-primary/10 rounded-lg text-[10px] font-bold text-primary hover:bg-primary/20 transition border border-primary/20">CONSOLE</button>
                         ` : `
-                            <button onclick="toggleBot(this, '${bot._id}', 'start')" class="py-2.5 bg-success/10 rounded-lg text-xs font-bold text-success hover:bg-success/20 transition flex items-center justify-center gap-2">
-                                <i data-lucide="power" class="w-3 h-3"></i> Start Server
+                            <button onclick="toggleBot(this, '${bot._id}', 'start')" class="py-3 bg-success/10 rounded-lg text-[10px] font-bold text-success hover:bg-success/20 transition flex items-center justify-center gap-2 border border-success/20">
+                                <i data-lucide="power" class="w-3 h-3"></i> START SERVER
                             </button>
-                            <button onclick="deleteBot('${bot._id}')" class="py-2.5 bg-gray-800 rounded-lg text-xs font-semibold text-gray-400 hover:text-danger hover:bg-gray-700 transition">Delete</button>
+                            <button onclick="deleteBot('${bot._id}')" class="py-3 bg-gray-800 rounded-lg text-[10px] font-bold text-gray-400 hover:text-danger hover:bg-gray-700 transition">DELETE</button>
                         `}
                     </div>
                 `;
@@ -739,18 +782,20 @@
             update();
         }
 
-        // --- 6. BOT ACTIONS ---
+        // --- 6. BOT ACTIONS (API CALLS) ---
 
         async function createBot() {
             const btn = document.querySelector('#createModal button:last-child');
             const originalText = btn.innerHTML;
-            btn.innerText = "Deploying..."; btn.disabled = true;
+            btn.innerHTML = `<i class="animate-spin" data-lucide="loader-2"></i> Processing...`; 
+            btn.disabled = true;
+            lucide.createIcons();
 
             const name = document.getElementById('botName').value;
             const token = document.getElementById('botToken').value;
 
             if(!name || !token) {
-                showToast("Missing Fields", 'error');
+                showToast("Fill all fields", 'error');
                 btn.innerHTML = originalText; btn.disabled = false;
                 return;
             }
@@ -765,12 +810,12 @@
                     closeModal('createModal');
                     document.getElementById('botName').value = '';
                     document.getElementById('botToken').value = '';
-                    showToast("Bot Deployed!", 'success');
+                    showToast("Instance Deployed!", 'success');
                     init();
                 } else {
                     showToast(res.message, 'error');
                 }
-            } catch(e) { showToast("Error", 'error'); }
+            } catch(e) { showToast("Network Error", 'error'); }
             btn.innerHTML = originalText; btn.disabled = false;
         }
 
@@ -784,7 +829,7 @@
                 }).then(r => r.json());
                 
                 if(res.success) {
-                    showToast(action === 'start' ? "Server Online" : "Server Stopped", 'success');
+                    showToast(action === 'start' ? "System Online" : "System Halted", 'success');
                     init();
                 } else {
                     showToast(res.message, 'error');
@@ -794,29 +839,29 @@
         }
 
         async function restartBot(id) {
-            showToast("Rebooting...", 'info');
+            showToast("Reboot Sequence Initiated...", 'info');
             await fetch('/api/restartBot', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: id })
             });
-            init();
+            setTimeout(init, 2000);
         }
 
         function deleteBot(id) {
-            tg.showConfirm("Are you sure you want to delete this bot?", (ok) => {
+            tg.showConfirm("Danger Zone: Delete this instance permanently?", (ok) => {
                 if(ok) {
                     fetch('/api/deleteBot', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ botId: id })
                     }).then(() => {
-                        showToast("Bot Deleted", 'info');
+                        showToast("Instance Destroyed", 'info');
                         init();
                     });
                 }
             });
         }
 
-        // --- 7. EDITOR & AI SYSTEM (FRONTEND ONLY) ---
+        // --- 7. EDITOR & AI SYSTEM (THE CORE UPGRADE) ---
 
         async function openEditor(id) {
             currentBotId = id;
@@ -824,12 +869,15 @@
             el.classList.remove('hidden');
             setTimeout(() => el.classList.remove('translate-x-full'), 10);
             
-            const res = await fetch('/api/getCommands', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ botId: id })
-            }).then(r => r.json());
+            // Get Commands
+            try {
+                const res = await fetch('/api/getCommands', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ botId: id })
+                }).then(r => r.json());
+                renderChips(res);
+            } catch(e) { console.log("Fetch cmds error"); renderChips({}); }
             
-            renderChips(res);
             newCmd();
         }
 
@@ -841,16 +889,18 @@
                 </button>
             `;
             
-            Object.entries(cmds).forEach(([name, code]) => {
-                const btn = document.createElement('button');
-                btn.className = 'px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-md text-xs font-mono hover:text-white hover:bg-gray-700 transition whitespace-nowrap';
-                btn.innerText = '/' + name;
-                btn.onclick = () => {
-                    document.getElementById('cmdNameInput').value = name;
-                    document.getElementById('cmdCodeInput').value = code;
-                };
-                list.appendChild(btn);
-            });
+            if(cmds && typeof cmds === 'object') {
+                Object.entries(cmds).forEach(([name, code]) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-md text-xs font-mono hover:text-white hover:bg-gray-700 transition whitespace-nowrap';
+                    btn.innerText = '/' + name;
+                    btn.onclick = () => {
+                        document.getElementById('cmdNameInput').value = name;
+                        document.getElementById('cmdCodeInput').value = code;
+                    };
+                    list.appendChild(btn);
+                });
+            }
             lucide.createIcons();
         }
 
@@ -868,7 +918,7 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ botId: currentBotId, command: name, code })
             });
-            showToast("Saved!", 'success');
+            showToast("Saved Successfully", 'success');
             openEditor(currentBotId);
         }
 
@@ -883,8 +933,7 @@
             }
         }
 
-        // --- 8. AI GENERATION (FRONTEND WEBSOCKET) ---
-        // This connects directly to the AI service, bypassing the server as requested.
+        // --- 8. AI GENERATION (WITH MAGIC ANIMATION) ---
 
         function openAI() { openModal('aiModal'); }
 
@@ -893,54 +942,70 @@
             if(!prompt) return;
             
             closeModal('aiModal');
-            const target = document.getElementById('cmdCodeInput');
-            target.value = "// 🤖 AI is thinking...\n// Generating code with Glass UI style...";
             
-            // Establish Connection
+            // 1. Show Magic Animation
+            const magicOverlay = document.getElementById('magicOverlay');
+            magicOverlay.classList.remove('hidden');
+            
+            const target = document.getElementById('cmdCodeInput');
+            target.value = ""; 
+            
+            // 2. Connect to AI
             const ws = new WebSocket("wss://backend.buildpicoapps.com/ask_ai_streaming_v2");
             
             ws.addEventListener("open", () => {
-                // STRICT PROMPT INJECTION to force the specific format
+                // *** STRICT PROMPT ENGINEERING FOR THE USER'S FORMAT ***
                 const strictPrompt = `
-                    ACT AS: Expert Telegram Bot Developer.
-                    TASK: Write raw JavaScript code logic for Telegraf.js v4.
+                    ACT AS: Expert Telegram Bot Developer using Telegraf.js v4.
                     
-                    STRICT OUTPUT RULES:
-                    1. NO 'bot.command', NO 'bot.on', NO 'new Telegraf'.
-                    2. ONLY write the internal logic inside the function.
-                    3. YOU MUST USE THIS EXACT FORMAT FOR REPLIES:
+                    TASK: Write raw JavaScript logic for the function body ONLY.
+                    
+                    STRICT RULES:
+                    1. DO NOT include 'bot.command', 'bot.on', 'const bot = ...'.
+                    2. DO NOT use markdown code blocks (\`\`\`).
+                    3. YOU MUST USE THIS EXACT FORMAT for responses:
+                       
                        ctx.replyWithHTML(
-                           'Your Text Here',
+                           'Your Message Here',
                            Markup.inlineKeyboard([
-                               Markup.button.callback('Button Name', 'callback_data'),
-                               ...
+                               [Markup.button.callback('Btn Text', 'callback_data')],
+                               [Markup.button.callback('Btn Text', 'callback_data')]
                            ])
                        );
-                    4. Do not use Markdown backticks.
-                    
-                    USER REQUEST: ${prompt}
+
+                    4. Handle the user's specific request: ${prompt}
                 `;
 
                 ws.send(JSON.stringify({
-                    appId: "truth-choose", // Using a public AppID for demo purposes
+                    appId: "truth-choose",
                     prompt: strictPrompt
                 }));
             });
             
             let accumulated = "";
             ws.addEventListener("message", (e) => {
-                if(target.value.startsWith("//")) target.value = "";
                 accumulated += e.data;
-                // Cleanup Markdown if AI still adds it
-                let clean = accumulated.replace(/```javascript/g, '').replace(/```/g, '').trim();
+                // Cleanup: remove standard markdown if AI ignores rules
+                let clean = accumulated
+                    .replace(/```javascript/g, '')
+                    .replace(/```/g, '')
+                    .trim();
                 target.value = clean;
                 target.scrollTop = target.scrollHeight;
             });
             
-            ws.addEventListener("close", () => showToast("Code Generated!", 'success'));
+            ws.addEventListener("close", () => {
+                // 3. Hide Magic Animation after delay
+                setTimeout(() => {
+                    magicOverlay.classList.add('hidden');
+                    showToast("Magic Cast Successfully!", 'success');
+                }, 1000);
+            });
+            
             ws.addEventListener("error", () => {
-                target.value = "// Error connecting to AI service.";
-                showToast("AI Error", 'error');
+                magicOverlay.classList.add('hidden');
+                target.value = "// Magic Fizzled out. Try again.";
+                showToast("Spell Failed (Network Error)", 'error');
             });
         }
 
@@ -962,44 +1027,63 @@
 
             if(mode === 'cash') {
                 cash.classList.remove('hidden'); ref.classList.add('hidden');
-                btnCash.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-gray-700 text-white shadow transition-all";
-                btnRef.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all";
+                btnCash.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-primary text-white shadow transition-all";
+                btnRef.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all";
             } else {
                 ref.classList.remove('hidden'); cash.classList.add('hidden');
-                btnRef.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-primary text-white shadow transition-all";
-                btnCash.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all";
+                btnRef.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-primary text-white shadow transition-all";
+                btnCash.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all";
             }
         }
 
         async function submitPay() {
             const trx = document.getElementById('trxId').value;
-            if(payMode === 'cash' && !trx) return showToast("Enter TrxID", 'error');
+            if(payMode === 'cash' && !trx) return showToast("TrxID Required", 'error');
 
-            const res = await fetch('/api/submit-payment', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    userId: user.id.toString(), user: user.username,
-                    method: payMode === 'cash' ? 'manual' : 'referral',
-                    plan: payDetails.plan, amount: payDetails.price, trxId: trx
-                })
-            }).then(r => r.json());
+            // Send to Backend
+            try {
+                const res = await fetch('/api/submit-payment', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        userId: user.id.toString(), user: user.username,
+                        method: payMode === 'cash' ? 'manual' : 'referral',
+                        plan: payDetails.plan, amount: payDetails.price, trxId: trx
+                    })
+                }).then(r => r.json());
 
-            if(res.success) {
-                closeModal('payModal');
-                showToast("Submitted!", 'success');
-                if(payMode === 'referral') init();
-            } else {
-                showToast(res.message, 'error');
-            }
+                if(res.success) {
+                    closeModal('payModal');
+                    showToast("Payment Submitted!", 'success');
+                    
+                    // Optimistic UI Update (Simulate Expiry Display)
+                    const tempDate = new Date();
+                    tempDate.setDate(tempDate.getDate() + 30);
+                    updateDashboardUI({
+                        user: { 
+                            ...user, 
+                            plan: payDetails.plan, 
+                            expireDate: tempDate, // Show it immediately
+                            referrals: 0, 
+                            botLimit: payDetails.plan==='VIP'?10:5 
+                        },
+                        bots: [] // Placeholder
+                    });
+
+                    // Real refresh
+                    setTimeout(init, 2000); 
+                } else {
+                    showToast(res.message, 'error');
+                }
+            } catch (e) { showToast("Payment Error", 'error'); }
         }
 
         function copyToClipboard(txt) { 
             navigator.clipboard.writeText(txt); 
-            showToast("Copied!", 'success'); 
+            showToast("Copied to Clipboard", 'success'); 
         }
         
         function copyLink() { 
-            copyToClipboard(`https://t.me/lagahostbot?start=${user.id}`); 
+            copyToClipboard(`https://t.me/lagahostaibot?start=${user.id}`); 
         }
 
         function openModal(id) {
