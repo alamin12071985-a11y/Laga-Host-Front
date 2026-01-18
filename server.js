@@ -1,7 +1,7 @@
 /**
  * =================================================================================
  * PROJECT: LAGA HOST ULTIMATE SERVER (SECURE ENTERPRISE EDITION)
- * VERSION: 7.2.0 (AI Magic Support & Expiry Logic Enforced)
+ * VERSION: 7.6.0 (Marketplace + Auto-Delivery + AI Magic Support)
  * AUTHOR: Laga Host Team
  * COPYRIGHT: © 2024-2026 Laga Host Inc.
  * 
@@ -19,6 +19,11 @@
  *  - Frontend AI Architecture Support (WebSocket Integration)
  *  - Dynamic Command Execution Engine with Context Isolation
  *  - Real-time Analytics & User Activity Tracking
+ * 
+ *  [NEW FEATURES - V7.6 MARKETPLACE]
+ *  - Digital Product Database (Products & Orders)
+ *  - Admin Wizard for easy Product Upload via Telegram
+ *  - Automated Secure File Delivery System (No download links, Direct DM)
  * 
  * NOTE: This file is optimized for high-availability environments (Render/Heroku/VPS).
  * =================================================================================
@@ -160,7 +165,8 @@ function logSystem(type, message) {
         BOT:       '🤖  [BOT]    ',
         BROADCAST: '📢  [CAST]   ',
         SEC:       '🛡️  [SECURE] ',
-        PAYMENT:   '💰  [PAY]    '
+        PAYMENT:   '💰  [PAY]    ',
+        MARKET:    '🛍️  [MARKET] ' // New Icon for Marketplace
     };
     
     const prefix = icons[type] || '🔹  [LOG]    ';
@@ -242,10 +248,9 @@ const botSchema = new mongoose.Schema({
     
     // Code Storage (The "Brain")
     // commands object maps command names (e.g., 'start') to JS code strings
-    // This allows dynamic execution via the sandbox engine
     commands: { type: Object, default: {} }, 
     
-    // Environment Variables (Future Proofing for API Keys)
+    // Environment Variables
     envVars: { type: Object, default: {} },
     
     // Uptime & Performance Statistics
@@ -261,7 +266,6 @@ const botSchema = new mongoose.Schema({
 
 // --- 4.3 END USER SCHEMA (Client Users) ---
 // Stores users who interact with the HOSTED bots.
-// Essential for "Client User" Broadcasting.
 const endUserSchema = new mongoose.Schema({
     tgId: { type: String, required: true },
     botId: { type: String, required: true, index: true },
@@ -291,23 +295,69 @@ const paymentSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now }
 });
 
+// =================================================================================
+// [NEW] 4.5 MARKETPLACE SCHEMAS (For Product & Order Management)
+// =================================================================================
+
+// Product Schema: Stores digital goods
+const productSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    displayImageId: { type: String, required: true }, // Telegram File ID for the Cover Image
+    
+    // Pricing
+    originalPrice: { type: Number, required: true },
+    discountPrice: { type: Number, required: true },
+    
+    // Digital Delivery Configuration
+    // If 'FILE', we send the contentFileId via Telegram
+    // If 'TEXT', we send the contentMessage (e.g., Key, Password)
+    deliveryType: { type: String, enum: ['FILE', 'TEXT'], default: 'FILE' },
+    contentFileId: { type: String }, 
+    contentMessage: { type: String }, 
+    
+    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Order Schema: Tracks marketplace purchases
+const orderSchema = new mongoose.Schema({
+    orderId: { type: String, unique: true }, // Short ID like ORD-123456
+    userId: { type: String, required: true },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    productTitle: String,
+    amountPaid: Number,
+    paymentMethod: { type: String, enum: ['BKASH', 'NAGAD', 'POINTS'] },
+    trxId: String,
+    
+    // Delivery Status
+    deliveryStatus: { type: String, default: 'PENDING', enum: ['PENDING', 'SENT'] },
+    
+    date: { type: Date, default: Date.now }
+});
+
 // Compile Models
 const UserModel = mongoose.model('User', userSchema);
 const BotModel = mongoose.model('Bot', botSchema);
 const EndUserModel = mongoose.model('EndUser', endUserSchema);
 const PaymentModel = mongoose.model('Payment', paymentSchema);
+// New Models
+const ProductModel = mongoose.model('Product', productSchema);
+const OrderModel = mongoose.model('Order', orderSchema);
 
 // =================================================================================
 // 5. SERVER MIDDLEWARE & SECURITY SETUP
 // =================================================================================
 
 // 5.1 RAM Storage for Active Bot Instances & Broadcast Data
-// Since JS objects are stored in RAM, if the server restarts, this clears.
-// We have a recovery mechanism in the startup sequence.
 let activeBotInstances = {}; 
 
 // Temporary storage for Broadcast messages (Admin ID -> Message)
 let pendingBroadcasts = {};
+
+// [NEW] Wizard Session Storage for Product Upload
+// Stores state: { adminId: { step: 1, data: {...} } }
+let adminWizardState = {}; 
 
 // 5.2 Middleware Configuration
 // Enable Cross-Origin Resource Sharing for the WebApp
@@ -505,7 +555,6 @@ async function startBotEngine(botDoc) {
                 const cmdName = text.substring(1).split(' ')[0]; 
                 
                 // Fetch fresh code from DB (Allows Hot-Reloading without restart)
-                // This means users can edit code in WebApp and it applies instantly!
                 const freshBot = await BotModel.findById(botId);
                 const code = freshBot?.commands?.[cmdName];
                 
@@ -515,8 +564,6 @@ async function startBotEngine(botDoc) {
                         // We create a new Function that wraps the user's code.
                         // We strictly pass only necessary variables to prevent system access.
                         
-                        // Note to Editor: The 'ctx.replyWithHTML' and 'Markup' are passed here 
-                        // so the AI generated code works perfectly.
                         const runUserCode = new Function('ctx', 'bot', 'Markup', 'axios', 'moment', `
                             try {
                                 // --- BEGIN USER CODE ---
@@ -905,6 +952,79 @@ app.post('/api/submit-payment', async (req, res) => {
 });
 
 // =================================================================================
+// 10.5 [NEW] MARKETPLACE API ROUTES (PRODUCTS & ORDERS)
+// =================================================================================
+
+/**
+ * GET /api/products
+ * Returns list of all ACTIVE products for the Frontend Marketplace
+ */
+app.get('/api/products', async (req, res) => {
+    try {
+        const products = await ProductModel.find({ status: 'ACTIVE' }).sort({ createdAt: -1 });
+        res.json({ success: true, products });
+    } catch (e) {
+        logSystem('ERROR', `Product Fetch Error: ${e.message}`);
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+/**
+ * POST /api/buy-product
+ * Handles product purchase, creates order, and notifies admin.
+ */
+app.post('/api/buy-product', async (req, res) => {
+    const { userId, productId, paymentMethod, trxId } = req.body;
+    
+    try {
+        // 1. Validate Product
+        const product = await ProductModel.findById(productId);
+        if (!product) return res.json({ success: false, message: 'Product unavailable or deleted.' });
+        
+        // 2. Create Unique Order ID
+        const orderCode = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+        
+        // 3. Save Order to DB
+        const newOrder = await OrderModel.create({
+            orderId: orderCode,
+            userId,
+            productId: product._id,
+            productTitle: product.title,
+            amountPaid: product.discountPrice,
+            paymentMethod,
+            trxId,
+            deliveryStatus: 'PENDING'
+        });
+
+        // 4. Notify Admin with "One-Click Delivery" Button
+        await mainBot.telegram.sendMessage(ADMIN_CONFIG.adminId, 
+            `🛍️ <b>NEW MARKET ORDER RECEIVED</b>\n\n` +
+            `📦 <b>Product:</b> ${product.title}\n` +
+            `💰 <b>Amount:</b> ${product.discountPrice}৳\n` +
+            `👤 <b>User:</b> <code>${userId}</code>\n` +
+            `💳 <b>Method:</b> ${paymentMethod}\n` +
+            `🧾 <b>TrxID:</b> <code>${trxId}</code>\n` +
+            `🆔 <b>Order ID:</b> ${orderCode}`,
+            {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: '✅ Verify & Auto-Send File', callback_data: `deliver:${newOrder._id}` },
+                        { text: '❌ Reject Order', callback_data: `reject_ord:${newOrder._id}` }
+                    ]]
+                }
+            }
+        );
+
+        res.json({ success: true, message: 'Order Placed! File will be sent to your DM after verification.' });
+
+    } catch (e) {
+        logSystem('ERROR', `Buy Product Error: ${e.message}`);
+        res.json({ success: false, message: 'Server Error' });
+    }
+});
+
+// =================================================================================
 // 11. CRON JOBS (AUTOMATED MAINTENANCE)
 // =================================================================================
 
@@ -1100,7 +1220,215 @@ mainBot.action('action_back', async (ctx) => {
 });
 
 // =================================================================================
-// 13. ADVANCED DUAL BROADCAST SYSTEM
+// 12.6 [NEW] ADMIN WIZARD FOR PRODUCT UPLOAD
+// =================================================================================
+
+// Command to start Wizard
+mainBot.command('addproduct', async (ctx) => {
+    if (ctx.from.id.toString() !== ADMIN_CONFIG.adminId) {
+        return ctx.reply("⛔ Unauthorized.");
+    }
+    
+    // Initialize Session
+    adminWizardState[ctx.from.id] = { step: 1, data: {} };
+    
+    ctx.reply(
+        "🛍️ <b>ADD NEW PRODUCT (Wizard Mode)</b>\n\n" +
+        "Step 1/5: Please send the <b>Product Image</b> (Compressed/Photo).", 
+        { parse_mode: 'HTML' }
+    );
+});
+
+mainBot.command('cancel', async (ctx) => {
+    if (adminWizardState[ctx.from.id]) {
+        delete adminWizardState[ctx.from.id];
+        ctx.reply("❌ Operation Cancelled.");
+    }
+});
+
+// Wizard Step Handler (Global Text/Photo Listener)
+mainBot.on(['text', 'photo', 'document'], async (ctx, next) => {
+    const userId = ctx.from.id;
+    // Skip if not admin or not in wizard mode
+    if (userId.toString() !== ADMIN_CONFIG.adminId || !adminWizardState[userId]) return next();
+
+    const state = adminWizardState[userId];
+    const msg = ctx.message;
+
+    // STEP 1: IMAGE
+    if (state.step === 1) {
+        if (!msg.photo) return ctx.reply("⚠️ Please send a PHOTO for the product cover.");
+        // Get the largest photo file_id
+        const fileId = msg.photo[msg.photo.length - 1].file_id;
+        state.data.displayImageId = fileId;
+        state.step = 2;
+        return ctx.reply("✅ Image Saved.\n\nStep 2/5: Enter <b>Product Title</b>.");
+    }
+
+    // STEP 2: TITLE
+    if (state.step === 2) {
+        if (!msg.text) return ctx.reply("⚠️ Text only please.");
+        state.data.title = msg.text;
+        state.step = 3;
+        return ctx.reply("✅ Title Saved.\n\nStep 3/5: Enter <b>Description</b>.");
+    }
+
+    // STEP 3: DESCRIPTION
+    if (state.step === 3) {
+        if (!msg.text) return ctx.reply("⚠️ Text only please.");
+        state.data.description = msg.text;
+        state.step = 4;
+        return ctx.reply("✅ Description Saved.\n\nStep 4/5: Enter <b>OriginalPrice</b> and <b>DiscountPrice</b> separated by space.\nExample: <code>500 450</code>", { parse_mode: 'HTML' });
+    }
+
+    // STEP 4: PRICE
+    if (state.step === 4) {
+        if (!msg.text) return ctx.reply("⚠️ Text only please.");
+        const parts = msg.text.split(' ');
+        if (parts.length < 2) return ctx.reply("⚠️ Invalid Format. Try: 500 450");
+        
+        state.data.originalPrice = parseInt(parts[0]);
+        state.data.discountPrice = parseInt(parts[1]);
+        state.step = 5;
+        
+        return ctx.reply("✅ Prices Saved.\n\nStep 5/5: <b>Upload the Digital Content.</b>\n\nSend the FILE/DOCUMENT or TEXT that the user will receive after purchase.", { parse_mode: 'HTML' });
+    }
+
+    // STEP 5: CONTENT (FILE/TEXT) & SAVE
+    if (state.step === 5) {
+        try {
+            if (msg.document) {
+                state.data.deliveryType = 'FILE';
+                state.data.contentFileId = msg.document.file_id;
+            } else if (msg.photo) {
+                // If admin sends a photo as content
+                state.data.deliveryType = 'FILE';
+                state.data.contentFileId = msg.photo[msg.photo.length - 1].file_id; 
+            } else if (msg.text) {
+                state.data.deliveryType = 'TEXT';
+                state.data.contentMessage = msg.text;
+            } else {
+                return ctx.reply("⚠️ Invalid Content Type. Send Document, Photo, or Text.");
+            }
+
+            // Save to DB
+            const newProd = await ProductModel.create(state.data);
+            
+            ctx.replyWithPhoto(state.data.displayImageId, {
+                caption: `🎉 <b>Product Published Successfully!</b>\n\n<b>${state.data.title}</b>\nPrice: ${state.data.discountPrice}৳ (<s>${state.data.originalPrice}৳</s>)\n\n<i>Use /myproducts to manage.</i>`,
+                parse_mode: 'HTML'
+            });
+
+            // Cleanup
+            delete adminWizardState[userId];
+
+        } catch (e) {
+            ctx.reply(`❌ Database Error: ${e.message}`);
+            delete adminWizardState[userId];
+        }
+    }
+});
+
+// Manage Products Command
+mainBot.command('myproducts', async (ctx) => {
+    if (ctx.from.id.toString() !== ADMIN_CONFIG.adminId) return;
+    const products = await ProductModel.find({ status: 'ACTIVE' });
+    
+    if (products.length === 0) return ctx.reply("No active products.");
+    
+    for (const p of products) {
+        await ctx.replyWithPhoto(p.displayImageId, {
+            caption: `📦 <b>${p.title}</b>\n💰 ${p.discountPrice}৳`,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[{ text: '🗑️ Delete', callback_data: `delprod:${p._id}` }]]
+            }
+        });
+    }
+});
+
+// Delete Product Action
+mainBot.action(/^delprod:(.+)$/, async (ctx) => {
+    await ProductModel.findByIdAndDelete(ctx.match[1]);
+    await ctx.deleteMessage();
+    await ctx.answerCbQuery("Product Deleted");
+});
+
+// =================================================================================
+// 12.7 [NEW] AUTO-DELIVERY LOGIC FOR ORDERS
+// =================================================================================
+
+// Admin clicks "Verify & Send File"
+mainBot.action(/^deliver:(.+)$/, async (ctx) => {
+    try {
+        const orderId = ctx.match[1];
+        const order = await OrderModel.findById(orderId).populate('productId');
+        
+        if (!order) return ctx.answerCbQuery("Order not found!");
+        if (order.deliveryStatus === 'SENT') return ctx.answerCbQuery("Already Sent!");
+        
+        // 1. Update Order Status
+        order.deliveryStatus = 'SENT';
+        await order.save();
+        
+        // 2. SEND FILE TO USER (Auto Delivery)
+        const product = order.productId;
+        const userId = order.userId;
+        
+        // Send Notification First
+        await mainBot.telegram.sendMessage(userId, 
+            `✅ <b>Order Confirmed!</b>\n\n` +
+            `Your payment for <b>${product.title}</b> has been verified.\n` +
+            `👇 <b>Here is your delivery:</b>`,
+            { parse_mode: 'HTML' }
+        );
+        
+        // Send Actual Content
+        if (product.deliveryType === 'FILE') {
+            // Using copyMessage or sendDocument. sendDocument is safer for files.
+            // If it fails (e.g. was a photo ID), we try sendPhoto.
+            try {
+                await mainBot.telegram.sendDocument(userId, product.contentFileId, {
+                    caption: `📦 <b>${product.title}</b>\n<i>Thank you for purchasing!</i>`,
+                    parse_mode: 'HTML'
+                });
+            } catch (docErr) {
+                // Fallback to Photo
+                await mainBot.telegram.sendPhoto(userId, product.contentFileId, {
+                    caption: `📦 <b>${product.title}</b>\n<i>Thank you for purchasing!</i>`,
+                    parse_mode: 'HTML'
+                });
+            }
+        } else {
+            // Text Delivery (Keys, Links, etc.)
+            await mainBot.telegram.sendMessage(userId, 
+                `🔐 <b>Secret Content/Key:</b>\n\n<code>${product.contentMessage}</code>`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        
+        // 3. Update Admin UI
+        await ctx.editMessageText(
+            `${ctx.callbackQuery.message.text}\n\n✅ <b>DELIVERED & SENT TO USER</b>\nBy: ${ctx.from.first_name}`,
+            { parse_mode: 'HTML' }
+        );
+        
+    } catch (e) {
+        console.error(e);
+        ctx.answerCbQuery("Delivery Failed: " + e.message);
+    }
+});
+
+// Reject Order
+mainBot.action(/^reject_ord:(.+)$/, async (ctx) => {
+    const orderId = ctx.match[1];
+    await OrderModel.findByIdAndDelete(orderId);
+    await ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ <b>DECLINED</b>`, { parse_mode: 'HTML' });
+});
+
+
+// =================================================================================
+// 13. ADVANCED DUAL BROADCAST SYSTEM (RETAINED)
 // =================================================================================
 
 // 13.1 BROADCAST COMMAND HANDLER
@@ -1466,5 +1794,6 @@ app.listen(PORT, () => {
     logSystem('SUCCESS', `LAGA HOST SERVER RUNNING ON PORT ${PORT}`);
     logSystem('SUCCESS', `DASHBOARD URL: ${WEB_APP_URL}`);
     logSystem('SUCCESS', `ENV: ${process.env.NODE_ENV || 'Development'}`);
+    logSystem('SUCCESS', `MARKETPLACE & AUTO-DELIVERY ACTIVE (V7.6)`);
     logSystem('SUCCESS', `-------------------------------------------`);
 });
