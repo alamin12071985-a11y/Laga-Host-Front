@@ -1339,28 +1339,35 @@
             const target = document.getElementById('cmdCodeInput');
             target.value = ""; 
             
-            const ws = new WebSocket("wss://backend.buildpicoapps.com/ask_ai_streaming_v2");
-            
-            ws.addEventListener("open", () => {
-                const strictPrompt = `ACT AS: Expert Telegram Bot Developer (Telegraf.js v4). TASK: Write only JS function body. NO MARKDOWN. USER PROMPT: ${prompt}`;
-                ws.send(JSON.stringify({ appId: "truth-choose", prompt: strictPrompt }));
-            });
-            
-            let accumulated = "";
-            ws.addEventListener("message", (e) => {
-                accumulated += e.data;
-                target.value = accumulated.replace(/```javascript/g, '').replace(/```/g, '').trim();
-                target.scrollTop = target.scrollHeight;
-            });
-            
-            ws.addEventListener("close", () => {
-                setTimeout(() => {
-                    magicOverlay.classList.add('hidden');
-                    showToast("Magic Cast Successfully!", 'success');
-                }, 1000);
-            });
-        }
+    // --- LagaAI Render API Integration ---
+    
+    // ১. লোডিং টেক্সট দেখানো
+    target.value = "// ⏳ Generating code via LagaAI... Please wait.";
 
+    // ২. আপনার Render API কল করা
+    fetch(`https://lagaai.onrender.com/api?q=${encodeURIComponent(prompt)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // সফল হলে কোড বক্সে কোড বসবে
+                target.value = data.generated_code;
+            } else {
+                // এরর হলে মেসেজ দেখাবে
+                target.value = "// ❌ Error: Could not generate code.\n// " + JSON.stringify(data);
+            }
+        })
+        .catch(error => {
+            target.value = "// ❌ Connection Error. Please try again.";
+            console.error(error);
+        })
+        .finally(() => {
+            // ৩. কাজ শেষ হলে এনিমেশন বন্ধ করা
+            setTimeout(() => {
+                magicOverlay.classList.add('hidden');
+                showToast("Magic Cast Successfully!", 'success');
+            }, 1000);
+        });
+        }    
         // --- 10. PAYMENTS (SUBSCRIPTIONS) & UTILS ---
 
         function openPay(plan, price) {
