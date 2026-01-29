@@ -7,9 +7,9 @@
  * |____|                           |_| |_|                     
  * 
  * PROJECT: LAGA HOST ULTIMATE SERVER (TITANIUM ENTERPRISE EDITION)
- * VERSION: 10.0.1 (Production Release - STABLE)
+ * VERSION: 10.0.2 (Production Patch - FIXED)
  * AUTHOR: Laga Host Development Team
- * COPYRIGHT: Â© 2024-2027 Laga Host Inc. All Rights Reserved.
+ * COPYRIGHT: © 2024-2027 Laga Host Inc. All Rights Reserved.
  * LICENSE: Proprietary Enterprise License
  * 
  * DESCRIPTION:
@@ -90,7 +90,7 @@ const CONFIG = {
     superAdminId: process.env.ADMIN_ID || "7605281774",
 
     // Web Integration
-    frontendUrl: process.env.WEB_APP_URL || "https://lagahost.onrender.com",
+    frontendUrl: process.env.WEB_APP_URL || "https://lagahost.ct.ws",
     webhookBaseUrl: process.env.WEBHOOK_URL || null,
 
     // Support & Socials Links
@@ -200,50 +200,50 @@ class SystemLogger {
 
     static info(message) {
         // Blue/Cyan for Info
-        console.log(`â„¹ï¸  [INFO]    [${this.getTimestamp()}] : ${message}`);
+        console.log(`ℹ️   [INFO]    [${this.getTimestamp()}] : ${message}`);
     }
 
     static success(message) {
         // Green for Success
-        console.log(`âœ…  [SUCCESS] [${this.getTimestamp()}] : ${message}`);
+        console.log(`✅  [SUCCESS] [${this.getTimestamp()}] : ${message}`);
     }
 
     static warn(message) {
         // Yellow for Warning
-        console.log(`âš ï¸  [WARN]    [${this.getTimestamp()}] : ${message}`);
+        console.log(`⚠️   [WARN]    [${this.getTimestamp()}] : ${message}`);
     }
 
     static error(message, trace = '') {
         // Red for Error
-        console.error(`âŒ  [ERROR]   [${this.getTimestamp()}] : ${message}`);
+        console.error(`❌  [ERROR]   [${this.getTimestamp()}] : ${message}`);
         if(trace) {
-            console.error(`    â””â”€â”€ Trace: ${trace}`);
+            console.error(`    └── Trace: ${trace}`);
         }
     }
 
     static db(message) {
         // Purple for Database
-        console.log(`ðŸ—„ï¸  [DB]      [${this.getTimestamp()}] : ${message}`);
+        console.log(`🗄️   [DB]      [${this.getTimestamp()}] : ${message}`);
     }
 
     static bot(message) {
         // Robot Icon for Bot Events
-        console.log(`ðŸ¤–  [BOT]     [${this.getTimestamp()}] : ${message}`);
+        console.log(`🤖  [BOT]     [${this.getTimestamp()}] : ${message}`);
     }
 
     static market(message) {
         // Shopping Bag for Marketplace
-        console.log(`ðŸ›ï¸  [MARKET]  [${this.getTimestamp()}] : ${message}`);
+        console.log(`🛍️   [MARKET]  [${this.getTimestamp()}] : ${message}`);
     }
 
     static security(message) {
         // Shield for Security Events
-        console.log(`ðŸ›¡ï¸  [SECURE]  [${this.getTimestamp()}] : ${message}`);
+        console.log(`🛡️   [SECURE]  [${this.getTimestamp()}] : ${message}`);
     }
     
     static payment(message) {
         // Money Bag for Financials
-        console.log(`ðŸ’°  [PAYMENT] [${this.getTimestamp()}] : ${message}`);
+        console.log(`💰  [PAYMENT] [${this.getTimestamp()}] : ${message}`);
     }
 }
 
@@ -515,9 +515,6 @@ const Order = mongoose.model('Order', orderSchema);
 const Payment = mongoose.model('Payment', paymentSchema);
 const BroadcastJob = mongoose.model('BroadcastJob', broadcastJobSchema);
 
-// ... END OF PART 1 ...
-// ... (Continued from Part 1) ...
-
 // =================================================================================================
 // SECTION 5: IN-MEMORY STATE MANAGEMENT (RAM STORAGE)
 // =================================================================================================
@@ -597,7 +594,7 @@ async function validateSubscription(user) {
         try {
             const mainBot = new Telegraf(CONFIG.mainBotToken);
             await mainBot.telegram.sendMessage(user.userId, 
-                "âš ï¸ <b>Subscription Expired</b>\n\n" +
+                "⚠️ <b>Subscription Expired</b>\n\n" +
                 "Your plan has expired and you have been downgraded to <b>Free</b>.\n" +
                 "Excess bots have been stopped automatically to meet the Free limit.", 
                 { parse_mode: 'HTML' }
@@ -699,7 +696,7 @@ async function startBotEngine(botDoc) {
                 
                 if (userCode) {
                     try {
-                        // ðŸ“¦ SANDBOX CONSTRUCTION ðŸ“¦
+                        // 📦 SANDBOX CONSTRUCTION 📦
                         // We wrap the user code in an async IIFE (Immediately Invoked Function Expression).
                         // We ONLY pass specific secure libraries (ctx, bot, Markup, axios, moment).
                         // Access to 'process', 'require', 'fs' is blocked by scope isolation.
@@ -713,7 +710,7 @@ async function startBotEngine(botDoc) {
                                 } catch (runtimeErr) {
                                     // Send Error to User Chat
                                     ctx.replyWithHTML(
-                                        'âš ï¸ <b>Runtime Error:</b>\\n' + 
+                                        '⚠️ <b>Runtime Error:</b>\\n' + 
                                         '<pre>' + runtimeErr.message + '</pre>'
                                     ).catch(e => {});
                                 }
@@ -727,7 +724,7 @@ async function startBotEngine(botDoc) {
                     } catch (syntaxErr) {
                         // Handle Syntax Errors (e.g., missing bracket)
                         ctx.replyWithHTML(
-                            `âŒ <b>Syntax Error:</b>\n<pre>${syntaxErr.message}</pre>`
+                            `❌ <b>Syntax Error:</b>\n<pre>${syntaxErr.message}</pre>`
                         ).catch(e => {});
                     }
                 }
@@ -775,7 +772,7 @@ const app = express();
 // 7.2 CORS Configuration (Cross-Origin Resource Sharing)
 // Vital for allowing your Frontend to talk to this Backend.
 app.use(cors({
-    origin: '*', // âš ï¸ In production, replace '*' with CONFIG.frontendUrl
+    origin: '*', // ⚠️ Allows all origins to fix "Connection Failed". Secure this in production if needed.
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-id', 'x-user-id']
 }));
@@ -798,7 +795,31 @@ app.use((req, res, next) => {
     next();
 });
 
-// 7.5 Admin Authorization Middleware
+// =================================================================================================
+// SECTION 7.5: CONNECTION DIAGNOSTICS ROUTES (ADDED TO FIX CONNECTION FAILED)
+// =================================================================================================
+
+// [FIX] ROOT ROUTE: Ensures "Cannot GET /" does not appear
+app.get('/', (req, res) => {
+    res.status(200).send(`
+        <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h1>🚀 Laga Host Server is RUNNING!</h1>
+            <p>System Version: ${CONFIG.version}</p>
+            <p>Status: <span style="color: green;">Online</span></p>
+        </div>
+    `);
+});
+
+// [FIX] HEALTH CHECK: Frontend polls this to know if backend is ready
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'ok', 
+        uptime: process.uptime(),
+        dbState: mongoose.connection.readyState // 1 = Connected, 0 = Disconnected
+    });
+});
+
+// 7.6 Admin Authorization Middleware
 // Protects sensitive routes like Product Add/Delete, Broadcasts
 const requireAdmin = (req, res, next) => {
     const adminIdHeader = req.headers[CONFIG.security.adminHeader];
@@ -808,7 +829,7 @@ const requireAdmin = (req, res, next) => {
         next(); // Proceed
     } else {
         SystemLogger.warn(`Unauthorized Admin Access Attempt from IP: ${req.ip}`);
-        res.status(403).json({ success: false, message: "â›” Access Denied: Admin Only" });
+        res.status(403).json({ success: false, message: "⛔ Access Denied: Admin Only" });
     }
 };
 
@@ -853,7 +874,7 @@ app.post('/api/bots', async (req, res) => {
             user.lastActive = new Date();
             user.ipAddress = req.ip; // Security audit
             
-            // ðŸ›¡ï¸ CRITICAL: Enforce Subscription Logic
+            // 🛡️ CRITICAL: Enforce Subscription Logic
             user = await validateSubscription(user);
             await user.save();
         }
@@ -899,19 +920,19 @@ app.post('/api/createBot', async (req, res) => {
         if (currentCount >= user.botLimit) {
             return res.json({ 
                 success: false, 
-                message: `âš ï¸ Plan Limit Reached (${user.botLimit})! Please Upgrade to add more bots.` 
+                message: `⚠️ Plan Limit Reached (${user.botLimit})! Please Upgrade to add more bots.` 
             });
         }
         
         // 3. Token Format Validation
         if(!isValidBotToken(token)) {
-            return res.json({ success: false, message: 'âŒ Invalid Bot Token Format. Copy from @BotFather.' });
+            return res.json({ success: false, message: '❌ Invalid Bot Token Format. Copy from @BotFather.' });
         }
 
         // 4. Duplicate Check
         const existing = await Bot.findOne({ token });
         if (existing) {
-            return res.json({ success: false, message: 'âŒ This Token is already registered on Laga Host.' });
+            return res.json({ success: false, message: '❌ This Token is already registered on Laga Host.' });
         }
 
         // 5. Database Creation
@@ -1089,8 +1110,6 @@ app.post('/api/deleteCommand', async (req, res) => {
     } catch(e) { res.json({ success: false }) }
 });
 
-// ... END OF PART 2 ...
-// ... (Continued from Part 2) ...
 
 // -------------------------------------------------------------------------
 // 8.4 MARKETPLACE & ORDERS API (V2 - HYBRID DELIVERY)
@@ -1157,19 +1176,19 @@ app.post('/api/buy-product', async (req, res) => {
         const mainBot = new Telegraf(CONFIG.mainBotToken);
         
         await mainBot.telegram.sendMessage(CONFIG.superAdminId, 
-            `ðŸ›ï¸ <b>NEW ORDER RECEIVED</b>\n\n` +
-            `ðŸ“¦ <b>Product:</b> ${product.title}\n` +
-            `ðŸ’° <b>Value:</b> ${product.discountPrice}tk\n` +
-            `ðŸ‘¤ <b>User:</b> <code>${userId}</code>\n` +
-            `ðŸ’³ <b>Method:</b> ${paymentMethod}\n` +
-            `ðŸ§¾ <b>Trx/Ref:</b> <code>${trxId}</code>\n` +
-            `ðŸ†” <b>Order ID:</b> ${orderCode}`,
+            `🛍️ <b>NEW ORDER RECEIVED</b>\n\n` +
+            `📦 <b>Product:</b> ${product.title}\n` +
+            `💰 <b>Value:</b> ${product.discountPrice}tk\n` +
+            `👤 <b>User:</b> <code>${userId}</code>\n` +
+            `💳 <b>Method:</b> ${paymentMethod}\n` +
+            `🧾 <b>Trx/Ref:</b> <code>${trxId}</code>\n` +
+            `🆔 <b>Order ID:</b> ${orderCode}`,
             {
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [[
-                        { text: 'âœ… Verify & Auto-Send File', callback_data: `deliver:${newOrder._id}` },
-                        { text: 'âŒ Reject Order', callback_data: `reject_ord:${newOrder._id}` }
+                        { text: '✅ Verify & Auto-Send File', callback_data: `deliver:${newOrder._id}` },
+                        { text: '❌ Reject Order', callback_data: `reject_ord:${newOrder._id}` }
                     ]]
                 }
             }
@@ -1235,17 +1254,17 @@ app.post('/api/submit-payment', async (req, res) => {
         // Notify Admin for Manual Verification
         const mainBot = new Telegraf(CONFIG.mainBotToken);
         await mainBot.telegram.sendMessage(CONFIG.superAdminId, 
-            `ðŸ’° <b>NEW SUBSCRIPTION REQUEST</b>\n\n` +
-            `ðŸ‘¤ <b>User:</b> @${user} (<code>${userId}</code>)\n` +
-            `ðŸ’Ž <b>Plan:</b> ${plan} (${amount}tk)\n` +
-            `ðŸ§¾ <b>TrxID:</b> <code>${trxId}</code>\n` +
-            `ðŸ’³ <b>Method:</b> ${method}`,
+            `💰 <b>NEW SUBSCRIPTION REQUEST</b>\n\n` +
+            `👤 <b>User:</b> @${user} (<code>${userId}</code>)\n` +
+            `💎 <b>Plan:</b> ${plan} (${amount}tk)\n` +
+            `🧾 <b>TrxID:</b> <code>${trxId}</code>\n` +
+            `💳 <b>Method:</b> ${method}`,
             { 
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [[
-                        { text: 'âœ… Approve', callback_data: `approve:${userId}:${plan}:${payment._id}` }, 
-                        { text: 'âŒ Decline', callback_data: `decline:${userId}:${payment._id}` }
+                        { text: '✅ Approve', callback_data: `approve:${userId}:${plan}:${payment._id}` }, 
+                        { text: '❌ Decline', callback_data: `decline:${userId}:${payment._id}` }
                     ]]
                 }
             }
@@ -1414,10 +1433,10 @@ async function processBroadcastJob(jobId) {
 
     // Notify Admin via Telegram
     mainBot.telegram.sendMessage(CONFIG.superAdminId, 
-        `ðŸ“¢ <b>Broadcast Complete</b>\n\n` +
-        `ðŸŽ¯ Target: ${job.targetType}\n` +
-        `âœ… Sent: ${sentCount}\n` +
-        `âŒ Failed: ${failedCount}`,
+        `📢 <b>Broadcast Complete</b>\n\n` +
+        `🎯 Target: ${job.targetType}\n` +
+        `✅ Sent: ${sentCount}\n` +
+        `❌ Failed: ${failedCount}`,
         { parse_mode: 'HTML' }
     ).catch(()=>{});
 }
@@ -1451,21 +1470,21 @@ mainBot.command('start', async (ctx) => {
         if (user.referredBy) {
             await User.findOneAndUpdate({ userId: user.referredBy }, { $inc: { referrals: 1 } });
             mainBot.telegram.sendMessage(user.referredBy, 
-                `ðŸŽ‰ <b>New Referral!</b>\n${ctx.from.first_name} joined via your link.\nYou earned <b>+1 Point</b>.`, 
+                `🎉 <b>New Referral!</b>\n${ctx.from.first_name} joined via your link.\nYou earned <b>+1 Point</b>.`, 
                 { parse_mode: 'HTML' }
             ).catch(()=>{});
         }
     }
 
     const welcomeText = 
-        `ðŸ‘‹ <b>Hey ${ctx.from.first_name}, Welcome to ${CONFIG.systemName}!</b>\n\n` +
-        `ðŸš€ <b>The Ultimate Telegram Bot Hosting Platform</b>\n\n` +
+        `👋 <b>Hey ${ctx.from.first_name}, Welcome to ${CONFIG.systemName}!</b>\n\n` +
+        `🚀 <b>The Ultimate Telegram Bot Hosting Platform</b>\n\n` +
         `Host, Manage, and Monetize your bots with AI power.\n` +
-        `ðŸ‘‡ <b>Click below to open the Console:</b>`;
+        `👇 <b>Click below to open the Console:</b>`;
 
     ctx.replyWithHTML(welcomeText, Markup.inlineKeyboard([
-        [Markup.button.webApp('ðŸš€ Open Dashboard', CONFIG.frontendUrl)],
-        [Markup.button.url('ðŸ“¢ Join Channel', CONFIG.support.channel), Markup.button.url('ðŸ›  Support', CONFIG.support.chat)]
+        [Markup.button.webApp('🚀 Open Dashboard', CONFIG.frontendUrl)],
+        [Markup.button.url('📢 Join Channel', CONFIG.support.channel), Markup.button.url('🛠 Support', CONFIG.support.chat)]
     ]));
 });
 
@@ -1484,13 +1503,13 @@ mainBot.command('stats', async (ctx) => {
     const ramUsed = (memory.heapUsed / 1024 / 1024).toFixed(2);
 
     ctx.replyWithHTML(
-        `ðŸ“Š <b>System Statistics</b>\n\n` +
-        `ðŸ‘¤ <b>Users:</b> ${userCount}\n` +
-        `ðŸ¤– <b>Total Bots:</b> ${botCount}\n` +
-        `ðŸŸ¢ <b>Running:</b> ${runningCount}\n` +
-        `ðŸ“¦ <b>Products:</b> ${productCount}\n` +
-        `ðŸ›’ <b>Orders:</b> ${orderCount}\n` +
-        `ðŸ’¾ <b>RAM:</b> ${ramUsed} MB`
+        `📊 <b>System Statistics</b>\n\n` +
+        `👤 <b>Users:</b> ${userCount}\n` +
+        `🤖 <b>Total Bots:</b> ${botCount}\n` +
+        `🟢 <b>Running:</b> ${runningCount}\n` +
+        `📦 <b>Products:</b> ${productCount}\n` +
+        `🛒 <b>Orders:</b> ${orderCount}\n` +
+        `💾 <b>RAM:</b> ${ramUsed} MB`
     );
 });
 
@@ -1500,7 +1519,7 @@ mainBot.command('addproduct', (ctx) => {
     
     // Init Session
     adminWizardState[ctx.from.id] = { step: 1, data: {} };
-    ctx.reply("ðŸ›ï¸ <b>Add Product Wizard</b>\n\nStep 1: Send Product Title.", { parse_mode: 'HTML' });
+    ctx.reply("🛍️ <b>Add Product Wizard</b>\n\nStep 1: Send Product Title.", { parse_mode: 'HTML' });
 });
 
 // 10.4 General Message Handler (Wizard Logic)
@@ -1569,7 +1588,7 @@ mainBot.on('message', async (ctx, next) => {
         // Save to DB
         await Product.create(state.data);
         delete adminWizardState[uid];
-        return ctx.reply("âœ… <b>Product Added Successfully!</b>", { parse_mode: 'HTML' });
+        return ctx.reply("✅ <b>Product Added Successfully!</b>", { parse_mode: 'HTML' });
     }
     
     next();
@@ -1597,7 +1616,7 @@ mainBot.action(/^deliver:(.+)$/, async (ctx) => {
     try {
         // Notification
         await mainBot.telegram.sendMessage(userId, 
-            `âœ… <b>Order Delivered!</b>\n\n` +
+            `✅ <b>Order Delivered!</b>\n\n` +
             `Your order for <b>${prod.title}</b> has been verified.\n` +
             `Here is your content:`, 
             { parse_mode: 'HTML' }
@@ -1608,14 +1627,14 @@ mainBot.action(/^deliver:(.+)$/, async (ctx) => {
             await mainBot.telegram.sendDocument(userId, prod.contentFileId);
         } else {
             await mainBot.telegram.sendMessage(userId, 
-                `ðŸ” <b>Secret Content:</b>\n\n<pre>${prod.contentMessage}</pre>`, 
+                `🔐 <b>Secret Content:</b>\n\n<pre>${prod.contentMessage}</pre>`, 
                 { parse_mode: 'HTML' }
             );
         }
 
         // Update Admin Message
         ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\nâœ… <b>SENT TO USER</b>\nBy: ${ctx.from.first_name}`, 
+            `${ctx.callbackQuery.message.text}\n\n✅ <b>SENT TO USER</b>\nBy: ${ctx.from.first_name}`, 
             { parse_mode: 'HTML' }
         );
 
@@ -1629,7 +1648,7 @@ mainBot.action(/^deliver:(.+)$/, async (ctx) => {
 mainBot.action(/^reject_ord:(.+)$/, async (ctx) => {
     const orderId = ctx.match[1];
     await Order.findByIdAndUpdate(orderId, { deliveryStatus: 'FAILED', adminNote: 'Rejected by Admin' });
-    ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\nâŒ <b>REJECTED</b>`, { parse_mode: 'HTML' });
+    ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ <b>REJECTED</b>`, { parse_mode: 'HTML' });
 });
 
 // 10.6 Action: Subscription Approval
@@ -1658,7 +1677,7 @@ mainBot.action(/^approve:(\d+):(\w+):(.+)$/, async (ctx) => {
 
     // Notify User
     await mainBot.telegram.sendMessage(userId, 
-        `âœ… <b>Payment Approved!</b>\n\n` +
+        `✅ <b>Payment Approved!</b>\n\n` +
         `You have been upgraded to <b>${plan}</b> plan.\n` +
         `Bot Limit: ${PLAN_TIERS[plan].botLimit}\n` +
         `Valid until: ${moment(expiry).format('DD MMM YYYY')}`, 
@@ -1666,7 +1685,7 @@ mainBot.action(/^approve:(\d+):(\w+):(.+)$/, async (ctx) => {
     );
 
     ctx.editMessageText(
-        `${ctx.callbackQuery.message.text}\n\nâœ… <b>APPROVED</b>\nUser Upgraded.`, 
+        `${ctx.callbackQuery.message.text}\n\n✅ <b>APPROVED</b>\nUser Upgraded.`, 
         { parse_mode: 'HTML' }
     );
 });
@@ -1678,14 +1697,14 @@ mainBot.action(/^decline:(\d+):(.+)$/, async (ctx) => {
     await Payment.findByIdAndUpdate(payId, { status: 'DECLINED', adminResponseAt: new Date() });
     
     await mainBot.telegram.sendMessage(userId, 
-        `âŒ <b>Payment Declined</b>\n\n` +
+        `❌ <b>Payment Declined</b>\n\n` +
         `Your payment request was rejected by admin.\n` +
         `Please contact support if you think this is a mistake.`, 
         { parse_mode: 'HTML' }
     );
 
     ctx.editMessageText(
-        `${ctx.callbackQuery.message.text}\n\nâŒ <b>DECLINED</b>`, 
+        `${ctx.callbackQuery.message.text}\n\n❌ <b>DECLINED</b>`, 
         { parse_mode: 'HTML' }
     );
 });
@@ -1701,7 +1720,7 @@ mainBot.action(/^decline:(\d+):(.+)$/, async (ctx) => {
  * 2. Cleans up temporary files (if any).
  */
 cron.schedule('0 0 * * *', async () => {
-    SystemLogger.info("â° Running Daily Maintenance Task...");
+    SystemLogger.info("⏰ Running Daily Maintenance Task...");
     
     const now = new Date();
     // Find expired users
