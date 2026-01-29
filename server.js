@@ -7,7 +7,7 @@
  * |____|                           |_| |_|                     
  * 
  * PROJECT: LAGA HOST ULTIMATE SERVER (TITANIUM ENTERPRISE EDITION)
- * VERSION: 10.0.2 (Production Patch - FIXED)
+ * VERSION: 10.0.9 (Production Patch - FULL & FIXED)
  * AUTHOR: Laga Host Development Team
  * COPYRIGHT: © 2024-2027 Laga Host Inc. All Rights Reserved.
  * LICENSE: Proprietary Enterprise License
@@ -74,7 +74,7 @@ const { v4: uuidv4 } = require('uuid');         // Unique Identifier Generator
 const CONFIG = {
     // Identity & Branding
     systemName: "Laga Host Ultimate",
-    version: "10.0.1",
+    version: "10.0.9",
     env: process.env.NODE_ENV || "PRODUCTION",
     port: process.env.PORT || 3000,
     debugMode: process.env.DEBUG === 'true', // Enable verbose logging
@@ -771,6 +771,7 @@ const app = express();
 
 // 7.2 CORS Configuration (Cross-Origin Resource Sharing)
 // Vital for allowing your Frontend to talk to this Backend.
+// [CRITICAL FIX] ALLOWING ALL ORIGINS TO FIX LOADING SCREEN ISSUE
 app.use(cors({
     origin: '*', // ⚠️ Allows all origins to fix "Connection Failed". Secure this in production if needed.
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -799,7 +800,7 @@ app.use((req, res, next) => {
 // SECTION 7.5: CONNECTION DIAGNOSTICS ROUTES (ADDED TO FIX CONNECTION FAILED)
 // =================================================================================================
 
-// [FIX] ROOT ROUTE: Ensures "Cannot GET /" does not appear
+// [FIX] ROOT ROUTE: Ensures "Cannot GET /" does not appear and solves Frontend Fetch errors
 app.get('/', (req, res) => {
     res.status(200).send(`
         <div style="font-family: sans-serif; text-align: center; padding: 50px;">
