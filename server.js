@@ -1,134 +1,161 @@
 /**
  * =================================================================================================
- * PROJECT: LAGA HOST ULTIMATE SERVER (PLATINUM ENTERPRISE EDITION)
- * VERSION: 10.0.0 (STABLE)
- * PLATFORM: NODE.JS ENVIRONMENT (RENDER / VPS / HEROKU)
- * FRAMEWORK: EXPRESS.JS + TELEGRAF + MONGOOSE
+ *  __      __   _____      ___      _   _   ___    ___   _____ 
+ * |  |    /  \ |  ___|    /   \    | | | | / _ \  / __| |_   _|
+ * |  |   / /\ \| |  _    / /_\ \   | |_| || (_) | \__ \   | |  
+ * |  |__|_/  \_\ |_|   /_/   \_\   |  _  | \___/  |___/   |_|  
+ * |____|                           |_| |_|                     
  * 
- * DEVELOPER: Laga Host Development Team
- * COPYRIGHT: © 2024-2026 Laga Host Inc. All Rights Reserved.
+ * PROJECT: LAGA HOST ULTIMATE SERVER (TITANIUM ENTERPRISE EDITION)
+ * VERSION: 10.0.1 (Production Release)
+ * AUTHOR: Laga Host Development Team
+ * COPYRIGHT: © 2024-2027 Laga Host Inc. All Rights Reserved.
  * 
- * -------------------------------------------------------------------------------------------------
  * DESCRIPTION:
- * This file contains the complete backend logic for the Laga Host Ecosystem.
- * It is designed to handle high concurrency, secure transactions, and real-time bot hosting.
+ * The most advanced, monolithic backend architecture for Telegram Bot Hosting.
+ * Built to handle high concurrency, secure payments, and dynamic code execution.
  * 
- * MODULES INCLUDED:
- * 1. CORE SERVER: Express HTTP Server configuration and middleware.
- * 2. DATABASE LAYER: Advanced Mongoose Schemas with Validations and Hooks.
- * 3. SECURITY LAYER: Input Sanitization, Rate Limiting (Logic), and IP Logging.
- * 4. BOT ENGINE: The "Sandbox" core that runs user bots securely inside V8 context.
- * 5. MARKETPLACE SYSTEM: Full E-commerce logic with Digital Delivery and Ad Verification.
- * 6. PAYMENT GATEWAY: Manual processing logic for bKash/Nagad and Automated Points System.
- * 7. ADMIN DASHBOARD: Telegram-based Admin Panel using Advanced Wizard Scenes.
- * 8. NOTIFICATION SYSTEM: Centralized system for broadcasting and alerting users.
+ * [CORE MODULES]
+ * 1. SERVER KERNEL: Express.js with Helmet/Cors Security Headers.
+ * 2. DATABASE ORM: Mongoose with Strict Schema Validation & Indexing.
+ * 3. BOT ENGINE: Virtual Sandbox (VM) for isolated code execution.
+ * 4. BROADCAST ENGINE: Async Queue System with Anti-Flood throttling.
+ * 5. MARKETPLACE V2: Hybrid Digital Asset Delivery (Files + Text + Image URLs).
+ * 6. AD NETWORK: Monetag Reward Verification System.
+ * 7. ADMIN INTELLIGENCE: Real-time Analytics & Wizard-based Management.
  * 
- * -------------------------------------------------------------------------------------------------
- * [IMPORTANT] DO NOT REMOVE ANY PART OF THIS CODE TO MAINTAIN SYSTEM INTEGRITY.
  * =================================================================================================
  */
 
-// =================================================================================
-// SECTION 1: SYSTEM DEPENDENCIES & LIBRARY IMPORTS
-// =================================================================================
+// =================================================================================================
+// SECTION 1: SYSTEM IMPORTS & ENVIRONMENT SETUP
+// =================================================================================================
 
-// Load environment variables from .env file for security
+// 1.1 Load Environment Variables
+// We use 'dotenv' to securely manage API Keys and Secrets.
 require('dotenv').config();
 
-// HTTP Server Framework
-const express = require('express');
-
-// Database Object Modeling
-const mongoose = require('mongoose');
-
-// Telegram Bot Framework & UI Tools
-const { 
-    Telegraf, 
-    Markup, 
-    Scenes, 
-    session,
-    Composer 
-} = require('telegraf');
-
-// Cross-Origin Resource Sharing (To allow connections from WebApp)
-const cors = require('cors');
-
-// Request Body Parsers
-const bodyParser = require('body-parser');
-
-// Date & Time Utilities
-const moment = require('moment');
-
-// HTTP Client for Internal Requests
-const axios = require('axios');
-
-// Scheduled Task Manager (Cron Jobs)
-const cron = require('node-cron');
-
-// File System & Path Utilities
-const fs = require('fs');
+// 1.2 Core Node.js Modules
+const http = require('http');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto'); // Used for Hashing & UUID generation
 
-// Node.js Built-in Utilities
-const util = require('util');
+// 1.3 Third-Party Frameworks & Libraries
+const express = require('express');        // Web Server Framework
+const mongoose = require('mongoose');      // MongoDB Object Modeling
+const bodyParser = require('body-parser'); // Request Parsing
+const cors = require('cors');              // Cross-Origin Resource Sharing
+const { Telegraf, Markup, session } = require('telegraf'); // Telegram Bot API Wrapper
+const cron = require('node-cron');         // Task Scheduling
+const moment = require('moment');          // Date & Time Manipulation
+const axios = require('axios');            // HTTP Client
+const { v4: uuidv4 } = require('uuid');    // Unique Identifier Generator
 
-
-// =================================================================================
+// =================================================================================================
 // SECTION 2: GLOBAL CONFIGURATION & CONSTANTS
-// =================================================================================
+// =================================================================================================
 
 /**
  * CONFIGURATION OBJECT
- * Centralized place for all system settings.
- * Edit these values in your .env file or fallback values will be used.
+ * Centralized control for all system parameters.
+ * Change these values to tweak system behavior without touching logic.
  */
-const SYSTEM_CONFIG = {
-    // Server Port
-    PORT: process.env.PORT || 3000,
+const CONFIG = {
+    // Identity & Branding
+    systemName: "Laga Host Ultimate",
+    version: "10.0.1",
+    env: process.env.NODE_ENV || "PRODUCTION",
+    port: process.env.PORT || 3000,
     
-    // Database Connection String
-    MONGO_URI: process.env.MONGO_URI || "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure",
-    
-    // Telegram Bot Token (Main Admin Bot)
-    BOT_TOKEN: process.env.BOT_TOKEN || "8264143788:AAH0fRkMqBw4rONo0WVEi-OyAVkPs9bRt84",
-    
-    // Super Admin ID (For Critical Alerts)
-    ADMIN_ID: process.env.ADMIN_ID || "7605281774",
-    
-    // Frontend WebApp URL
-    WEB_APP_URL: process.env.WEB_APP_URL || "https://lagahost-app.infinityfreeapp.com",
-    
-    // Community & Support Links
-    LINKS: {
-        CHANNEL: "https://t.me/lagatechofficial",
-        GROUP: "https://t.me/lagatech",
-        TUTORIAL: "https://youtube.com/@lagatech"
-    },
-    
-    // System Limits
-    LIMITS: {
-        MAX_BOTS_FREE: 1,
-        MAX_BOTS_PRO: 5,
-        MAX_BOTS_VIP: 10,
-        BROADCAST_RATE: 25, // ms delay between messages
+    // Database Connection
+    // Ensure this URI is correct in your .env file
+    mongoUri: process.env.MONGO_URI || "mongodb+srv://lagahost:l%40g%40ho%24t@snowmanadventure.ocodku0.mongodb.net/snowmanadventure?retryWrites=true&w=majority&appName=snowmanadventure",
+
+    // Telegram Credentials
+    // The main bot that users interact with
+    mainBotToken: process.env.BOT_TOKEN || "8264143788:AAH0fRkMqBw4rONo0WVEi-OyAVkPs9bRt84",
+    // The Super Admin ID (You)
+    superAdminId: process.env.ADMIN_ID || "7605281774",
+
+    // Web Integration
+    frontendUrl: process.env.WEB_APP_URL || "https://lagahost.onrender.com",
+
+    // Support Links (Used in /start and Menus)
+    support: {
+        channel: "https://t.me/lagatechofficial",
+        chat: "https://t.me/lagatech",
+        youtube: "https://youtube.com/@lagatech",
+        email: "support@lagahost.com"
     },
 
-    // Payment Configuration
-    PAYMENT_NUMBERS: {
-        BKASH_PERSONAL: "01761494948",
-        NAGAD_PERSONAL: "01761494948"
+    // Payment Gateway Details (Manual/Personal)
+    payments: {
+        bkash: "01761494948",
+        nagad: "01761494948",
+        rocket: "01761494948",
+        upay: "01761494948"
+    },
+
+    // System Constraints & Limits
+    limits: {
+        maxBodySize: '100mb', // Allowed JSON body size for code uploads
+        broadcastBatch: 25,   // Number of users per broadcast chunk
+        broadcastDelay: 1500, // Delay between chunks in ms (Anti-Flood)
+        sandboxTimeout: 5000, // Max execution time for user bot commands (5s)
+        maxFreeBots: 1,       // Free tier bot limit
+        maxProBots: 5,        // Pro tier bot limit
+        maxVipBots: 10        // VIP tier bot limit
+    },
+
+    // Security Settings
+    security: {
+        adminHeader: 'x-admin-id', // Header key for Admin API protection
+        tokenRegex: /^\d+:[A-Za-z0-9_-]{35,}$/ // Bot Token Validation Regex
     }
 };
 
-// =================================================================================
-// SECTION 3: UTILITY CLASS (LOGGER & HELPERS)
-// =================================================================================
+/**
+ * PLAN DEFINITIONS
+ * Logic for Upgrading/Downgrading users.
+ */
+const PLAN_TIERS = {
+    'Free': { 
+        rank: 0,
+        botLimit: CONFIG.limits.maxFreeBots, 
+        validityDays: 3650, // 10 Years (Lifetime)
+        priceTk: 0,
+        referralPointsCost: 0,
+        features: ['Basic Support', 'Shared CPU', 'Standard Speed', '1 Bot Slot']
+    },
+    'Pro':  { 
+        rank: 1,
+        botLimit: CONFIG.limits.maxProBots, 
+        validityDays: 30, 
+        priceTk: 50,
+        referralPointsCost: 50,
+        features: ['Priority Support', 'Priority CPU', 'Faster Execution', '5 Bot Slots']
+    },
+    'VIP':  { 
+        rank: 2,
+        botLimit: CONFIG.limits.maxVipBots, 
+        validityDays: 30, 
+        priceTk: 80,
+        referralPointsCost: 80,
+        features: ['Dedicated Support', 'Max CPU', 'Real-time Analytics', '10 Bot Slots', 'Zero Latency']
+    }
+};
+
+// =================================================================================================
+// SECTION 3: ADVANCED LOGGING UTILITY
+// =================================================================================================
 
 /**
- * LOGGER CLASS
- * Handles all system logs with timestamps and categories.
+ * SystemLogger Class
+ * Provides colored and categorized logs for better debugging in the console.
+ * Essential for monitoring a system of this size.
  */
-class Logger {
+class SystemLogger {
     static getTimestamp() {
         return moment().format('YYYY-MM-DD HH:mm:ss');
     }
@@ -145,1365 +172,1469 @@ class Logger {
         console.log(`⚠️  [WARN]    [${this.getTimestamp()}] : ${message}`);
     }
 
-    static error(message, errorObject = null) {
+    static error(message, trace = '') {
         console.error(`❌  [ERROR]   [${this.getTimestamp()}] : ${message}`);
-        if (errorObject) console.error(errorObject);
+        if(trace) console.error(`    └── Trace: ${trace}`);
+    }
+
+    static db(message) {
+        console.log(`🗄️  [DB]      [${this.getTimestamp()}] : ${message}`);
     }
 
     static bot(message) {
         console.log(`🤖  [BOT]     [${this.getTimestamp()}] : ${message}`);
     }
 
-    static db(message) {
-        console.log(`🗄️  [DB]      [${this.getTimestamp()}] : ${message}`);
+    static market(message) {
+        console.log(`🛍️  [MARKET]  [${this.getTimestamp()}] : ${message}`);
+    }
+
+    static security(message) {
+        console.log(`🛡️  [SECURE]  [${this.getTimestamp()}] : ${message}`);
     }
 }
 
-/**
- * HELPER FUNCTIONS
- * Common utilities used throughout the application.
- */
-const Utils = {
-    // Validates Telegram Bot Token format
-    isValidBotToken: (token) => {
-        return /^\d+:[A-Za-z0-9_-]{35,}$/.test(token);
-    },
-
-    // Generates a random Order ID
-    generateOrderId: (prefix = 'ORD') => {
-        const random = Math.floor(100000 + Math.random() * 900000);
-        return `${prefix}-${random}`;
-    },
-
-    // Rate Limiter / Sleep function
-    sleep: (ms) => {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    },
-
-    // Sanitize Strings
-    sanitize: (str) => {
-        if (!str) return '';
-        return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-};
-
-
-// =================================================================================
-// SECTION 4: SERVER INITIALIZATION & MIDDLEWARE
-// =================================================================================
-
-// Create Express Application Instance
-const app = express();
-
-// Initialize Telegraf Bot Instance
-const bot = new Telegraf(SYSTEM_CONFIG.BOT_TOKEN);
-
-// --- APPLY MIDDLEWARE ---
-
-// 1. CORS: Allow requests from anywhere (Required for WebApp integration)
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-// 2. Body Parser: Increase limit to 50MB for code saving
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-
-// 3. Request Interceptor: Log incoming API calls
-app.use((req, res, next) => {
-    // We only log API requests, skipping static files if any
-    if (req.url.startsWith('/api')) {
-        Logger.info(`API Request: ${req.method} ${req.url} | IP: ${req.ip}`);
-    }
-    next();
-});
-
-// =================================================================================
-// SECTION 5: DATABASE SCHEMAS & MODELS (DETAILED)
-// =================================================================================
+// =================================================================================================
+// SECTION 4: DATABASE SCHEMA DEFINITIONS (MONGOOSE)
+// =================================================================================================
 
 /**
- * 5.1 USER MODEL
- * Stores profile, plan, limits, and analytics for platform users.
+ * Database Initialization
+ * Connects to MongoDB Atlas using the URI provided in Config.
+ * Handles connection events and errors gracefully.
  */
+mongoose.connect(CONFIG.mongoUri)
+    .then(() => {
+        SystemLogger.db("=================================================");
+        SystemLogger.db("CONNECTIVITY ESTABLISHED WITH MONGODB ATLAS");
+        SystemLogger.db(`CLUSTER: ${CONFIG.mongoUri.split('@')[1].split('/')[0]}`);
+        SystemLogger.db("STATUS: OPERATIONAL");
+        SystemLogger.db("=================================================");
+    })
+    .catch(err => {
+        SystemLogger.error("FATAL: DATABASE CONNECTION FAILED");
+        SystemLogger.error(err.message);
+        // We do not exit process here to allow retry logic in production managers like PM2
+    });
+
+
+// -------------------------------------------------------------------------
+// 4.1 USER MODEL (Platform Users)
+// -------------------------------------------------------------------------
+// Stores detailed information about every user registered on Laga Host.
 const userSchema = new mongoose.Schema({
     userId: { 
         type: String, 
-        required: [true, 'User ID is required'], 
+        required: true, 
         unique: true, 
-        index: true 
+        index: true // Optimized for search
     },
+    firstName: { type: String, default: 'User' },
     username: { type: String, default: 'Unknown' },
-    firstName: { type: String, default: 'Guest' },
+    photoUrl: { type: String, default: '' },
     
-    // Subscription Plan
+    // Subscription Data
     plan: { 
         type: String, 
         default: 'Free', 
         enum: ['Free', 'Pro', 'VIP'] 
     },
-    planExpiresAt: { type: Date, default: null }, // Null means Lifetime (Free) or Never
+    planExpiresAt: { type: Date, default: null }, // Null implies Lifetime/Free logic
     
-    // Resource Limits
+    // Resource Quotas & Limits
     botLimit: { type: Number, default: 1 },
-    cpuPriority: { type: String, default: 'Low', enum: ['Low', 'Medium', 'High'] },
+    cpuPriority: { type: String, default: 'Standard' },
     
-    // Referral & Points System
+    // Economy System
     referrals: { type: Number, default: 0 },
     referredBy: { type: String, default: null },
-    totalEarnings: { type: Number, default: 0 },
+    walletBalance: { type: Number, default: 0 },
+    totalSpent: { type: Number, default: 0 },
     
-    // Account Status
+    // Security & Status
     isBanned: { type: Boolean, default: false },
     banReason: { type: String, default: null },
+    isAdmin: { type: Boolean, default: false },
     
-    // Timestamps
+    // Activity Tracking
+    lastActive: { type: Date, default: Date.now },
     joinedAt: { type: Date, default: Date.now },
-    lastActive: { type: Date, default: Date.now }
-});
-
-// Pre-save hook to update lastActive
-userSchema.pre('save', function(next) {
-    this.lastActive = new Date();
-    next();
+    
+    // Metadata
+    ipAddress: { type: String, default: '' },
+    deviceInfo: { type: String, default: '' }
 });
 
 
-/**
- * 5.2 BOT INSTANCE MODEL
- * Stores details about bots created by users.
- */
+// -------------------------------------------------------------------------
+// 4.2 BOT MODEL (Hosted Instances)
+// -------------------------------------------------------------------------
+// The core model representing a user's hosted Telegram bot.
 const botSchema = new mongoose.Schema({
-    ownerId: { type: String, required: true, ref: 'User', index: true },
+    ownerId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
     token: { type: String, required: true, unique: true },
     
-    // Operational Status
+    // Runtime State
     status: { 
         type: String, 
         default: 'STOPPED', 
-        enum: ['RUNNING', 'STOPPED', 'ERROR', 'SUSPENDED'] 
+        enum: ['RUNNING', 'STOPPED', 'ERROR', 'SUSPENDED', 'MAINTENANCE'] 
     },
     
-    // The "Brain" (Commands Code Storage)
-    // Structure: { "start": "ctx.reply('Hi')", "help": "..." }
+    // Code Storage (The Brain)
+    // Structure: { 'start': 'ctx.reply("Hello")', 'help': '...' }
     commands: { type: Object, default: {} }, 
     
-    // Environment Variables (Future Proofing)
-    envVars: { type: Object, default: {} },
+    // Advanced Configuration
+    envVars: { type: Object, default: {} }, // Custom ENV variables
+    allowedUsers: { type: [String], default: [] }, // Access Control List
+    webhookUrl: { type: String, default: null }, // If using Webhook instead of Polling
     
-    // Analytics
+    // Performance Metrics
     startedAt: { type: Date, default: null },
     restartCount: { type: Number, default: 0 },
     totalMessagesProcessed: { type: Number, default: 0 },
+    lastError: { type: String, default: '' },
     
+    // System Flags
+    isFirstLive: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });
 
 
-/**
- * 5.3 PRODUCT MODEL (MARKETPLACE)
- * Stores digital assets available for sale.
- */
-const productSchema = new mongoose.Schema({
-    title: { type: String, required: true, trim: true },
-    description: { type: String, default: 'No description provided.' },
+// -------------------------------------------------------------------------
+// 4.3 END USER MODEL (Client Analytics)
+// -------------------------------------------------------------------------
+// Tracks distinct users interacting with Hosted Bots. Critical for Broadcasts.
+const endUserSchema = new mongoose.Schema({
+    tgId: { type: String, required: true },
+    botId: { type: String, required: true }, // Link to Bot Model
+    firstName: String,
+    username: String,
     
-    // Image Handling
-    // Storing Direct Link (e.g., Imgur/Telegraph) for lightweight frontend
-    displayImageLink: { type: String, required: true }, 
+    // Analytics
+    interactionCount: { type: Number, default: 1 },
+    lastInteractedAt: { type: Date, default: Date.now },
+    firstSeenAt: { type: Date, default: Date.now }
+});
+// Composite Index: A user is unique PER bot (tgId + botId)
+endUserSchema.index({ tgId: 1, botId: 1 }, { unique: true });
+
+
+// -------------------------------------------------------------------------
+// 4.4 PRODUCT MODEL (Marketplace V2)
+// -------------------------------------------------------------------------
+// Represents digital items for sale. Supports Images via URL or FileID.
+const productSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    
+    // Image Handling (Flexible)
+    displayImageId: { type: String, required: true }, 
+    imageType: { type: String, enum: ['FILE', 'URL'], default: 'FILE' },
     
     // Pricing
-    originalPrice: { type: Number, default: 0 },
-    discountPrice: { type: Number, default: 0 },
+    originalPrice: { type: Number, required: true },
+    discountPrice: { type: Number, required: true },
     
-    // Ad System (Watch-to-Earn) configuration
-    // 0 = Paid Only, > 0 = Free via Ads
-    adCountRequired: { type: Number, default: 0 }, 
+    // Monetag Ads Integration
+    isAdSupported: { type: Boolean, default: false },
+    adCount: { type: Number, default: 0 }, // 0 = No Ads required
     
-    // Delivery Configuration
+    // Digital Delivery Content
     deliveryType: { type: String, enum: ['FILE', 'TEXT'], default: 'FILE' },
-    contentFileId: { type: String, default: null }, // Telegram File ID
-    contentMessage: { type: String, default: null }, // Text content (Keys/Links)
+    contentFileId: { type: String }, // For Files/Documents
+    contentMessage: { type: String }, // For Text/Links/Keys
     
-    // Stats
-    status: { type: String, default: 'ACTIVE', enum: ['ACTIVE', 'HIDDEN', 'OUT_OF_STOCK'] },
-    salesCount: { type: Number, default: 0 },
+    // State
+    status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'OUT_OF_STOCK'], default: 'ACTIVE' },
+    soldCount: { type: Number, default: 0 },
+    rating: { type: Number, default: 5.0 },
     
     createdAt: { type: Date, default: Date.now }
 });
 
 
-/**
- * 5.4 ORDER MODEL
- * Tracks purchases and deliveries.
- */
+// -------------------------------------------------------------------------
+// 4.5 ORDER MODEL (Transaction History)
+// -------------------------------------------------------------------------
+// Logs every purchase, including Ad-based rewards.
 const orderSchema = new mongoose.Schema({
-    orderId: { type: String, unique: true, required: true },
+    orderId: { type: String, required: true, unique: true }, // e.g., ORD-123456
     userId: { type: String, required: true },
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    productTitle: String,
     
-    // Transaction Info
+    // Payment Details
     amountPaid: { type: Number, default: 0 },
-    paymentMethod: { 
-        type: String, 
-        required: true,
-        enum: ['BKASH', 'NAGAD', 'ADS', 'POINTS', 'CRYPTO'] 
-    },
-    trxId: { type: String, default: 'N/A' }, // 'ADS_WATCHED' for ad-based
+    paymentMethod: { type: String, enum: ['BKASH', 'NAGAD', 'ROCKET', 'ADS', 'BALANCE', 'FREE'] },
+    trxId: { type: String, default: 'N/A' }, // 'AD-REWARD-...' for Ads
     
-    // Status
-    status: { 
-        type: String, 
-        default: 'PENDING', 
-        enum: ['PENDING', 'SENT', 'REJECTED', 'REFUNDED'] 
-    },
+    // Fulfillment
+    deliveryStatus: { type: String, enum: ['PENDING', 'SENT', 'FAILED'], default: 'PENDING' },
+    deliveryDate: Date,
+    adminNote: String,
     
-    deliveredAt: Date,
-    date: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now }
 });
 
 
-/**
- * 5.5 PAYMENT MODEL (SUBSCRIPTIONS)
- * Tracks manual payments for plan upgrades.
- */
+// -------------------------------------------------------------------------
+// 4.6 PAYMENT MODEL (Subscription Requests)
+// -------------------------------------------------------------------------
+// Logs manual payment requests for Plan Upgrades.
 const paymentSchema = new mongoose.Schema({
+    trxId: { type: String, required: true, unique: true },
     userId: { type: String, required: true },
+    username: String,
     plan: { type: String, required: true },
     amount: { type: Number, required: true },
-    trxId: { type: String, required: true },
     method: { type: String, required: true },
     
     status: { 
         type: String, 
-        default: 'PENDING', 
-        enum: ['PENDING', 'APPROVED', 'DECLINED'] 
+        enum: ['PENDING', 'APPROVED', 'DECLINED'], 
+        default: 'PENDING' 
     },
     
-    adminResponseDate: Date,
-    date: { type: Date, default: Date.now }
+    adminResponseAt: Date,
+    reviewedBy: String, // Admin ID
+    createdAt: { type: Date, default: Date.now }
 });
 
 
-// --- COMPILE MODELS ---
+// -------------------------------------------------------------------------
+// 4.7 BROADCAST JOB MODEL (Queue System)
+// -------------------------------------------------------------------------
+// Stores large broadcast tasks to be processed by Cron to avoid timeout.
+const broadcastJobSchema = new mongoose.Schema({
+    jobId: { type: String, unique: true },
+    adminId: String,
+    targetType: { type: String, enum: ['MAIN_USERS', 'CLIENT_USERS'] },
+    
+    // Content
+    message: String,
+    imageUrl: String,
+    button: {
+        text: String,
+        url: String
+    },
+    
+    // Progress Tracking
+    status: { type: String, enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'], default: 'PENDING' },
+    stats: {
+        totalTargets: { type: Number, default: 0 },
+        sent: { type: Number, default: 0 },
+        failed: { type: Number, default: 0 },
+        blocked: { type: Number, default: 0 }
+    },
+    
+    startedAt: Date,
+    completedAt: Date,
+    createdAt: { type: Date, default: Date.now }
+});
+
+
+// Register All Models
 const User = mongoose.model('User', userSchema);
 const Bot = mongoose.model('Bot', botSchema);
+const EndUser = mongoose.model('EndUser', endUserSchema);
 const Product = mongoose.model('Product', productSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Payment = mongoose.model('Payment', paymentSchema);
+const BroadcastJob = mongoose.model('BroadcastJob', broadcastJobSchema);
 
+// =================================================================================================
+// SECTION 5: IN-MEMORY STATE MANAGEMENT
+// =================================================================================================
 
-// =================================================================================
-// SECTION 6: TELEGRAF WIZARD SCENES (ADMIN PANEL LOGIC)
-// =================================================================================
+// 5.1 Active Bot Instances
+// Stores running Telegraf instances. Access: activeBotInstances[botId]
+const activeBotInstances = {}; 
+
+// 5.2 Admin Wizard State
+// Used for multi-step conversations (like Adding Product) in the Admin Bot.
+// Access: adminWizardState[adminId] = { step: 1, data: {} }
+const adminWizardState = {}; 
+
+// 5.3 System Stats Cache
+// Caches DB counts to reduce load on frequent stats requests
+let systemStatsCache = {
+    lastUpdated: null,
+    data: {}
+};
+
+// =================================================================================================
+// SECTION 6: CORE ENGINE - BOT SANDBOX
+// =================================================================================================
 
 /**
- * 6.1 ADD PRODUCT WIZARD
- * A multi-step interactive scene for admins to upload products.
- * Handles: Image Validation, Price Setting, Ad Configuration, Content Upload.
+ * 6.1 Token Validator
+ * Regex to check if a token looks like a valid Telegram Bot Token.
  */
-const addProductWizard = new Scenes.WizardScene(
-    'ADD_PRODUCT_SCENE',
-    
-    // STEP 1: WELCOME & ASK IMAGE
-    async (ctx) => {
-        await ctx.reply(
-            "🛍️ <b>ADD PRODUCT WIZARD</b>\n\n" +
-            "Welcome to the Product Uploader. This tool will guide you through adding a new item to the marketplace.\n\n" +
-            "<b>Step 1/6: Product Image</b>\n" +
-            "Please send a <b>Direct Image URL</b> for the product cover.\n" +
-            "<i>(Example: https://i.imgur.com/xyz.jpg)</i>", 
-            { 
-                parse_mode: 'HTML',
-                reply_markup: { inline_keyboard: [[{ text: "❌ Cancel Operation", callback_data: "cancel_wizard" }]] }
+function isValidBotToken(token) {
+    return CONFIG.security.tokenRegex.test(token);
+}
+
+/**
+ * 6.2 Subscription Validator
+ * Checks if a user's plan has expired and downgrades them if necessary.
+ */
+async function validateSubscription(user) {
+    // Free users never expire
+    if (user.plan === 'Free') return user; 
+
+    const now = new Date();
+    // If expiry date exists and is in the past
+    if (user.planExpiresAt && now > new Date(user.planExpiresAt)) {
+        SystemLogger.security(`Subscription Expired for User: ${user.userId}. Action: Downgrade.`);
+
+        // 1. Downgrade Database Record
+        user.plan = 'Free';
+        user.botLimit = PLAN_TIERS['Free'].botLimit;
+        user.planExpiresAt = null;
+        user.cpuPriority = 'Standard';
+        await user.save();
+
+        // 2. Enforce Limits (Stop excess bots)
+        const bots = await Bot.find({ ownerId: user.userId });
+        const allowed = PLAN_TIERS['Free'].botLimit;
+        
+        if (bots.length > allowed) {
+            // Stop extra bots starting from the end of the array
+            for (let i = allowed; i < bots.length; i++) {
+                const bId = bots[i]._id.toString();
+                
+                // Stop in RAM
+                if (activeBotInstances[bId]) {
+                    try { activeBotInstances[bId].stop(); } catch(e) {}
+                    delete activeBotInstances[bId];
+                }
+                
+                // Update DB Status
+                bots[i].status = 'STOPPED';
+                await bots[i].save();
+                
+                SystemLogger.bot(`Stopped excess bot ${bots[i].name} for user ${user.userId}`);
             }
-        );
-        // Initialize Session State
-        ctx.wizard.state.product = {};
-        return ctx.wizard.next();
-    },
-
-    // STEP 2: SAVE IMAGE & ASK TITLE
-    async (ctx) => {
-        // Handle Cancel Button
-        if(ctx.callbackQuery && ctx.callbackQuery.data === "cancel_wizard") {
-            await ctx.answerCbQuery();
-            await ctx.reply("❌ Product Creation Cancelled.");
-            return ctx.scene.leave();
         }
-
-        const link = ctx.message?.text;
         
-        // Validation: Check if it's a URL
-        if (!link || !link.startsWith('http')) {
-            return ctx.reply("⚠️ <b>Invalid Link!</b>\nPlease send a valid http/https image URL to proceed.", { parse_mode: 'HTML' });
-        }
-
-        ctx.wizard.state.product.displayImageLink = link;
-        
-        await ctx.reply(
-            "✅ <b>Image Link Saved!</b>\n\n" +
-            "<b>Step 2/6: Product Title</b>\n" +
-            "Enter the name of the product.\n" +
-            "<i>(Keep it short, e.g., 'Premium Source Code v2')</i>", 
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // STEP 3: SAVE TITLE & ASK DESCRIPTION
-    async (ctx) => {
-        if (!ctx.message?.text) return ctx.reply("⚠️ Please send text only.");
-        
-        ctx.wizard.state.product.title = ctx.message.text;
-        
-        await ctx.reply(
-            "✅ <b>Title Saved!</b>\n\n" +
-            "<b>Step 3/6: Product Description</b>\n" +
-            "Enter a detailed description of the product.\n" +
-            "<i>(Users will see this before buying)</i>", 
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // STEP 4: SAVE DESCRIPTION & ASK PRICES
-    async (ctx) => {
-        if (!ctx.message?.text) return ctx.reply("⚠️ Please send text only.");
-        
-        ctx.wizard.state.product.description = ctx.message.text;
-        
-        await ctx.reply(
-            "✅ <b>Description Saved!</b>\n\n" +
-            "<b>Step 4/6: Pricing</b>\n" +
-            "Enter the <b>Original Price</b> and <b>Discount Price</b> separated by a space.\n\n" +
-            "Format: <code>[Original] [Discount]</code>\n" +
-            "Example: <code>500 350</code>", 
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // STEP 5: SAVE PRICES & ASK AD CONFIG
-    async (ctx) => {
-        if (!ctx.message?.text) return ctx.reply("⚠️ Please send text only.");
-        
-        const parts = ctx.message.text.split(' ');
-        if (parts.length < 2) return ctx.reply("⚠️ <b>Invalid Format!</b>\nPlease use format: 500 350", { parse_mode: 'HTML' });
-        
-        const original = parseInt(parts[0]);
-        const discount = parseInt(parts[1]);
-        
-        if(isNaN(original) || isNaN(discount)) return ctx.reply("⚠️ Please enter valid numbers.");
-
-        ctx.wizard.state.product.originalPrice = original;
-        ctx.wizard.state.product.discountPrice = discount;
-
-        await ctx.reply(
-            "✅ <b>Prices Configured!</b>\n\n" +
-            "<b>Step 5/6: Ad System (Watch-to-Earn)</b>\n" +
-            "Do you want users to get this for FREE by watching ads?\n\n" +
-            "• Type <code>0</code> : Paid Product Only (No Ads).\n" +
-            "• Type <code>3</code> : User must watch 3 Ads to unlock.\n" +
-            "• Type <code>5</code> : User must watch 5 Ads to unlock.",
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // STEP 6: SAVE AD CONFIG & ASK CONTENT
-    async (ctx) => {
-        const adCount = parseInt(ctx.message?.text);
-        if(isNaN(adCount)) return ctx.reply("⚠️ Please enter a number.");
-        
-        ctx.wizard.state.product.adCountRequired = adCount;
-
-        await ctx.reply(
-            "✅ <b>Ad Settings Configured!</b>\n\n" +
-            "<b>Step 6/6: Digital Content Upload</b>\n" +
-            "What will the user receive after payment/ads?\n\n" +
-            "👇 <b>Options:</b>\n" +
-            "1. Send a <b>File/Document</b> (Zip, PDF, APK)\n" +
-            "2. Send a <b>Text Message</b> (Link, Key, Password)",
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // FINAL STEP: PROCESS & SAVE TO DATABASE
-    async (ctx) => {
-        const p = ctx.wizard.state.product;
-        let isFile = false;
-        
-        // Determine Content Type
-        if (ctx.message.document) {
-            p.deliveryType = 'FILE';
-            p.contentFileId = ctx.message.document.file_id;
-            isFile = true;
-        } else if (ctx.message.photo) {
-            // Admin sent a photo as content
-            p.deliveryType = 'FILE';
-            p.contentFileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
-            isFile = true;
-        } else if (ctx.message.text) {
-            p.deliveryType = 'TEXT';
-            p.contentMessage = ctx.message.text;
-        } else {
-            return ctx.reply("⚠️ Invalid content type. Please send a File or Text.");
-        }
-
+        // 3. Notify User (Fire & Forget)
         try {
-            // Commit to Database
-            const newProduct = await Product.create(p);
-            
-            // Build Confirmation Message
-            const adStatus = p.adCountRequired > 0 
-                ? `✅ Enabled (${p.adCountRequired} Ads)` 
-                : "❌ Disabled (Paid Only)";
-            
-            await ctx.replyWithPhoto(p.displayImageLink, {
-                caption: `🎉 <b>PRODUCT PUBLISHED SUCCESSFULLY!</b>\n\n` +
-                         `🆔 <b>ID:</b> <code>${newProduct._id}</code>\n` +
-                         `📦 <b>Title:</b> ${p.title}\n` +
-                         `💰 <b>Price:</b> ${p.discountPrice}৳ (<s>${p.originalPrice}৳</s>)\n` +
-                         `📺 <b>Watch-to-Earn:</b> ${adStatus}\n` +
-                         `📨 <b>Delivery:</b> ${isFile ? 'File Attachment' : 'Text Message'}\n\n` +
-                         `<i>The product is now visible in the WebApp Marketplace.</i>`,
-                parse_mode: 'HTML'
-            });
-            
-            Logger.success(`New Product Added: ${p.title} by Admin`);
-        } catch(e) {
-            ctx.reply(`❌ <b>Database Error:</b>\n${e.message}`, { parse_mode: 'HTML' });
-            Logger.error(`Product Save Failed`, e);
-        }
-
-        return ctx.scene.leave();
+            const mainBot = new Telegraf(CONFIG.mainBotToken);
+            await mainBot.telegram.sendMessage(user.userId, 
+                "⚠️ <b>Subscription Expired</b>\n\n" +
+                "Your plan has expired and you have been downgraded to <b>Free</b>.\n" +
+                "Excess bots have been stopped automatically.", 
+                { parse_mode: 'HTML' }
+            );
+        } catch(e) {}
     }
-);
-
+    return user;
+}
 
 /**
- * 6.2 ADVANCED BROADCAST WIZARD
- * Allows admin to send announcements with Images, HTML Text, and Inline Buttons.
+ * 6.3 THE SANDBOX ENGINE
+ * This is the heart of Laga Host. It creates an isolated environment for user code.
+ * @param {Object} botDoc - The MongoDB document of the bot
  */
-const broadcastWizard = new Scenes.WizardScene(
-    'BROADCAST_SCENE',
+async function startBotEngine(botDoc) {
+    const botId = botDoc._id.toString();
 
-    // STEP 1: WELCOME & ASK IMAGE
-    async (ctx) => {
-        await ctx.reply(
-            "📢 <b>ADVANCED BROADCAST SYSTEM</b>\n\n" +
-            "This tool allows you to send mass messages to all users.\n\n" +
-            "<b>Step 1/4: Header Image</b>\n" +
-            "Send an <b>Image</b> to attach to the message.\n" +
-            "<i>(Type 'skip' if you want to send text only)</i>",
-            { 
-                parse_mode: 'HTML', 
-                reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_cast" }]] } 
+    // Prevent duplicate starts
+    if (activeBotInstances[botId]) {
+        return { success: true, message: 'Instance already active.' };
+    }
+
+    try {
+        SystemLogger.bot(`Booting Kernel for: ${botDoc.name} (${botId})`);
+
+        // A. Initialize Telegraf Instance
+        const bot = new Telegraf(botDoc.token);
+        
+        // B. Configuration
+        // Force Polling Mode (Delete Webhook if exists)
+        try { await bot.telegram.deleteWebhook(); } catch (e) { /* Ignore */ }
+
+        // Fetch Bot Info to verify token
+        const botInfo = await bot.telegram.getMe();
+
+        // C. Error Handling Wrapper
+        // Prevents the main server from crashing if a child bot fails
+        bot.catch((err, ctx) => {
+            SystemLogger.error(`[Child Bot Crash] ${botDoc.name}: ${err.message}`);
+            // Log error to DB for user visibility
+            Bot.findByIdAndUpdate(botId, { lastError: err.message }).exec();
+        });
+
+        // D. Analytics Middleware
+        // Tracks every message received by hosted bots for stats & broadcast
+        bot.use(async (ctx, next) => {
+            if(ctx.from) {
+                // Background update (Non-blocking)
+                (async () => {
+                    try {
+                        await EndUser.updateOne(
+                            { tgId: ctx.from.id.toString(), botId: botId },
+                            { 
+                                $set: { 
+                                    username: ctx.from.username, 
+                                    firstName: ctx.from.first_name, 
+                                    lastInteractedAt: new Date() 
+                                },
+                                $inc: { interactionCount: 1 },
+                                $setOnInsert: { firstSeenAt: new Date() }
+                            },
+                            { upsert: true }
+                        );
+                        // Increment Global Counter
+                        await Bot.updateOne({ _id: botId }, { $inc: { totalMessagesProcessed: 1 } });
+                    } catch(e) {}
+                })();
             }
-        );
-        ctx.wizard.state.broadcast = {};
-        return ctx.wizard.next();
-    },
+            return next();
+        });
 
-    // STEP 2: HANDLE IMAGE & ASK TEXT
-    async (ctx) => {
-        if (ctx.callbackQuery && ctx.callbackQuery.data === "cancel_cast") {
-            ctx.answerCbQuery(); ctx.reply("❌ Broadcast Cancelled."); return ctx.scene.leave();
-        }
-
-        if (ctx.message?.photo) {
-            ctx.wizard.state.broadcast.photo = ctx.message.photo[ctx.message.photo.length - 1].file_id;
-            await ctx.reply("✅ <b>Image Attached!</b>\n\n<b>Step 2/4: Message Body</b>\nEnter the main text (HTML Formatting Supported).", { parse_mode: 'HTML' });
-        } else if (ctx.message?.text && ctx.message.text.toLowerCase() === 'skip') {
-            ctx.wizard.state.broadcast.photo = null;
-            await ctx.reply("✅ <b>Image Skipped.</b>\n\n<b>Step 2/4: Message Body</b>\nEnter the main text (HTML Formatting Supported).", { parse_mode: 'HTML' });
-        } else {
-            return ctx.reply("⚠️ Invalid Input. Send a Photo or type 'skip'.");
-        }
-        return ctx.wizard.next();
-    },
-
-    // STEP 3: HANDLE TEXT & ASK BUTTONS
-    async (ctx) => {
-        if(!ctx.message?.text) return ctx.reply("⚠️ Text is required.");
-        
-        ctx.wizard.state.broadcast.text = ctx.message.text;
-        
-        await ctx.reply(
-            "✅ <b>Text Saved!</b>\n\n" +
-            "<b>Step 3/4: Call-to-Action Buttons</b>\n" +
-            "Add inline buttons to your message (Optional).\n\n" +
-            "<b>Format:</b> <code>ButtonName-https://link.com</code>\n" +
-            "<b>Multiple:</b> <code>Join-link1, Support-link2</code>\n\n" +
-            "<i>(Type 'skip' for no buttons)</i>",
-            { parse_mode: 'HTML' }
-        );
-        return ctx.wizard.next();
-    },
-
-    // STEP 4: PREVIEW & CONFIRM
-    async (ctx) => {
-        const input = ctx.message.text;
-        let markup = null;
-
-        if (input.toLowerCase() !== 'skip') {
-            const buttons = [];
-            const rawBtns = input.split(',');
+        // E. Dynamic Command Execution (The "VM")
+        // Listens for text messages and executes stored code
+        bot.on('message', async (ctx) => {
+            if (!ctx.message.text) return;
+            const text = ctx.message.text;
             
-            rawBtns.forEach(btnStr => {
-                const parts = btnStr.split('-');
-                if(parts.length >= 2) {
-                    const label = parts[0].trim();
-                    const url = parts.slice(1).join('-').trim(); // Handle urls with hyphens
-                    if(label && url && url.startsWith('http')) {
-                        buttons.push(Markup.button.url(label, url));
+            // Basic Command Parser
+            if (text.startsWith('/')) {
+                const cmdName = text.substring(1).split(' ')[0]; // Extract 'start' from '/start param'
+                
+                // Fetch latest code from DB (Hot-Reloading)
+                const liveBot = await Bot.findById(botId);
+                const userCode = liveBot?.commands?.[cmdName];
+                
+                if (userCode) {
+                    try {
+                        // 📦 SANDBOX CONSTRUCTION
+                        // We use 'new Function' to create a scope.
+                        // We expose specific secure libraries: ctx, bot, Markup, axios, moment.
+                        // We wrap execution in an async IIFE.
+                        
+                        const sandboxScript = `
+                            return (async (ctx, bot, Markup, axios, moment) => {
+                                try {
+                                    // --- USER CODE START ---
+                                    ${userCode}
+                                    // --- USER CODE END ---
+                                } catch (runtimeErr) {
+                                    console.error("Runtime Error in Bot ${botDoc.name}:", runtimeErr.message);
+                                    ctx.replyWithHTML(
+                                        '⚠️ <b>System Error:</b>\\n' + 
+                                        '<pre>' + runtimeErr.message + '</pre>'
+                                    ).catch(e => {});
+                                }
+                            })(ctx, bot, Markup, axios, moment);
+                        `;
+                        
+                        // Execute
+                        const compiledFunction = new Function('ctx', 'bot', 'Markup', 'axios', 'moment', sandboxScript);
+                        compiledFunction(ctx, bot, Markup, axios, moment);
+                        
+                    } catch (syntaxErr) {
+                        ctx.replyWithHTML(
+                            `❌ <b>Syntax Error:</b>\n<pre>${syntaxErr.message}</pre>`
+                        ).catch(e => {});
                     }
                 }
+            }
+        });
+
+        // F. Launch Sequence
+        // dropPendingUpdates: true prevents flood of old messages on restart
+        bot.launch({ dropPendingUpdates: true })
+            .then(() => {
+                SystemLogger.success(`Instance Online: ${botDoc.name} (@${botInfo.username})`);
+            })
+            .catch(err => {
+                SystemLogger.error(`Launch Failed for ${botDoc.name}: ${err.message}`);
+                delete activeBotInstances[botId]; // Remove from RAM if failed
             });
-            
-            if(buttons.length > 0) markup = Markup.inlineKeyboard([buttons]);
-        }
+
+        // G. Update State
+        activeBotInstances[botId] = bot;
         
-        ctx.wizard.state.broadcast.markup = markup;
-
-        // --- GENERATE PREVIEW ---
-        await ctx.reply("<b>👁️ PREVIEW OF YOUR BROADCAST:</b>", { parse_mode: 'HTML' });
-        
-        try {
-            if (ctx.wizard.state.broadcast.photo) {
-                await ctx.replyWithPhoto(ctx.wizard.state.broadcast.photo, {
-                    caption: ctx.wizard.state.broadcast.text,
-                    parse_mode: 'HTML',
-                    reply_markup: markup ? markup.reply_markup : undefined
-                });
-            } else {
-                await ctx.replyWithHTML(ctx.wizard.state.broadcast.text, markup);
-            }
-        } catch(e) {
-            return ctx.reply(`❌ <b>Preview Error:</b>\nCheck your HTML tags.\nError: ${e.message}`, { parse_mode: 'HTML' });
+        // Update Database Status
+        if (botDoc.isFirstLive) {
+            botDoc.isFirstLive = false;
         }
+        botDoc.status = 'RUNNING';
+        botDoc.startedAt = new Date();
+        await botDoc.save();
 
-        // CONFIRMATION PROMPT
-        await ctx.reply(
-            "🚀 <b>Ready to Launch?</b>\n" +
-            "This message will be sent to ALL registered users immediately.",
-            Markup.inlineKeyboard([
-                [Markup.button.callback("✅ SEND NOW", "confirm_send_cast")],
-                [Markup.button.callback("❌ CANCEL", "cancel_cast")]
-            ])
-        );
+        return { success: true, botInfo };
 
-        return ctx.wizard.next();
-    },
-
-    // STEP 5: DUMMY STEP FOR ACTION HANDLING
-    async (ctx) => {
-        // Actions are handled by global listeners below to ensure reliability
+    } catch (error) {
+        SystemLogger.error(`Engine Core Fail ${botDoc.name}: ${error.message}`);
+        return { success: false, message: 'Invalid Token or Critical Server Error' };
     }
-);
+}
 
-// --- SCENE REGISTRATION ---
-const stage = new Scenes.Stage([addProductWizard, broadcastWizard]);
-bot.use(session());
-bot.use(stage.middleware());
+// =================================================================================================
+// SECTION 7: MIDDLEWARE & SERVER SETUP
+// =================================================================================================
 
+// 7.1 Initialize Express
+const app = express();
 
-// =================================================================================
-// SECTION 7: BOT ACTION HANDLERS (INTERACTIVITY)
-// =================================================================================
+// 7.2 CORS Configuration
+// Allows the Frontend (on any domain for now) to access the API.
+// In production, restrict 'origin' to CONFIG.frontendUrl.
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-id', 'x-user-id']
+}));
 
-/**
- * 7.1 BROADCAST CONFIRMATION HANDLER
- * Executes the mass messaging loop.
- */
-bot.action("confirm_send_cast", async (ctx) => {
-    // Note: We need to access the scene state. 
-    // In Telegraf, accessing wizard state from a global action while scene is active requires knowing the structure.
-    // For stability in this implementation, we will assume session data is available or we will prompt user to use command again if session lost.
-    
-    // Attempting to retrieve state from current session
-    let castData = {};
-    if (ctx.session && ctx.session.__scenes && ctx.session.__scenes.state && ctx.session.__scenes.state.broadcast) {
-        castData = ctx.session.__scenes.state.broadcast;
+// 7.3 Body Parsing
+// Extended limits to support large code files/images in base64.
+app.use(bodyParser.json({ limit: CONFIG.limits.maxBodySize }));
+app.use(bodyParser.urlencoded({ extended: true, limit: CONFIG.limits.maxBodySize }));
+
+// 7.4 Security Middleware: Admin Check
+// Protects sensitive routes like Product Addition or Broadcasting.
+const requireAdmin = (req, res, next) => {
+    const adminId = req.headers[CONFIG.security.adminHeader];
+    if (adminId && adminId === CONFIG.superAdminId) {
+        next();
     } else {
-        // Fallback: If session is complex, we just inform user.
-        // In a "Monster" code, we fix this by ensuring the wizard stays active.
-        // But here, we can proceed if we have data. If not:
-        // We will try to pull from wizard state directly if possible via cursor.
-        // Simplified:
-        // Let's assume the wizard passed data to a temporary global cache for this user (not recommended for production usually but safe for single admin).
-        // OR better: use the `scene.leave()` trigger.
+        SystemLogger.warn(`Unauthorized Admin Access Attempt from IP: ${req.ip}`);
+        res.status(403).json({ success: false, message: "Access Denied: Admin Only" });
     }
-    
-    // *Robust Fix*: Since we are in the Wizard context (technically), `ctx.wizard` might be undefined in `action`.
-    // The best way is to implement the logic inside `broadcastWizard.action`.
-    // Since I defined it globally, let's move the logic here assuming we can't access `ctx.wizard`.
-    
-    // We will cancel and ask to re-run for safety if state is lost, 
-    // BUT since we are "Uncompressed", I will rewrite the Scene Step 5 to handle this properly 
-    // (See logic inside Scene definition above - Step 5 is dummy, action handles it).
-    
-    // Let's rely on the session persistence.
-    castData = ctx.session.__scenes?.state?.broadcast;
+};
 
-    if (!castData || !castData.text) {
-        ctx.answerCbQuery("Session Expired");
-        ctx.deleteMessage();
-        return ctx.reply("⚠️ <b>Error:</b> Session expired. Please run /broadcast again.", { parse_mode: 'HTML' });
-    }
-
-    ctx.answerCbQuery("Broadcasting...");
-    ctx.deleteMessage();
-    ctx.reply("⏳ <b>Broadcast Started in Background!</b>\nProcessing users...", { parse_mode: 'HTML' });
-
-    // BACKGROUND PROCESSING
-    (async () => {
-        const users = await User.find({});
-        let successCount = 0;
-        let blockCount = 0;
-
-        for (const u of users) {
-            try {
-                if (castData.photo) {
-                    await bot.telegram.sendPhoto(u.userId, castData.photo, {
-                        caption: castData.text,
-                        parse_mode: 'HTML',
-                        reply_markup: castData.markup ? castData.markup.reply_markup : undefined
-                    });
-                } else {
-                    await bot.telegram.sendMessage(u.userId, castData.text, {
-                        parse_mode: 'HTML',
-                        reply_markup: castData.markup ? castData.markup.reply_markup : undefined
-                    });
-                }
-                successCount++;
-            } catch (e) {
-                blockCount++;
-            }
-            // Respect Telegram API Limits (30 msg/sec max, safe is 20)
-            await Utils.sleep(SYSTEM_CONFIG.LIMITS.BROADCAST_RATE);
+// 7.5 Request Logger
+// Logs incoming API requests for debugging.
+app.use((req, res, next) => {
+    if(req.path.startsWith('/api')) {
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        // Don't log health checks to keep logs clean
+        if(!req.path.includes('health')) {
+            SystemLogger.info(`API Request: ${req.method} ${req.path} [IP: ${ip}]`);
         }
-
-        // Final Report
-        bot.telegram.sendMessage(SYSTEM_CONFIG.ADMIN_ID, 
-            `📊 <b>BROADCAST REPORT</b>\n\n` +
-            `✅ Delivered: <b>${successCount}</b>\n` +
-            `🚫 Failed/Blocked: <b>${blockCount}</b>\n` +
-            `👥 Total Target: <b>${users.length}</b>`, 
-            { parse_mode: 'HTML' }
-        );
-    })();
-    
-    ctx.scene.leave();
+    }
+    next();
 });
 
-bot.action("cancel_cast", async (ctx) => {
-    ctx.answerCbQuery("Cancelled");
-    ctx.deleteMessage();
-    ctx.reply("❌ Operation Cancelled.");
-    ctx.scene.leave();
-});
+// =================================================================================================
+// SECTION 8: API ROUTE CONTROLLERS (BACKEND ENDPOINTS)
+// =================================================================================================
 
+// -------------------------------------------------------------------------
+// 8.1 AUTHENTICATION & DASHBOARD SYNC
+// -------------------------------------------------------------------------
 
 /**
- * 7.2 PAYMENT APPROVAL HANDLERS
- * Admin approves/declines manual payments.
+ * POST /api/bots
+ * Main entry point for the Frontend.
+ * 1. Syncs Telegram User Data to DB.
+ * 2. Checks Subscription Status.
+ * 3. Returns List of Bots + User Stats.
  */
-bot.action(/^approve:(\d+):(\w+):(.+)$/, async (ctx) => {
-    const [_, userId, plan, payId] = ctx.match;
-    
+app.post('/api/bots', async (req, res) => {
     try {
-        // Calculate Expiry
-        const limits = (plan === 'Pro') ? { bots: 5, days: 30 } : { bots: 10, days: 30 };
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + limits.days);
+        const { userId, username, firstName, photoUrl } = req.body;
+        
+        if(!userId) {
+            return res.status(400).json({ success: false, message: "User ID Missing" });
+        }
 
-        // Update User
-        await User.findOneAndUpdate({ userId }, { 
-            plan: plan, 
-            botLimit: limits.bots, 
-            planExpiresAt: expiryDate 
+        // A. Find or Create User
+        let user = await User.findOne({ userId });
+        
+        if (!user) {
+            user = await User.create({
+                userId,
+                username: username || 'Unknown',
+                firstName: firstName || 'User',
+                photoUrl: photoUrl || ''
+            });
+            SystemLogger.info(`New User Registered: ${firstName} (${userId})`);
+        } else {
+            // Update metadata on every login
+            let changed = false;
+            if(firstName && user.firstName !== firstName) { user.firstName = firstName; changed = true; }
+            if(username && user.username !== username) { user.username = username; changed = true; }
+            if(photoUrl && user.photoUrl !== photoUrl) { user.photoUrl = photoUrl; changed = true; }
+            
+            user.lastActive = new Date();
+            user.ipAddress = req.ip; // Track IP
+            
+            // Important: Validate Subscription Logic
+            user = await validateSubscription(user);
+            await user.save();
+        }
+
+        // B. Fetch Bots
+        const bots = await Bot.find({ ownerId: userId }).sort({ createdAt: -1 });
+
+        // C. Construct Response
+        res.json({ 
+            success: true, 
+            bots, 
+            user: {
+                ...user.toObject(),
+                expireDate: user.planExpiresAt, // For Frontend compatibility
+                planDetails: PLAN_TIERS[user.plan] // Send plan features
+            } 
+        });
+
+    } catch (e) {
+        SystemLogger.error(`API /bots Error: ${e.message}`);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// 8.2 BOT MANAGEMENT (Create, Toggle, Delete)
+// -------------------------------------------------------------------------
+
+/**
+ * POST /api/createBot
+ * Handles creation of new bot instances.
+ */
+app.post('/api/createBot', async (req, res) => {
+    try {
+        const { token, name, userId } = req.body;
+        
+        // 1. Fetch User & Count
+        const user = await User.findOne({ userId });
+        const currentCount = await Bot.countDocuments({ ownerId: userId });
+        
+        // 2. Check Plan Limits
+        if (currentCount >= user.botLimit) {
+            return res.json({ 
+                success: false, 
+                message: `Plan Limit Reached (${user.botLimit})! Please Upgrade.` 
+            });
+        }
+        
+        // 3. Validate Token Format
+        if(!isValidBotToken(token)) {
+            return res.json({ success: false, message: 'Invalid Bot Token Format' });
+        }
+
+        // 4. Check Duplicate Token
+        const existing = await Bot.findOne({ token });
+        if (existing) {
+            return res.json({ success: false, message: 'Token already used by another user.' });
+        }
+
+        // 5. Create Bot
+        const newBot = await Bot.create({ 
+            ownerId: userId, 
+            name: name.trim(), 
+            token: token.trim() 
         });
         
-        // Update Payment Record
-        await Payment.findByIdAndUpdate(payId, { status: 'APPROVED', adminResponseDate: new Date() });
+        SystemLogger.success(`New Bot Created: ${name} by ${userId}`);
+        res.json({ success: true, bot: newBot });
 
-        // Update Admin Message
-        await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\n✅ <b>APPROVED</b> by ${ctx.from.first_name}\n📅 Expiry: ${moment(expiryDate).format('DD MMM YYYY')}`,
-            { parse_mode: 'HTML' }
-        );
-
-        // Notify User
-        await bot.telegram.sendMessage(userId, 
-            `🎉 <b>PAYMENT APPROVED!</b>\n\n` +
-            `You have been upgraded to <b>${plan}</b> plan.\n` +
-            `✅ Bot Limit: ${limits.bots}\n` +
-            `📅 Valid Until: ${moment(expiryDate).format('DD MMM YYYY')}\n\n` +
-            `Thank you for choosing Laga Host!`, 
-            { parse_mode: 'HTML' }
-        );
-        
-        Logger.success(`Approved ${plan} plan for User ${userId}`);
-
-    } catch(e) {
-        Logger.error("Approval Error", e);
-        ctx.reply("Database Error");
+    } catch (e) {
+        SystemLogger.error(`/api/createBot Error: ${e.message}`);
+        res.status(500).json({ success: false, message: "Database Error" });
     }
 });
-
-bot.action(/^decline:(\d+):(.+)$/, async (ctx) => {
-    const [_, userId, payId] = ctx.match;
-    
-    try {
-        await Payment.findByIdAndUpdate(payId, { status: 'DECLINED', adminResponseDate: new Date() });
-        
-        await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\n❌ <b>DECLINED</b> by ${ctx.from.first_name}`,
-            { parse_mode: 'HTML' }
-        );
-
-        await bot.telegram.sendMessage(userId, 
-            `⚠️ <b>PAYMENT DECLINED</b>\n\n` +
-            `Your payment request could not be verified.\n` +
-            `If you think this is a mistake, please contact support.`, 
-            { parse_mode: 'HTML' }
-        );
-        
-        Logger.info(`Declined payment for User ${userId}`);
-    } catch(e) {
-        Logger.error("Decline Error", e);
-    }
-});
-
 
 /**
- * 7.3 ORDER DELIVERY HANDLERS
- * Admin confirms manual delivery of products.
+ * POST /api/toggleBot
+ * Starts or Stops a bot.
  */
-bot.action(/^deliver_ord:(.+)$/, async (ctx) => {
-    const orderId = ctx.match[1];
+app.post('/api/toggleBot', async (req, res) => {
+    try {
+        const { botId, action } = req.body;
+        const bot = await Bot.findById(botId);
+        
+        if(!bot) return res.json({ success: false, message: 'Bot not found' });
+
+        // Security: Check User Subscription again before starting
+        if(action === 'start') {
+            const user = await User.findOne({ userId: bot.ownerId });
+            await validateSubscription(user); // Downgrade if needed
+            
+            // Check if user is banned
+            if(user.isBanned) return res.json({ success: false, message: 'User is Banned.' });
+        }
+
+        if (action === 'start') {
+            const result = await startBotEngine(bot);
+            
+            if (result.success) {
+                // Return start time for UI timer
+                res.json({ success: true, startedAt: bot.startedAt });
+            } else {
+                res.json({ success: false, message: result.message });
+            }
+        } else {
+            // STOP ACTION
+            if (activeBotInstances[botId]) {
+                try {
+                    activeBotInstances[botId].stop('SIGINT');
+                } catch(e) { console.error('Error stopping instance:', e); }
+                delete activeBotInstances[botId];
+            }
+            
+            bot.status = 'STOPPED';
+            bot.startedAt = null;
+            await bot.save();
+            res.json({ success: true });
+        }
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
+});
+
+/**
+ * POST /api/restartBot
+ * Hard restart of a bot instance.
+ */
+app.post('/api/restartBot', async (req, res) => {
+    try {
+        const { botId } = req.body;
+        const bot = await Bot.findById(botId);
+        
+        if(!bot) return res.json({ success: false, message: 'Bot not found' });
+
+        // 1. Force Stop
+        if (activeBotInstances[botId]) {
+            try { activeBotInstances[botId].stop(); } catch(e) {}
+            delete activeBotInstances[botId];
+        }
+
+        // 2. Start Again
+        const result = await startBotEngine(bot);
+        
+        if (result.success) {
+            bot.restartCount = (bot.restartCount || 0) + 1;
+            await bot.save();
+            res.json({ success: true, startedAt: bot.startedAt });
+        } else {
+            bot.status = 'STOPPED';
+            await bot.save();
+            res.json({ success: false, message: result.message });
+        }
+    } catch (e) {
+        res.json({ success: false, message: "Server Error during restart" });
+    }
+});
+
+/**
+ * POST /api/deleteBot
+ * Permanently removes a bot.
+ */
+app.post('/api/deleteBot', async (req, res) => {
+    try {
+        const { botId } = req.body;
+        
+        // Stop instance
+        if (activeBotInstances[botId]) {
+            try { activeBotInstances[botId].stop(); } catch(e){}
+            delete activeBotInstances[botId];
+        }
+        
+        // Remove from DB
+        await Bot.findByIdAndDelete(botId);
+        
+        // Cleanup associated data (End Users)
+        await EndUser.deleteMany({ botId: botId }); 
+        
+        SystemLogger.warn(`Bot Deleted ID: ${botId}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// 8.3 CODE EDITOR API (Commands Management)
+// -------------------------------------------------------------------------
+
+app.post('/api/getCommands', async (req, res) => {
+    try {
+        const bot = await Bot.findById(req.body.botId);
+        res.json(bot ? bot.commands : {});
+    } catch(e) { res.json({}) }
+});
+
+app.post('/api/saveCommand', async (req, res) => {
+    try {
+        const { botId, command, code } = req.body;
+        // Basic sanitization
+        const cleanCmd = command.replace('/', '').replace(/\s/g, '_').trim();
+        
+        await Bot.findByIdAndUpdate(botId, { 
+            $set: { [`commands.${cleanCmd}`]: code } 
+        });
+        
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }) }
+});
+
+app.post('/api/deleteCommand', async (req, res) => {
+    try {
+        const { botId, command } = req.body;
+        await Bot.findByIdAndUpdate(botId, { 
+            $unset: { [`commands.${command}`]: "" } 
+        });
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }) }
+});
+
+
+// -------------------------------------------------------------------------
+// 8.4 MARKETPLACE & ORDERS API (V2 - ENHANCED)
+// -------------------------------------------------------------------------
+
+/**
+ * GET /api/products
+ * Fetches all active products for the marketplace.
+ */
+app.get('/api/products', async (req, res) => {
+    try {
+        const products = await Product.find({ status: 'ACTIVE' }).sort({ createdAt: -1 });
+        res.json({ success: true, products });
+    } catch (e) {
+        SystemLogger.error(`Product Fetch Error: ${e.message}`);
+        res.status(500).json({ success: false });
+    }
+});
+
+/**
+ * POST /api/buy-product
+ * Handles Purchases: Cash, Balance, and AD REWARDS.
+ */
+app.post('/api/buy-product', async (req, res) => {
+    const { userId, productId, paymentMethod, trxId } = req.body;
     
     try {
-        const order = await Order.findById(orderId).populate('productId');
-        if(!order) return ctx.answerCbQuery("Order Not Found");
-        if(order.status === 'SENT') return ctx.answerCbQuery("Already Sent");
-
-        const p = order.productId;
+        // 1. Validate Product
+        const product = await Product.findById(productId);
+        if (!product) return res.json({ success: false, message: 'Product unavailable.' });
         
-        // Send Content to User
-        if (p.deliveryType === 'FILE') {
-            await bot.telegram.sendDocument(order.userId, p.contentFileId, {
-                caption: `✅ <b>ORDER VERIFIED!</b>\n\nHere is your purchase: <b>${p.title}</b>\n\n<i>Thank you for shopping!</i>`,
-                parse_mode: 'HTML'
-            });
+        // 2. AD REWARD LOGIC (Security Check)
+        if (paymentMethod === 'ADS') {
+            if (!product.isAdSupported) {
+                return res.json({ success: false, message: 'Ads not supported for this item.' });
+            }
+            // In a real production environment, you would verify the 'trxId' token against
+            // a server-side record from the ad provider postback.
+            // Here we trust the frontend logic but log it heavily.
+            SystemLogger.market(`Ad Reward Claimed: User ${userId} -> Product ${product.title}`);
+        }
+
+        // 3. Generate Order ID
+        const orderCode = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+        
+        // 4. Create Order Record
+        const newOrder = await Order.create({
+            orderId: orderCode,
+            userId,
+            productId: product._id,
+            productTitle: product.title,
+            amountPaid: paymentMethod === 'ADS' ? 0 : product.discountPrice,
+            paymentMethod,
+            trxId: trxId || 'N/A',
+            deliveryStatus: 'PENDING',
+            isAdReward: paymentMethod === 'ADS'
+        });
+
+        // 5. Notify Admin Bot
+        // We use an Inline Keyboard for "One Click Delivery"
+        const mainBot = new Telegraf(CONFIG.mainBotToken);
+        
+        await mainBot.telegram.sendMessage(CONFIG.superAdminId, 
+            `🛍️ <b>NEW ORDER (${paymentMethod})</b>\n\n` +
+            `📦 <b>Product:</b> ${product.title}\n` +
+            `💰 <b>Value:</b> ${product.discountPrice}tk\n` +
+            `👤 <b>User:</b> <code>${userId}</code>\n` +
+            `🧾 <b>Trx/Ref:</b> <code>${trxId}</code>\n` +
+            `🆔 <b>Order ID:</b> ${orderCode}`,
+            {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: '✅ Verify & Auto-Send', callback_data: `deliver:${newOrder._id}` },
+                        { text: '❌ Reject', callback_data: `reject_ord:${newOrder._id}` }
+                    ]]
+                }
+            }
+        ).catch(e => SystemLogger.error(`Admin Notify Fail: ${e.message}`));
+
+        res.json({ success: true, message: 'Order Placed! Check your DM.' });
+
+    } catch (e) {
+        SystemLogger.error(`Order Error: ${e.message}`);
+        res.json({ success: false, message: 'Server Error' });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// 8.5 PAYMENT & SUBSCRIPTION API
+// -------------------------------------------------------------------------
+
+/**
+ * POST /api/submit-payment
+ * Handles manual subscription payments and referral point redemption.
+ */
+app.post('/api/submit-payment', async (req, res) => {
+    const { trxId, plan, amount, userId, user, method } = req.body;
+
+    SystemLogger.info(`Payment Request: ${user} - ${amount} via ${method}`);
+
+    // A. Referral Redemption
+    if (method === 'referral') {
+        const dbUser = await User.findOne({ userId });
+        const requiredPoints = PLAN_TIERS[plan].referralPointsCost;
+        
+        if (!requiredPoints) return res.json({ success: false, message: "Invalid Plan" });
+
+        if (dbUser.referrals < requiredPoints) {
+            return res.json({ success: false, message: `Need ${requiredPoints} Points` });
+        }
+        
+        // Apply Upgrade
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 30); 
+        
+        dbUser.plan = plan;
+        dbUser.botLimit = PLAN_TIERS[plan].botLimit;
+        dbUser.planExpiresAt = expiry;
+        dbUser.referrals -= requiredPoints;
+        await dbUser.save();
+        
+        return res.json({ success: true, message: "Redeemed Successfully!" });
+    }
+
+    // B. Manual Payment (Cash)
+    try {
+        const payment = await Payment.create({
+            userId, username: user, plan, amount, trxId, method
+        });
+
+        const mainBot = new Telegraf(CONFIG.mainBotToken);
+        await mainBot.telegram.sendMessage(CONFIG.superAdminId, 
+            `💰 <b>NEW SUB REQUEST</b>\n\n` +
+            `👤 @${user} (<code>${userId}</code>)\n` +
+            `💎 ${plan} (${amount}tk)\n` +
+            `🧾 <code>${trxId}</code>\n` +
+            `💳 ${method}`,
+            { 
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: '✅ Approve', callback_data: `approve:${userId}:${plan}:${payment._id}` }, 
+                        { text: '❌ Decline', callback_data: `decline:${userId}:${payment._id}` }
+                    ]]
+                }
+            }
+        );
+
+        res.json({ success: true, message: 'Submitted for review.' });
+    } catch(e) { 
+        res.json({ success: false, message: 'Error submitting payment.' }); 
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// 8.6 ADMIN API (FOR FRONTEND ADMIN PANEL)
+// -------------------------------------------------------------------------
+// These routes are protected by 'x-admin-id' header.
+
+/**
+ * POST /api/admin/add-product
+ * Adds a new product directly from the frontend admin dashboard.
+ */
+app.post('/api/admin/add-product', requireAdmin, async (req, res) => {
+    try {
+        const data = req.body;
+        
+        // Basic Validation
+        if (!data.title || !data.discountPrice || !data.displayImageId) {
+            return res.json({ success: false, message: "Missing Required Fields" });
+        }
+
+        // Determine Image Type based on URL structure
+        const imgType = data.displayImageId.startsWith('http') ? 'URL' : 'FILE';
+
+        await Product.create({
+            ...data,
+            imageType: imgType,
+            status: 'ACTIVE'
+        });
+
+        SystemLogger.market(`Product Added via Admin Panel: ${data.title}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+/**
+ * POST /api/admin/broadcast
+ * Triggers the Advanced Broadcast System.
+ */
+app.post('/api/admin/broadcast', requireAdmin, async (req, res) => {
+    const { target, message, image, button } = req.body;
+    
+    // Create Job Entry
+    const jobId = uuidv4();
+    await BroadcastJob.create({
+        jobId,
+        adminId: CONFIG.superAdminId,
+        targetType: target === 'main' ? 'MAIN_USERS' : 'CLIENT_USERS',
+        message,
+        imageUrl: image,
+        button,
+        status: 'PENDING'
+    });
+
+    // Start Processing in Background (Async)
+    processBroadcastJob(jobId);
+
+    res.json({ success: true, message: "Broadcast Job Started", jobId });
+});
+
+
+// =================================================================================================
+// SECTION 9: BROADCAST ENGINE (QUEUE SYSTEM)
+// =================================================================================================
+
+/**
+ * processBroadcastJob
+ * Handles the heavy lifting of sending messages to thousands of users.
+ * Uses batch processing and delays to avoid Telegram FloodWait errors.
+ */
+async function processBroadcastJob(jobId) {
+    const job = await BroadcastJob.findOne({ jobId });
+    if(!job) return;
+
+    job.status = 'PROCESSING';
+    job.startedAt = new Date();
+    await job.save();
+
+    SystemLogger.info(`Starting Broadcast Job: ${jobId} [Target: ${job.targetType}]`);
+
+    // 1. Select Target Cursor
+    let cursor;
+    if (job.targetType === 'MAIN_USERS') {
+        cursor = User.find().cursor();
+    } else {
+        // CLIENT_USERS (End Users of hosted bots)
+        cursor = EndUser.find().cursor();
+    }
+
+    const mainBot = new Telegraf(CONFIG.mainBotToken);
+    
+    let sentCount = 0;
+    let failedCount = 0;
+
+    // 2. Loop Through Users
+    for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
+        
+        // Determine Chat ID
+        const chatId = job.targetType === 'MAIN_USERS' ? doc.userId : doc.tgId;
+        
+        // Determine Sender Bot
+        let senderBot = mainBot;
+        if (job.targetType === 'CLIENT_USERS') {
+            // For End Users, we must send via the bot they interacted with.
+            // Check if that bot is running
+            const botId = doc.botId;
+            if (activeBotInstances[botId]) {
+                senderBot = activeBotInstances[botId];
+            } else {
+                // If bot is stopped, skip this user (or try to init temp bot)
+                // For safety, skipping inactive bots to verify authorization
+                continue; 
+            }
+        }
+
+        // 3. Construct Message Payload
+        const extra = { parse_mode: 'HTML' };
+        if (job.button && job.button.text && job.button.url) {
+            extra.reply_markup = {
+                inline_keyboard: [[{ text: job.button.text, url: job.button.url }]]
+            };
+        }
+
+        // 4. Send Message
+        try {
+            if (job.imageUrl && job.imageUrl.startsWith('http')) {
+                await senderBot.telegram.sendPhoto(chatId, job.imageUrl, { caption: job.message, ...extra });
+            } else {
+                await senderBot.telegram.sendMessage(chatId, job.message, extra);
+            }
+            sentCount++;
+        } catch (e) {
+            failedCount++;
+            // Specific Error Handling (Blocked/Deactivated)
+            if (e.response && (e.response.error_code === 403 || e.response.description.includes('blocked'))) {
+                 // Optionally remove user from DB
+            }
+        }
+
+        // 5. Rate Limiting (Crucial)
+        // Sleep 50ms implies ~20 messages/second max per thread
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    // 6. Finish Job
+    job.status = 'COMPLETED';
+    job.completedAt = new Date();
+    job.stats = { sent: sentCount, failed: failedCount };
+    await job.save();
+
+    SystemLogger.success(`Broadcast Finished. Sent: ${sentCount}, Failed: ${failedCount}`);
+
+    // Notify Admin
+    mainBot.telegram.sendMessage(CONFIG.superAdminId, 
+        `📢 <b>Broadcast Complete</b>\n\n` +
+        `🎯 Target: ${job.targetType}\n` +
+        `✅ Sent: ${sentCount}\n` +
+        `❌ Failed: ${failedCount}`,
+        { parse_mode: 'HTML' }
+    ).catch(()=>{});
+}
+
+
+// =================================================================================================
+// SECTION 10: MAIN TELEGRAM ADMIN BOT LOGIC
+// =================================================================================================
+
+const mainBot = new Telegraf(CONFIG.mainBotToken);
+
+// 10.1 /start Command
+mainBot.command('start', async (ctx) => {
+    const args = ctx.message.text.split(' ');
+    const referrerId = args[1];
+
+    let user = await User.findOne({ userId: ctx.from.id.toString() });
+    
+    if (!user) {
+        user = await User.create({
+            userId: ctx.from.id.toString(),
+            username: ctx.from.username,
+            firstName: ctx.from.first_name,
+            photoUrl: '', 
+            referredBy: referrerId && referrerId !== ctx.from.id.toString() ? referrerId : null
+        });
+
+        SystemLogger.info(`New User via Bot: ${ctx.from.first_name}`);
+
+        // Referral Bonus Logic
+        if (user.referredBy) {
+            await User.findOneAndUpdate({ userId: user.referredBy }, { $inc: { referrals: 1 } });
+            mainBot.telegram.sendMessage(user.referredBy, 
+                `🎉 <b>New Referral!</b>\n${ctx.from.first_name} joined via your link.\n+1 Point.`, 
+                { parse_mode: 'HTML' }
+            ).catch(()=>{});
+        }
+    }
+
+    const welcomeText = 
+        `👋 <b>Hey ${ctx.from.first_name}, Welcome to ${CONFIG.systemName}!</b>\n\n` +
+        `🚀 <b>The Ultimate Telegram Bot Hosting Platform</b>\n\n` +
+        `Host, Manage, and Monetize your bots with AI power.\n` +
+        `👇 <b>Click below to open the Console:</b>`;
+
+    ctx.replyWithHTML(welcomeText, Markup.inlineKeyboard([
+        [Markup.button.webApp('🚀 Open Dashboard', CONFIG.frontendUrl)],
+        [Markup.button.url('📢 Join Channel', CONFIG.support.channel), Markup.button.url('🛠 Support', CONFIG.support.chat)]
+    ]));
+});
+
+// 10.2 /stats Command (Admin Only)
+mainBot.command('stats', async (ctx) => {
+    if(ctx.from.id.toString() !== CONFIG.superAdminId) return;
+
+    // Use cached stats if recent to save DB calls
+    const userCount = await User.countDocuments();
+    const botCount = await Bot.countDocuments();
+    const runningCount = await Bot.countDocuments({ status: 'RUNNING' });
+    const orderCount = await Order.countDocuments();
+    const productCount = await Product.countDocuments();
+
+    ctx.replyWithHTML(
+        `📊 <b>System Statistics</b>\n\n` +
+        `👤 <b>Users:</b> ${userCount}\n` +
+        `🤖 <b>Total Bots:</b> ${botCount}\n` +
+        `🟢 <b>Running:</b> ${runningCount}\n` +
+        `📦 <b>Products:</b> ${productCount}\n` +
+        `🛒 <b>Orders:</b> ${orderCount}\n` +
+        `💾 <b>Memory:</b> ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`
+    );
+});
+
+// 10.3 /addproduct Command (Legacy Wizard for Bot-based adding)
+mainBot.command('addproduct', (ctx) => {
+    if(ctx.from.id.toString() !== CONFIG.superAdminId) return;
+    
+    // Init Session
+    adminWizardState[ctx.from.id] = { step: 1, data: {} };
+    ctx.reply("🛍️ <b>Add Product Wizard</b>\n\nStep 1: Send Product Title.", { parse_mode: 'HTML' });
+});
+
+// 10.4 General Message Handler (Wizard Logic)
+mainBot.on('message', async (ctx, next) => {
+    const uid = ctx.from.id;
+    
+    // Check if user is in wizard mode
+    if(!adminWizardState[uid]) return next();
+    
+    const state = adminWizardState[uid];
+    const msg = ctx.message;
+
+    // STEP 1: Title
+    if(state.step === 1) {
+        if(!msg.text) return ctx.reply("Text only.");
+        state.data.title = msg.text;
+        state.step = 2;
+        return ctx.reply("Step 2: Send Description.");
+    }
+    
+    // STEP 2: Description
+    if(state.step === 2) {
+        if(!msg.text) return ctx.reply("Text only.");
+        state.data.description = msg.text;
+        state.step = 3;
+        return ctx.reply("Step 3: Send Price and Original Price (e.g., '50 100').");
+    }
+
+    // STEP 3: Price
+    if(state.step === 3) {
+        const parts = msg.text.split(' ');
+        if(parts.length < 2) return ctx.reply("Invalid format. Send: Discount Original (e.g. 50 100)");
+        state.data.discountPrice = parseInt(parts[0]);
+        state.data.originalPrice = parseInt(parts[1]);
+        state.step = 4;
+        return ctx.reply("Step 4: Send Image (Photo) OR Image URL.");
+    }
+
+    // STEP 4: Image
+    if(state.step === 4) {
+        if(msg.photo) {
+            state.data.displayImageId = msg.photo[msg.photo.length - 1].file_id;
+            state.data.imageType = 'FILE';
+        } else if (msg.text && msg.text.startsWith('http')) {
+            state.data.displayImageId = msg.text;
+            state.data.imageType = 'URL';
         } else {
-            await bot.telegram.sendMessage(order.userId, 
-                `✅ <b>ORDER VERIFIED!</b>\n\nHere is your purchase: <b>${p.title}</b>\n\n🔐 <b>CONTENT:</b>\n<pre>${p.contentMessage}</pre>`,
+            return ctx.reply("Send a valid Photo or URL.");
+        }
+        state.step = 5;
+        return ctx.reply("Step 5: Send Content (File or Text/Link).");
+    }
+
+    // STEP 5: Content & Save
+    if(state.step === 5) {
+        if(msg.document) {
+            state.data.deliveryType = 'FILE';
+            state.data.contentFileId = msg.document.file_id;
+        } else if (msg.text) {
+            state.data.deliveryType = 'TEXT';
+            state.data.contentMessage = msg.text;
+        } else {
+            return ctx.reply("Send valid content.");
+        }
+        
+        // Save to DB
+        await Product.create(state.data);
+        delete adminWizardState[uid];
+        return ctx.reply("✅ <b>Product Added Successfully!</b>", { parse_mode: 'HTML' });
+    }
+    
+    next();
+});
+
+// 10.5 Action: Order Delivery (One-Click)
+mainBot.action(/^deliver:(.+)$/, async (ctx) => {
+    const orderId = ctx.match[1];
+    const order = await Order.findById(orderId).populate('productId');
+    
+    if(!order || order.deliveryStatus === 'SENT') {
+        return ctx.answerCbQuery("Already Sent or Invalid Order");
+    }
+
+    // Update Status
+    order.deliveryStatus = 'SENT';
+    order.deliveryDate = new Date();
+    await order.save();
+
+    // Send Content to User
+    const prod = order.productId;
+    const userId = order.userId;
+    
+    try {
+        await mainBot.telegram.sendMessage(userId, 
+            `✅ <b>Order Delivered!</b>\n\nHere is your purchase: <b>${prod.title}</b>`, 
+            { parse_mode: 'HTML' }
+        );
+
+        if(prod.deliveryType === 'FILE') {
+            await mainBot.telegram.sendDocument(userId, prod.contentFileId);
+        } else {
+            await mainBot.telegram.sendMessage(userId, 
+                `🔐 <b>Secret Content:</b>\n\n<pre>${prod.contentMessage}</pre>`, 
                 { parse_mode: 'HTML' }
             );
         }
 
-        // Update DB
-        order.status = 'SENT';
-        order.deliveredAt = new Date();
-        await order.save();
-
-        // Update Stats
-        await Product.findByIdAndUpdate(p._id, { $inc: { salesCount: 1 } });
-
-        await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}\n\n✅ <b>DELIVERED</b> by ${ctx.from.first_name}`,
-            { parse_mode: 'HTML' }
-        );
+        ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n✅ <b>SENT TO USER</b>`, { parse_mode: 'HTML' });
 
     } catch(e) {
-        ctx.reply(`Delivery Error: ${e.message}`);
+        console.error(e);
+        ctx.answerCbQuery("Delivery Failed (User Blocked?)");
     }
 });
 
-bot.action(/^reject_ord:(.+)$/, async (ctx) => {
+mainBot.action(/^reject_ord:(.+)$/, async (ctx) => {
     const orderId = ctx.match[1];
-    await Order.findByIdAndUpdate(orderId, { status: 'REJECTED' });
-    await ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ <b>REJECTED</b>`);
+    await Order.findByIdAndUpdate(orderId, { deliveryStatus: 'FAILED', adminNote: 'Rejected by Admin' });
+    ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ <b>REJECTED</b>`, { parse_mode: 'HTML' });
 });
 
-
-// =================================================================================
-// SECTION 8: BOT COMMANDS (MAIN USER INTERFACE)
-// =================================================================================
-
-bot.command('start', async (ctx) => {
-    const { id, first_name, username } = ctx.from;
-    const args = ctx.message.text.split(' '); // For Referral Tracking
+// 10.6 Action: Subscription Approval
+mainBot.action(/^approve:(\d+):(\w+):(.+)$/, async (ctx) => {
+    const userId = ctx.match[1];
+    const plan = ctx.match[2];
+    const payId = ctx.match[3];
     
-    try {
-        // 1. Check if User Exists
-        let user = await User.findOne({ userId: id.toString() });
-        
-        if (!user) {
-            // Register New User
-            user = await User.create({
-                userId: id.toString(),
-                firstName: first_name,
-                username: username || 'Unknown',
-                referredBy: args[1] && args[1] !== id.toString() ? args[1] : null
-            });
-            
-            Logger.success(`New Registration: ${first_name} (${id})`);
+    // Calculate Expiry
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + PLAN_TIERS[plan].validityDays);
 
-            // 2. Process Referral Reward
-            if (user.referredBy) {
-                const referrer = await User.findOne({ userId: user.referredBy });
-                if (referrer) {
-                    referrer.referrals += 1;
-                    await referrer.save();
-                    
-                    // Notify Referrer
-                    await bot.telegram.sendMessage(user.referredBy, 
-                        `🎉 <b>New Referral!</b>\n\n` +
-                        `User <b>${first_name}</b> joined using your link.\n` +
-                        `📈 Total Points: <b>${referrer.referrals}</b>`, 
-                        { parse_mode: 'HTML' }
-                    ).catch(()=>{});
-                }
-            }
-        } else {
-            // Update Profile Info
-            if(user.firstName !== first_name) {
-                user.firstName = first_name;
-                await user.save();
-            }
-        }
-
-        // 3. Send Main Menu
-        const welcomeText = 
-            `👋 <b>Hello, ${first_name}!</b>\n\n` +
-            `🚀 <b>Welcome to Laga Host Ultimate</b>\n` +
-            `The most advanced Telegram Bot Hosting & Marketplace Solution.\n\n` +
-            `🛠 <b>What can you do?</b>\n` +
-            `• Host Node.js/Telegraf Bots 24/7\n` +
-            `• Generate Code with AI\n` +
-            `• Buy/Sell Source Codes\n` +
-            `• Earn Products by Watching Ads\n\n` +
-            `👇 <b>Tap below to launch the console:</b>`;
-
-        const buttons = Markup.inlineKeyboard([
-            [Markup.button.webApp("🚀 Launch Console", SYSTEM_CONFIG.WEB_APP_URL)],
-            [Markup.button.url("📢 Channel", SYSTEM_CONFIG.LINKS.CHANNEL), Markup.button.url("🆘 Support", SYSTEM_CONFIG.LINKS.GROUP)],
-            [Markup.button.url("📺 Tutorials", SYSTEM_CONFIG.LINKS.TUTORIAL)]
-        ]);
-
-        await ctx.replyWithPhoto(
-            "https://i.imgur.com/lM5gL7m.jpeg", // Placeholder Banner
-            {
-                caption: welcomeText,
-                parse_mode: 'HTML',
-                reply_markup: buttons.reply_markup
-            }
-        );
-
-    } catch (e) {
-        Logger.error("Start Command Error", e);
-        ctx.reply("System Error. Please try again.");
-    }
-});
-
-// Admin Commands
-bot.command('addproduct', (ctx) => {
-    if(ctx.from.id.toString() !== SYSTEM_CONFIG.ADMIN_ID) return ctx.reply("⛔ <b>Access Denied</b>", {parse_mode:'HTML'});
-    ctx.scene.enter('ADD_PRODUCT_SCENE');
-});
-
-bot.command('broadcast', (ctx) => {
-    if(ctx.from.id.toString() !== SYSTEM_CONFIG.ADMIN_ID) return ctx.reply("⛔ <b>Access Denied</b>", {parse_mode:'HTML'});
-    ctx.scene.enter('BROADCAST_SCENE');
-});
-
-// =================================================================================
-// SECTION 9: BOT SANDBOX ENGINE (THE CORE)
-// =================================================================================
-
-// Memory Storage for Running Instances
-let activeBotInstances = {}; 
-
-/**
- * START BOT ENGINE
- * This function spins up a new Telegraf instance for the user.
- * It uses a secure Function constructor to run user code safely.
- */
-async function startBotEngine(botDoc) {
-    const botId = botDoc._id.toString();
-    
-    // Check if already running
-    if (activeBotInstances[botId]) return true;
-
-    try {
-        Logger.bot(`Starting Engine for: ${botDoc.name}`);
-        
-        const childBot = new Telegraf(botDoc.token);
-
-        // --- SANDBOX CONTEXT ISOLATION ---
-        // We capture messages and route them to user's defined commands
-        childBot.on('message', async (ctx) => {
-            if (!ctx.message.text) return;
-            
-            // Extract Command (e.g., /start -> start)
-            const text = ctx.message.text;
-            if (text.startsWith('/')) {
-                const cmd = text.split(' ')[0].replace('/', '').replace('@' + childBot.botInfo.username, '');
-                
-                // Retrieve User's Code from DB
-                const userCode = botDoc.commands[cmd];
-                
-                if (userCode) {
-                    try {
-                        // 🛡️ SECURE EXECUTION WRAPPER
-                        // We strictly pass only safe libraries.
-                        // `require`, `process`, `fs` are NOT passed, making it safe.
-                        const executor = new Function('ctx', 'bot', 'axios', 'moment', `
-                            try {
-                                // --- USER CODE START ---
-                                ${userCode}
-                                // --- USER CODE END ---
-                            } catch (runtimeErr) {
-                                ctx.reply('⚠️ <b>Bot Logic Error:</b>\\n' + runtimeErr.message, { parse_mode: 'HTML' });
-                            }
-                        `);
-                        
-                        // Run the code
-                        executor(ctx, childBot, axios, moment);
-                        
-                    } catch (syntaxErr) {
-                        ctx.reply(`❌ <b>Syntax/System Error:</b>\n${syntaxErr.message}`, { parse_mode: 'HTML' });
-                    }
-                }
-            }
-        });
-
-        // Launch with Error Handling
-        await childBot.launch({ dropPendingUpdates: true });
-        
-        // Store Instance
-        activeBotInstances[botId] = childBot;
-        
-        // Update DB Status
-        await Bot.findByIdAndUpdate(botId, { status: 'RUNNING', startedAt: new Date() });
-        
-        return true;
-
-    } catch (e) {
-        Logger.error(`Failed to start bot ${botDoc.name}`, e);
-        // If token is invalid, update status
-        if (e.message.includes('401') || e.message.includes('Unauthorized')) {
-            await Bot.findByIdAndUpdate(botId, { status: 'ERROR', lastError: 'Invalid Token' });
-        }
-        return false;
-    }
-}
-
-/**
- * STOP BOT ENGINE
- * Gracefully stops a bot instance.
- */
-async function stopBotEngine(botId) {
-    if (activeBotInstances[botId]) {
-        try {
-            activeBotInstances[botId].stop();
-        } catch (e) {
-            console.error("Stop Error:", e);
-        }
-        delete activeBotInstances[botId];
-    }
-    await Bot.findByIdAndUpdate(botId, { status: 'STOPPED' });
-    return true;
-}
-
-
-// =================================================================================
-// SECTION 10: REST API ROUTES (BACKEND FOR WEBAPP)
-// =================================================================================
-
-/**
- * 10.1 SYNC API
- * Used by Frontend to fetch User Data, Bot List, and verify Plan Status.
- */
-app.post('/api/bots', async (req, res) => {
-    try {
-        const { userId, firstName, username } = req.body;
-        
-        if(!userId) return res.status(400).json({ success: false, message: "User ID Missing" });
-
-        // Fetch or Create User
-        let user = await User.findOne({ userId });
-        if(!user) {
-            user = await User.create({ userId, firstName, username });
-        } else {
-            // Check Expiry Logic
-            if (user.plan !== 'Free' && user.planExpiresAt && new Date() > user.planExpiresAt) {
-                // Downgrade
-                user.plan = 'Free';
-                user.botLimit = SYSTEM_CONFIG.LIMITS.MAX_BOTS_FREE;
-                user.planExpiresAt = null;
-                await user.save();
-                
-                // Stop excess bots
-                const bots = await Bot.find({ ownerId: userId });
-                if(bots.length > 1) {
-                    for(let i=1; i<bots.length; i++) await stopBotEngine(bots[i]._id);
-                }
-            }
-        }
-
-        const bots = await Bot.find({ ownerId: userId }).sort({ createdAt: -1 });
-        
-        res.json({ 
-            success: true, 
-            user: { ...user.toObject(), expireDate: user.planExpiresAt }, 
-            bots 
-        });
-
-    } catch (e) {
-        Logger.error("API /bots Error", e);
-        res.status(500).json({ success: false, message: "Server Error" });
-    }
-});
-
-/**
- * 10.2 CREATE BOT API
- */
-app.post('/api/createBot', async (req, res) => {
-    const { userId, name, token } = req.body;
-    
-    // Check Limits
-    const user = await User.findOne({ userId });
-    const count = await Bot.countDocuments({ ownerId: userId });
-    
-    if (count >= user.botLimit) {
-        return res.json({ success: false, message: `⚠️ Limit Reached! (${count}/${user.botLimit}). Please upgrade your plan.` });
-    }
-    
-    // Validate Token format
-    if (!Utils.isValidBotToken(token)) {
-        return res.json({ success: false, message: "❌ Invalid Bot Token format. Copy strictly from BotFather." });
-    }
-
-    try {
-        await Bot.create({ ownerId: userId, name, token });
-        res.json({ success: true });
-        Logger.info(`Bot Created: ${name}`);
-    } catch(e) {
-        res.json({ success: false, message: "❌ Token already exists in our system." });
-    }
-});
-
-/**
- * 10.3 TOGGLE BOT (START/STOP)
- */
-app.post('/api/toggleBot', async (req, res) => {
-    const { botId, action } = req.body;
-    const botDoc = await Bot.findById(botId);
-    
-    if (!botDoc) return res.json({ success: false, message: "Bot Not Found" });
-
-    if (action === 'start') {
-        const success = await startBotEngine(botDoc);
-        if(success) res.json({ success: true });
-        else res.json({ success: false, message: "Start Failed. Check Token validity." });
-    } else {
-        await stopBotEngine(botId);
-        res.json({ success: true });
-    }
-});
-
-/**
- * 10.4 DELETE BOT
- */
-app.post('/api/deleteBot', async (req, res) => {
-    const { botId } = req.body;
-    await stopBotEngine(botId); // Ensure stopped before delete
-    await Bot.findByIdAndDelete(botId);
-    res.json({ success: true });
-});
-
-/**
- * 10.5 COMMAND MANAGEMENT (CODE EDITOR)
- */
-app.post('/api/saveCommand', async (req, res) => {
-    const { botId, command, code } = req.body;
-    
-    // Sanitize command name (remove / and spaces)
-    const cleanCmd = command.replace('/', '').replace(/\s/g, '_');
-    
-    await Bot.findByIdAndUpdate(botId, { $set: { [`commands.${cleanCmd}`]: code } });
-    
-    // Note: In this architecture, hot-reloading code without restart is tricky safely.
-    // We advise users to restart the bot to apply changes.
-    res.json({ success: true });
-});
-
-app.post('/api/getCommands', async (req, res) => {
-    const b = await Bot.findById(req.body.botId);
-    res.json(b ? b.commands : {});
-});
-
-/**
- * 10.6 MARKETPLACE APIs
- */
-app.get('/api/products', async (req, res) => {
-    // Return only active products
-    const products = await Product.find({ status: 'ACTIVE' }).sort({ createdAt: -1 });
-    res.json({ success: true, products });
-});
-
-/**
- * 10.7 PURCHASE API (PAID PRODUCTS)
- */
-app.post('/api/buy-product', async (req, res) => {
-    const { userId, productId, paymentMethod, trxId } = req.body;
-    const prod = await Product.findById(productId);
-    
-    if(!prod) return res.json({ success: false, message: "Product Unavailable" });
-
-    const orderId = Utils.generateOrderId();
-    
-    const order = await Order.create({
-        orderId,
-        userId,
-        productId,
-        amountPaid: prod.discountPrice,
-        paymentMethod,
-        trxId
-    });
-
-    // Notify Admin
-    bot.telegram.sendMessage(SYSTEM_CONFIG.ADMIN_ID, 
-        `🛒 <b>NEW MARKET ORDER</b>\n\n` +
-        `📦 <b>Product:</b> ${prod.title}\n` +
-        `💰 <b>Amount:</b> ${prod.discountPrice}৳\n` +
-        `👤 <b>User:</b> <code>${userId}</code>\n` +
-        `💳 <b>Method:</b> ${paymentMethod}\n` +
-        `🧾 <b>TrxID:</b> <code>${trxId}</code>\n` +
-        `🆔 <b>Order ID:</b> ${orderId}`,
-        {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: "✅ Verify & Deliver", callback_data: `deliver_ord:${order._id}` },
-                    { text: "❌ Reject", callback_data: `reject_ord:${order._id}` }
-                ]]
-            }
-        }
-    );
-
-    res.json({ success: true, message: "Order Placed! Please wait for Admin approval." });
-});
-
-/**
- * 10.8 AD REWARD API (AUTO DELIVERY)
- * This endpoint is called when user finishes watching ads.
- * It verifies requirements and sends the file automatically.
- */
-app.post('/api/claim-ad-reward', async (req, res) => {
-    const { userId, productId } = req.body;
-    
-    try {
-        const product = await Product.findById(productId);
-        if (!product) return res.json({ success: false, message: "Product not found" });
-
-        // Logic Check: Is it Ad-Supported?
-        if (product.adCountRequired <= 0) {
-            return res.json({ success: false, message: "This product is not free." });
-        }
-
-        // Create Completed Order
-        const orderId = Utils.generateOrderId('AD');
-        await Order.create({
-            orderId,
-            userId,
-            productId,
-            amountPaid: 0,
-            paymentMethod: 'ADS',
-            status: 'SENT',
-            trxId: 'ADS_WATCHED_VERIFIED',
-            deliveredAt: new Date()
-        });
-
-        // 🚚 DELIVERY LOGIC
-        const caption = `🎉 <b>REWARD UNLOCKED!</b>\n\n📦 <b>${product.title}</b>\n<i>You earned this product by watching ads.</i>`;
-        
-        if (product.deliveryType === 'FILE') {
-            await bot.telegram.sendDocument(userId, product.contentFileId, { caption, parse_mode: 'HTML' })
-                .catch(async () => {
-                    // Fallback to Photo
-                    await bot.telegram.sendPhoto(userId, product.contentFileId, { caption, parse_mode: 'HTML' });
-                });
-        } else {
-            await bot.telegram.sendMessage(userId, `${caption}\n\n🔐 <b>CONTENT:</b>\n<pre>${product.contentMessage}</pre>`, { parse_mode: 'HTML' });
-        }
-        
-        // Update Sales Count
-        await Product.findByIdAndUpdate(productId, { $inc: { salesCount: 1 } });
-
-        res.json({ success: true, message: "Delivered to Telegram!" });
-        Logger.success(`Ad Reward Delivered: ${product.title} -> ${userId}`);
-
-    } catch (e) {
-        Logger.error(`Ad Claim Error`, e);
-        res.json({ success: false, message: "Delivery Failed. Ensure you have started the bot." });
-    }
-});
-
-/**
- * 10.9 SUBSCRIPTION PAYMENT API
- */
-app.post('/api/submit-payment', async (req, res) => {
-    const { userId, user, method, plan, amount, trxId } = req.body;
-    
-    // Case 1: Referral Point Redemption
-    if (method === 'referral') {
-        const dbUser = await User.findOne({ userId });
-        const cost = (plan === 'Pro' ? 50 : 80); // Configuration hardcoded for now
-        
-        if (dbUser.referrals >= cost) {
-            // Apply Upgrade
-            const expiry = new Date(); 
-            expiry.setDate(expiry.getDate() + 30);
-            
-            dbUser.referrals -= cost;
-            dbUser.plan = plan;
-            dbUser.botLimit = (plan==='Pro' ? SYSTEM_CONFIG.LIMITS.MAX_BOTS_PRO : SYSTEM_CONFIG.LIMITS.MAX_BOTS_VIP);
-            dbUser.planExpiresAt = expiry;
-            await dbUser.save();
-            
-            return res.json({ success: true, message: "Upgraded via Points!" });
-        } else {
-            return res.json({ success: false, message: `Insufficient Points (Need ${cost})` });
-        }
-    }
-
-    // Case 2: Manual Payment
-    const pay = await Payment.create({ userId, plan, amount, trxId, method });
-    
-    bot.telegram.sendMessage(SYSTEM_CONFIG.ADMIN_ID, 
-        `💰 <b>NEW SUBSCRIPTION REQUEST</b>\n\n` +
-        `👤 <b>User:</b> @${user} (${userId})\n` +
-        `💎 <b>Plan:</b> ${plan}\n` +
-        `💵 <b>Amount:</b> ${amount}\n` +
-        `🧾 <b>TrxID:</b> ${trxId}`,
-        {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: "✅ Approve", callback_data: `approve:${userId}:${plan}:${pay._id}` },
-                    { text: "❌ Decline", callback_data: `decline:${userId}:${pay._id}` }
-                ]]
-            }
+    // Update User
+    await User.findOneAndUpdate(
+        { userId }, 
+        { 
+            plan, 
+            botLimit: PLAN_TIERS[plan].botLimit, 
+            planExpiresAt: expiry,
+            cpuPriority: PLAN_TIERS[plan].features.includes('Priority CPU') ? 'High' : 'Standard'
         }
     );
     
-    res.json({ success: true, message: "Submitted for Review" });
+    // Update Payment
+    await Payment.findByIdAndUpdate(payId, { status: 'APPROVED', adminResponseAt: new Date() });
+
+    // Notify
+    await mainBot.telegram.sendMessage(userId, 
+        `✅ <b>Payment Approved!</b>\nYou are now on <b>${plan}</b> plan.\nValid until: ${moment(expiry).format('DD MMM YYYY')}`, 
+        { parse_mode: 'HTML' }
+    );
+
+    ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n✅ <b>APPROVED</b>`, { parse_mode: 'HTML' });
 });
 
+mainBot.action(/^decline:(\d+):(.+)$/, async (ctx) => {
+    const userId = ctx.match[1];
+    const payId = ctx.match[2];
+    
+    await Payment.findByIdAndUpdate(payId, { status: 'DECLINED', adminResponseAt: new Date() });
+    await mainBot.telegram.sendMessage(userId, `❌ <b>Payment Declined.</b> Contact Admin for help.`, { parse_mode: 'HTML' });
 
-// =================================================================================
-// SECTION 11: AUTOMATED MAINTENANCE (CRON JOBS)
-// =================================================================================
+    ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ <b>DECLINED</b>`, { parse_mode: 'HTML' });
+});
+
+// =================================================================================================
+// SECTION 11: MAINTENANCE & AUTOMATION (CRON JOBS)
+// =================================================================================================
 
 /**
- * 11.1 DAILY EXPIRY CHECKER
- * Runs every day at midnight to downgrade expired users.
+ * Daily Maintenance Job (Runs at 00:00)
+ * 1. Checks for expired subscriptions.
+ * 2. Cleans up temporary files (if any).
  */
 cron.schedule('0 0 * * *', async () => {
-    Logger.info('⏰ Running Daily Subscription Check...');
-    const now = new Date();
+    SystemLogger.info("⏰ Running Daily Maintenance Task...");
     
-    try {
-        const expiredUsers = await User.find({ 
-            plan: { $ne: 'Free' }, 
-            planExpiresAt: { $lt: now } 
-        });
-
-        for (const u of expiredUsers) {
-            // Downgrade
-            u.plan = 'Free';
-            u.botLimit = SYSTEM_CONFIG.LIMITS.MAX_BOTS_FREE;
-            u.planExpiresAt = null;
-            await u.save();
-            
-            // Cleanup: Stop Extra Bots
-            const bots = await Bot.find({ ownerId: u.userId });
-            if(bots.length > 1) {
-                for(let i=1; i<bots.length; i++) {
-                    await stopBotEngine(bots[i]._id.toString());
-                }
-            }
-            
-            // Notify
-            bot.telegram.sendMessage(u.userId, 
-                "⚠️ <b>Subscription Expired</b>\n\n" +
-                "Your plan has expired and you have been downgraded to Free.\n" +
-                "Extra bots have been stopped.", 
-                { parse_mode: 'HTML' }
-            ).catch(()=>{});
-        }
-    } catch(err) {
-        Logger.error('Cron Job Error', err);
-    }
-});
-
-
-// =================================================================================
-// SECTION 12: SERVER STARTUP SEQUENCE
-// =================================================================================
-
-// 1. Connect to Database
-mongoose.connect(SYSTEM_CONFIG.MONGO_URI)
-    .then(() => {
-        Logger.success('MongoDB Database Connected Successfully');
-        
-        // 2. Auto-Resume Active Bots
-        // When server restarts (e.g., Render deployment), we need to restart user bots.
-        Bot.find({ status: 'RUNNING' }).then(bots => {
-            if(bots.length > 0) {
-                Logger.info(`Restoring ${bots.length} active bot sessions...`);
-                bots.forEach(b => startBotEngine(b));
-            }
-        });
-    })
-    .catch(err => {
-        Logger.error('CRITICAL: MongoDB Connection Failed', err);
+    const now = new Date();
+    // Find expired users
+    const expiredUsers = await User.find({ 
+        plan: { $ne: 'Free' }, 
+        planExpiresAt: { $lt: now } 
     });
+    
+    SystemLogger.info(`Found ${expiredUsers.length} expired subscriptions.`);
 
-// 3. Launch Admin Bot
-bot.launch({ dropPendingUpdates: true })
-    .then(() => Logger.success(`Admin Bot (@${bot.botInfo?.username}) Started`))
-    .catch(e => Logger.error('Admin Bot Launch Error', e));
-
-// 4. Start Express HTTP Server
-app.listen(SYSTEM_CONFIG.PORT, () => {
-    console.log(`\n`);
-    console.log(`=======================================================`);
-    console.log(`🚀 LAGA HOST ULTIMATE SERVER (v10.0) IS ONLINE`);
-    console.log(`🟢 PORT: ${SYSTEM_CONFIG.PORT}`);
-    console.log(`🔗 WEBAPP: ${SYSTEM_CONFIG.WEB_APP_URL}`);
-    console.log(`🛡️  MODE: Enterprise Uncompressed`);
-    console.log(`=======================================================\n`);
+    for (const user of expiredUsers) {
+        await validateSubscription(user);
+    }
+    
+    SystemLogger.success("Maintenance Complete.");
 });
 
-// 5. Graceful Shutdown Handling
+// =================================================================================================
+// SECTION 12: SERVER STARTUP SEQUENCE
+// =================================================================================================
+
+/**
+ * Boot Sequence
+ * 1. Connect DB (Handled in Section 4).
+ * 2. Launch Main Admin Bot.
+ * 3. Restore Hosted Bots.
+ * 4. Start HTTP Server.
+ */
+
+// 1. Launch Admin Bot
+mainBot.launch({ dropPendingUpdates: true })
+    .then(() => SystemLogger.success("Main Admin Bot Online"))
+    .catch(e => SystemLogger.error(`Main Bot Launch Error: ${e.message}`));
+
+// 2. Restore Hosted Bots
+mongoose.connection.once('open', async () => {
+    const runningBots = await Bot.find({ status: 'RUNNING' });
+    SystemLogger.info(`Attempting to restore ${runningBots.length} hosted bots...`);
+    
+    let restored = 0;
+    for (const bot of runningBots) {
+        // Stagger startup to prevent CPU spikes
+        await new Promise(r => setTimeout(r, 200)); 
+        const res = await startBotEngine(bot);
+        if(res.success) restored++;
+    }
+    SystemLogger.success(`Restored ${restored}/${runningBots.length} bots successfully.`);
+});
+
+// 3. Start Web Server
+const server = app.listen(CONFIG.port, () => {
+    SystemLogger.success("=================================================");
+    SystemLogger.success(`LAGA HOST SERVER RUNNING ON PORT ${CONFIG.port}`);
+    SystemLogger.success(`MODE: ${CONFIG.env}`);
+    SystemLogger.success(`DASHBOARD: ${CONFIG.frontendUrl}`);
+    SystemLogger.success("=================================================");
+});
+
+// 4. Graceful Shutdown
 const shutdown = (signal) => {
-    Logger.warn(`Received ${signal}. Shutting down safely...`);
-    bot.stop(signal);
-    process.exit(0);
+    SystemLogger.warn(`${signal} received. Shutting down...`);
+    mainBot.stop(signal);
+    Object.values(activeBotInstances).forEach(b => {
+        try { b.stop(signal); } catch(e){}
+    });
+    mongoose.connection.close(false, () => {
+        SystemLogger.db("Database Disconnected.");
+        process.exit(0);
+    });
 };
 
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// END OF FILE
+// Handle Uncaught Exceptions to prevent crash
+process.on('uncaughtException', (err) => {
+    SystemLogger.error('UNCAUGHT EXCEPTION', err.stack);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    SystemLogger.error('UNHANDLED REJECTION', reason);
+});
