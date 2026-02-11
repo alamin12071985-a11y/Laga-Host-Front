@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,25 +6,24 @@ import os
 import sqlite3
 import zipfile
 import subprocess
-import signal
 import shutil
-import uuid
+import time
 
 app = Flask(__name__)
-# InfinityFree ডোমেইন থেকে রিকোয়েস্ট এক্সেপ্ট করার জন্য CORS অন করা হলো
-CORS(app) 
+CORS(app)  # সব ডোমেইন থেকে এক্সেস অন
 
-app.secret_key = "lagahost_super_secret_key_v2"
+app.secret_key = "lagahost_ultra_secret_key_v3"
 UPLOAD_FOLDER = "user_uploads"
 DB_NAME = "lagahost.db"
-MAX_APPS_PER_USER = 3 
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# ফোল্ডার নিশ্চিত করা
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
-# প্রসেস স্টোরেজ (মেমোরিতে রাখা হবে)
-running_processes = {} # Format: { "username_appname": subprocess_object }
+# মেমোরিতে রানিং প্রসেস রাখার জন্য
+running_processes = {} 
 
-# --- Database Setup ---
+# --- ডাটাবেস সেটআপ ---
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -35,229 +34,222 @@ def init_db():
 
 init_db()
 
-# --- Helper Functions ---
-
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
 
-# স্মার্ট ফাইল ফাইন্ডার (ফোল্ডারের ভেতরে ঢুকে ফাইল খোঁজে)
-def find_file_recursive(root_folder, target_filenames):
+# --- স্মার্ট ফাইল ফাইন্ডার (Smart Search) ---
+def find_main_script(root_folder):
+    # এই নামগুলো আগে খুঁজবে
+    priority_files = ["main.py", "app.py", "bot.py", "index.py"]
+    
+    # ১. প্রথমে রুট ফোল্ডারে খুঁজি
+    for f in priority_files:
+        path = os.path.join(root_folder, f)
+        if os.path.exists(path):
+            return path, root_folder
+            
+    # ২. যদি না পাই, ফোল্ডারের ভেতরে খুঁজি (Recursive)
     for root, dirs, files in os.walk(root_folder):
-        for filename in files:
-            if filename in target_filenames:
-                return os.path.join(root, filename), root
+        # স্কিপ ফোল্ডার (অপ্রয়োজনীয় ফোল্ডার বাদ)
+        if "__pycache__" in root or ".git" in root:
+            continue
+            
+        for f in priority_files:
+            if f in files:
+                return os.path.join(root, f), root
+                
+    # ৩. যদি তাও না পাই, যেকোনো .py ফাইল খুঁজি
+    for root, dirs, files in os.walk(root_folder):
+        for f in files:
+            if f.endswith(".py"):
+                return os.path.join(root, f), root
+                
     return None, None
 
-# --- API Routes ---
+# --- API রাউটস ---
 
 @app.route('/')
 def home():
-    return jsonify({"status": "Lagahost Backend is Running!", "version": "2.1 (Smart Fix)"})
+    return jsonify({"status": "LagaHost Backend V3 Running!", "support": ".py & .zip"})
 
+# 🔐 লগিন ও রেজিস্টার
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
     username = data.get('username')
     password = data.get('password')
-
     if not username or not password:
-        return jsonify({"error": "Username and password required"}), 400
-
-    hashed_pw = generate_password_hash(password)
-
+        return jsonify({"error": "Missing data"}), 400
     try:
         conn = get_db_connection()
-        conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+        conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
+                     (username, generate_password_hash(password)))
         conn.commit()
+        return jsonify({"message": "User registered!"})
+    except:
+        return jsonify({"error": "Username taken"}), 409
+    finally:
         conn.close()
-        return jsonify({"message": "Registration successful! Please login."})
-    except sqlite3.IntegrityError:
-        return jsonify({"error": "Username already exists!"}), 409
 
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
-    username = data.get('username')
-    password = data.get('password')
-
     conn = get_db_connection()
-    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    user = conn.execute("SELECT * FROM users WHERE username = ?", (data.get('username'),)).fetchone()
     conn.close()
+    if user and check_password_hash(user['password'], data.get('password')):
+        return jsonify({"message": "Login successful", "username": user['username']})
+    return jsonify({"error": "Invalid credentials"}), 401
 
-    if user and check_password_hash(user['password'], password):
-        return jsonify({"message": "Login successful", "username": username, "token": "valid_session"})
-    else:
-        return jsonify({"error": "Invalid credentials"}), 401
-
+# 📤 আপলোড সিস্টেম (ZIP এবং PY)
 @app.route('/upload', methods=['POST'])
 def upload_file():
     username = request.form.get('username')
-    if not username: return jsonify({"error": "Unauthorized"}), 401
-
+    if not username: return jsonify({"error": "No username"}), 401
+    
     if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
+        return jsonify({"error": "No file sent"}), 400
+        
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    if file and file.filename.endswith('.zip'):
-        app_name = secure_filename(file.filename.replace('.zip', ''))
-        user_dir = os.path.join(UPLOAD_FOLDER, username, app_name)
-        
-        # ক্লিন ইনস্টল (আগের ফাইল মুছে ফেলা)
-        if os.path.exists(user_dir):
-            try: shutil.rmtree(user_dir)
-            except: pass
-        os.makedirs(user_dir, exist_ok=True)
-        
-        zip_path = os.path.join(user_dir, "app.zip")
-        file.save(zip_path)
-
-        # আনজিপ করা
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(user_dir)
-        except Exception as e:
-            return jsonify({"error": f"Zip extraction failed: {str(e)}"}), 500
-        
-        # --- ফিক্স: requirements.txt স্মার্টলি খোঁজা ---
-        req_path, req_dir = find_file_recursive(user_dir, ["requirements.txt"])
-        
-        if req_path:
-            # যেখানে requirements.txt পাওয়া গেছে, সেখানে pip install চালানো
-            try:
-                subprocess.run(["pip", "install", "-r", "requirements.txt"], cwd=req_dir, check=False)
-            except Exception as e:
-                print(f"Pip install error: {e}")
-
-        return jsonify({"message": "App uploaded and extracted successfully!"})
+    filename = secure_filename(file.filename)
     
-    return jsonify({"error": "Only .zip files are allowed"}), 400
+    # অ্যাপের নাম বের করা (এক্সটেনশন বাদ দিয়ে)
+    if filename.endswith('.zip'):
+        app_name = filename[:-4]
+    elif filename.endswith('.py'):
+        app_name = filename[:-3]
+    else:
+        return jsonify({"error": "Only .zip or .py files allowed"}), 400
+        
+    # ফোল্ডার তৈরি
+    user_dir = os.path.join(UPLOAD_FOLDER, username, app_name)
+    if os.path.exists(user_dir):
+        try: shutil.rmtree(user_dir) # আগের ভার্সন ডিলিট
+        except: pass
+    os.makedirs(user_dir, exist_ok=True)
+    
+    # ফাইল সেভ করা
+    save_path = os.path.join(user_dir, filename)
+    file.save(save_path)
+    
+    # যদি ZIP হয় -> এক্সট্রাক্ট করা
+    if filename.endswith('.zip'):
+        try:
+            with zipfile.ZipFile(save_path, 'r') as zip_ref:
+                zip_ref.extractall(user_dir)
+            os.remove(save_path) # জিপ ফাইল ডিলিট করে দিই স্পেস বাঁচাতে
+            
+            # requirements.txt খুঁজবো এবং ইন্সটল করবো
+            req_path = None
+            for root, dirs, files in os.walk(user_dir):
+                if "requirements.txt" in files:
+                    req_path = os.path.join(root, "requirements.txt")
+                    break
+            
+            if req_path:
+                try:
+                    subprocess.run(["pip", "install", "-r", req_path], cwd=os.path.dirname(req_path), check=False)
+                except: pass
+                
+        except Exception as e:
+            return jsonify({"error": f"Zip Error: {str(e)}"}), 500
 
+    return jsonify({"message": "Upload successful!"})
+
+# 📂 অ্যাপ লিস্ট
 @app.route('/my_apps', methods=['POST'])
 def my_apps():
     username = request.json.get('username')
     user_path = os.path.join(UPLOAD_FOLDER, username)
+    if not os.path.exists(user_path): return jsonify({"apps": []})
     
-    if not os.path.exists(user_path):
-        return jsonify({"apps": []})
-
-    apps_list = []
+    apps = []
     for app_name in os.listdir(user_path):
         full_path = os.path.join(user_path, app_name)
         if os.path.isdir(full_path):
-            process_key = f"{username}_{app_name}"
+            key = f"{username}_{app_name}"
+            # স্ট্যাটাস চেক
+            running = key in running_processes and running_processes[key].poll() is None
             
-            # প্রসেস চেক করা
-            is_running = False
-            if process_key in running_processes:
-                if running_processes[process_key].poll() is None:
-                    is_running = True
-                else:
-                    # যদি প্রসেস ক্র্যাশ করে বা বন্ধ হয়ে যায়, ডিকশনারি থেকে মুছে ফেলা
-                    del running_processes[process_key]
-
             # লগ পড়া
-            log_content = ""
-            log_file = os.path.join(full_path, "logs.txt")
-            if os.path.exists(log_file):
+            logs = ""
+            log_path = os.path.join(full_path, "logs.txt")
+            if os.path.exists(log_path):
                 try:
-                    with open(log_file, "r", errors="ignore") as f:
-                        # ফাইল বেশি বড় হলে শুধু শেষের অংশ পড়া
-                        f.seek(0, 2)
+                    with open(log_path, 'r', errors='ignore') as f:
+                        f.seek(0, 2) # ফাইলের শেষে যাওয়া
                         size = f.tell()
-                        f.seek(max(size - 2000, 0))
-                        log_content = f.read()
-                except:
-                    log_content = "Error reading logs."
-
-            apps_list.append({
-                "name": app_name,
-                "running": is_running,
-                "logs": log_content
-            })
+                        f.seek(max(size - 3000, 0)) # শেষ ৩০০০ ক্যারেক্টার পড়া
+                        logs = f.read()
+                except: logs = "Error reading logs"
+                
+            apps.append({"name": app_name, "running": running, "logs": logs})
             
-    return jsonify({"apps": apps_list})
+    return jsonify({"apps": apps})
 
+# ▶️ অ্যাকশন (Start/Stop/Delete)
 @app.route('/action', methods=['POST'])
 def action():
     data = request.json
-    action = data.get('action') # start, stop, delete
+    act = data.get('action')
     username = data.get('username')
     app_name = data.get('app_name')
     
-    if not username or not app_name:
-        return jsonify({"error": "Missing parameters"}), 400
-
-    process_key = f"{username}_{app_name}"
-    user_app_path = os.path.join(UPLOAD_FOLDER, username, app_name)
-
-    if action == "start":
-        if process_key in running_processes and running_processes[process_key].poll() is None:
-             return jsonify({"message": "App is already running"})
-
-        # --- ফিক্স: মেইন ফাইল স্মার্টলি খোঁজা ---
-        target_files = ["main.py", "app.py", "bot.py", "index.py"]
-        script_path, script_dir = find_file_recursive(user_app_path, target_files)
-
+    key = f"{username}_{app_name}"
+    app_dir = os.path.join(UPLOAD_FOLDER, username, app_name)
+    
+    if act == "start":
+        if key in running_processes and running_processes[key].poll() is None:
+            return jsonify({"message": "Already running!"})
+            
+        # ফাইল খোঁজা (মেইন ফিক্স)
+        script_path, script_dir = find_main_script(app_dir)
+        
         if not script_path:
-            return jsonify({"error": "No main.py/app.py found in any folder!"}), 404
-
-        # লগ ফাইল অ্যাপের রুট ফোল্ডারে রাখা হবে যাতে ইউজার দেখতে পায়
-        log_file_path = os.path.join(user_app_path, "logs.txt")
-        log_file = open(log_file_path, "a")
+            return jsonify({"error": "No python file found!"}), 404
+            
+        # লগ ফাইল তৈরি
+        log_file = open(os.path.join(app_dir, "logs.txt"), "a")
+        
+        # কমান্ড চালানো (পাথ এরর ফিক্স)
+        # আমরা script_dir এ ঢুকে শুধু ফাইলের নাম কল করবো
+        script_filename = os.path.basename(script_path)
         
         try:
-            # সাব-প্রসেস রান করা (সঠিক ডিরেক্টরি থেকে)
             proc = subprocess.Popen(
-                ["python3", "-u", script_path], # -u মানে আনবাফারড আউটপুট (লগ রিয়েলটাইম দেখার জন্য)
-                cwd=script_dir, # স্ক্রিপ্ট যে ফোল্ডারে আছে, সেখান থেকেই রান হবে
+                ["python3", "-u", script_filename], # -u মানে আনবাফারড (রিয়েলটাইম লগ)
+                cwd=script_dir, # এই ফোল্ডার থেকে রান হবে
                 stdout=log_file,
                 stderr=log_file,
                 text=True
             )
-            running_processes[process_key] = proc
-            return jsonify({"message": f"{app_name} Started!"})
+            running_processes[key] = proc
+            return jsonify({"message": "Bot Started!"})
         except Exception as e:
-            return jsonify({"error": f"Failed to start: {str(e)}"}), 500
+            return jsonify({"error": str(e)}), 500
 
-    elif action == "stop":
-        if process_key in running_processes:
-            proc = running_processes[process_key]
-            try:
-                proc.terminate() # ভদ্রভাবে বন্ধ করা
-                # একটু অপেক্ষা করে চেক করা, না হলে ফোর্স কিল
-                try:
-                    proc.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-            except:
-                pass
-            
-            if process_key in running_processes:
-                del running_processes[process_key]
-            return jsonify({"message": f"{app_name} Stopped!"})
-        return jsonify({"error": "App is not running"})
+    elif act == "stop":
+        if key in running_processes:
+            p = running_processes[key]
+            p.terminate()
+            try: p.wait(timeout=2)
+            except: p.kill()
+            del running_processes[key]
+            return jsonify({"message": "Stopped!"})
+        return jsonify({"error": "Not running"})
 
-    elif action == "delete":
-        # আগে স্টপ করা
-        if process_key in running_processes:
+    elif act == "delete":
+        if key in running_processes:
             try:
-                running_processes[process_key].kill()
-                del running_processes[process_key]
+                running_processes[key].kill()
+                del running_processes[key]
             except: pass
-        
-        # ফোল্ডার ডিলিট
-        if os.path.exists(user_app_path):
-            try:
-                shutil.rmtree(user_app_path)
-                return jsonify({"message": "App deleted successfully"})
-            except Exception as e:
-                return jsonify({"error": f"Delete failed: {str(e)}"})
-        return jsonify({"error": "App not found"})
+        if os.path.exists(app_dir):
+            shutil.rmtree(app_dir)
+            return jsonify({"message": "Deleted!"})
+        return jsonify({"error": "Not found"})
 
     return jsonify({"error": "Invalid action"}), 400
 
