@@ -1,14 +1,25 @@
+# --- START OF FILE requirements.txt ---
+
+# Web Server
 Flask==3.0.2
 flask-cors==4.0.0
 Werkzeug==3.0.1
 gunicorn==21.2.0
 
-# Telegram bot libraries
+# Telegram Bot Libraries (All-in-One)
 pyTelegramBotAPI==4.17.0
-python-telegram-bot==20.8
+python-telegram-bot==21.3
+aiogram==3.7.0
+pyrogram==2.0.106
+Telethon==1.36.0
+TgCrypto==1.2.5
 
-# Common dependencies
+# Networking & Utils
 requests==2.31.0
 aiohttp==3.9.3
 python-dotenv==1.0.1
-aiogram==3.7.0
+psutil==5.9.8
+PySocks==1.7.1
+certifi==2024.2.2
+
+# --- END OF FILE requirements.txt ---
