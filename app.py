@@ -5,28 +5,31 @@ import sys
 import shutil
 import zipfile
 import subprocess
-import time
-from flask import Flask, request, jsonify, send_from_directory
+import sqlite3
+import datetime
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+
+# --- CORS SETTINGS ---
+# InfinityFree থেকে রিকোয়েস্ট আসলে ব্লক করবে না
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.secret_key = "personal_hosting_secret_key_2024"
+app.secret_key = "super_secret_laga_key_v6_advanced"
 UPLOAD_FOLDER = "user_uploads"
 
-# মাস্টার পাসওয়ার্ড (ফ্রন্টএন্ড আনলক করার জন্য)
+# মাস্টার পাসওয়ার্ড (ফ্রন্টএন্ড থেকে এটি চেক করা হবে)
 MASTER_PASSWORD = "2310"
 
-# ফোল্ডার তৈরি
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# রানিং প্রসেস স্টোর
+# রানিং প্রসেস স্টোরেজ: { 'pid': { 'process': Pobj, 'start_time': datetime } }
 running_processes = {}
 
-# --- স্মার্ট ফাইল ফাইন্ডার ---
+# --- SMART FILE FINDER ---
 def find_bot_file(folder_path):
     priority_files = ["main.py", "bot.py", "app.py", "index.py", "start.py", "run.py"]
     
@@ -43,33 +46,38 @@ def find_bot_file(folder_path):
                 
     return None, None
 
-# --- লাইব্রেরি ইন্সটলার ---
+# --- AUTO REQUIREMENTS INSTALLER ---
 def install_requirements(folder_path):
+    # ফোল্ডারের ভেতর requirements.txt খুঁজবে
     req_path = os.path.join(folder_path, "requirements.txt")
+    
+    # যদি রুটে না থাকে, সাবফোল্ডারে খুঁজবে (যদি জিপ এক্সট্রাক্ট করলে সাবফোল্ডার তৈরি হয়)
+    if not os.path.exists(req_path):
+        for root, dirs, files in os.walk(folder_path):
+            if "requirements.txt" in files:
+                req_path = os.path.join(root, "requirements.txt")
+                break
+    
     if os.path.exists(req_path):
-        print(f"[*] Installing requirements from {req_path}...")
+        print(f"[*] Found requirements.txt at {req_path}. Installing...")
         try:
-            subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_path, "--quiet"], 
-                         check=False, cwd=folder_path)
+            # শান্তিতে ইন্সটল করবে, এরর হলে স্কিপ করবে
+            subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_path], 
+                         check=False, cwd=os.path.dirname(req_path))
         except Exception as e:
             print(f"[!] Error installing requirements: {e}")
 
-# --- STATIC FRONTEND (Single File) ---
-@app.route('/')
-def index():
-    return send_from_directory('static', 'index.html')
-
-@app.route('/style.css')
-def style():
-    return send_from_directory('static', 'style.css')
-
-@app.route('/app.js')
-def script():
-    return send_from_directory('static', 'app.js')
-
 # --- API ROUTES ---
 
-# পাসওয়ার্ড চেক এপিআই
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "Online",
+        "message": "LagaHost Backend V5 is Active",
+        "system": "Advanced Bot Runner"
+    })
+
+# ১. পাসওয়ার্ড অথেনটিকেশন
 @app.route('/auth', methods=['POST'])
 def auth():
     data = request.json
@@ -78,12 +86,12 @@ def auth():
         return jsonify({"success": True, "message": "Access Granted"})
     return jsonify({"success": False, "message": "Wrong Password!"}), 401
 
-# ফাইল আপলোড
+# ২. ফাইল আপলোড এবং ডিপ্লয়
 @app.route('/upload', methods=['POST'])
 def upload():
-    # পাসওয়ার্ড ভেরিফিকেশন (অপশনাল, ফ্রন্টএন্ড থেকেও চেক করা হচ্ছে)
+    # সিকিউরিটি চেক (ঐচ্ছিক, ফ্রন্টএন্ড থেকেও চেক করা হচ্ছে)
     if request.form.get('password') != MASTER_PASSWORD:
-         return jsonify({"error": "Unauthorized"}), 403
+        return jsonify({"error": "Unauthorized"}), 403
 
     if 'file' not in request.files:
         return jsonify({"error": "No file sent"}), 400
@@ -93,7 +101,7 @@ def upload():
     ext = os.path.splitext(filename)[1].lower()
     
     if ext not in ['.zip', '.py']:
-        return jsonify({"error": f"Invalid file type: {ext}. Only .zip or .py allowed!"}), 400
+        return jsonify({"error": "Invalid file type. Only .zip or .py"}), 400
         
     app_name = os.path.splitext(filename)[0]
     app_dir = os.path.join(UPLOAD_FOLDER, app_name)
@@ -107,21 +115,25 @@ def upload():
     save_path = os.path.join(app_dir, filename)
     file.save(save_path)
     
+    # ZIP হলে এক্সট্র্যাক্ট করা
     if ext == '.zip':
         try:
             with zipfile.ZipFile(save_path, 'r') as z:
                 z.extractall(app_dir)
             os.remove(save_path)
-            # লাইব্রেরি ইন্সটলেশন
+            
+            # লাইব্রেরি ইন্সটল ফাংশন কল
             install_requirements(app_dir)
+            
         except Exception as e:
             return jsonify({"error": f"Zip failed: {str(e)}"}), 500
             
-    return jsonify({"message": "Upload Successful!"})
+    return jsonify({"message": "Deploy Successful!"})
 
-# অ্যাপ লিস্ট
+# ৩. অ্যাপ লিস্ট (Runtime Timer সহ)
 @app.route('/my_apps', methods=['POST'])
 def my_apps():
+    # পাসওয়ার্ড ভেরিফিকেশন
     if request.json.get('password') != MASTER_PASSWORD:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -134,25 +146,41 @@ def my_apps():
             pid = f"bot_{app_name}"
             
             is_running = False
-            if pid in running_processes and running_processes[pid].poll() is None:
-                is_running = True
+            start_time = None
             
-            logs = "No logs yet..."
+            # প্রসেস চেক এবং সময় বের করা
+            if pid in running_processes:
+                p_data = running_processes[pid]
+                if p_data['process'].poll() is None:
+                    is_running = True
+                    # স্টার্ট টাইম স্ট্রিং ফরম্যাটে কনভার্ট
+                    start_time = p_data['start_time'].strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    # প্রসেস মারা গেলে লিস্ট থেকে বাদ দিন
+                    del running_processes[pid]
+            
+            # লগ পড়া
+            logs = "Waiting for logs..."
             log_file = os.path.join(full_path, "logs.txt")
             if os.path.exists(log_file):
                 try:
                     with open(log_file, 'r', errors='ignore') as f:
                         f.seek(0, 2)
                         size = f.tell()
-                        f.seek(max(size - 3000, 0))
+                        f.seek(max(size - 4000, 0)) # শেষ ৪০০০ অক্ষর
                         logs = f.read()
                 except: pass
                 
-            apps.append({"name": app_name, "running": is_running, "logs": logs})
+            apps.append({
+                "name": app_name, 
+                "running": is_running, 
+                "logs": logs, 
+                "start_time": start_time # ফ্রন্টএন্ডে টাইমারের জন্য পাঠানো হচ্ছে
+            })
             
     return jsonify({"apps": apps})
 
-# একশন (Start/Stop/Delete)
+# ৪. একশন (Start/Stop/Delete)
 @app.route('/action', methods=['POST'])
 def action():
     data = request.json
@@ -166,7 +194,7 @@ def action():
     app_dir = os.path.join(UPLOAD_FOLDER, app_name)
     
     if act == "start":
-        if pid in running_processes and running_processes[pid].poll() is None:
+        if pid in running_processes and running_processes[pid]['process'].poll() is None:
             return jsonify({"message": "Already Running!"})
             
         script_path, script_dir = find_bot_file(app_dir)
@@ -177,7 +205,6 @@ def action():
         log_file = open(os.path.join(app_dir, "logs.txt"), "a")
         
         try:
-            # Environment Variables (যদি .env থাকে)
             my_env = os.environ.copy()
             
             proc = subprocess.Popen(
@@ -188,14 +215,19 @@ def action():
                 text=True,
                 env=my_env
             )
-            running_processes[pid] = proc
+            
+            # প্রসেস এবং স্টার্ট টাইম সেভ করা হচ্ছে
+            running_processes[pid] = {
+                'process': proc,
+                'start_time': datetime.datetime.now()
+            }
             return jsonify({"message": "Bot Started!"})
         except Exception as e:
             return jsonify({"error": f"Start failed: {str(e)}"}), 500
 
     elif act == "stop":
         if pid in running_processes:
-            p = running_processes[pid]
+            p = running_processes[pid]['process']
             p.terminate()
             try: p.wait(timeout=2)
             except: p.kill()
@@ -206,7 +238,7 @@ def action():
     elif act == "delete":
         if pid in running_processes:
             try:
-                running_processes[pid].kill()
+                running_processes[pid]['process'].kill()
                 del running_processes[pid]
             except: pass
             
@@ -218,11 +250,7 @@ def action():
     return jsonify({"error": "Bad Request"}), 400
 
 if __name__ == "__main__":
-    # Render/Heroku এর জন্য পোর্ট
     port = int(os.environ.get("PORT", 10000))
-    
-    # Static ফোল্ডার তৈরি যদি না থাকে (HTML ফাইলের জন্য)
-    if not os.path.exists("static"):
-        os.makedirs("static")
-        
     app.run(host="0.0.0.0", port=port)
+
+# --- END OF FILE app.py ---
