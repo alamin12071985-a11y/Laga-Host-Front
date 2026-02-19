@@ -6,7 +6,7 @@ flask-cors==4.0.0
 Werkzeug==3.0.1
 gunicorn==21.2.0
 
-# Telegram Bot Libraries (All-in-One)
+# Telegram Bot Libraries (Pre-installed for faster deployment)
 pyTelegramBotAPI==4.17.0
 python-telegram-bot==21.3
 aiogram==3.7.0
